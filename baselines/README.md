@@ -1,169 +1,69 @@
 # Baselines for SemanticAlign-Bench
 
-> 目录：`Research_space/baselines/`
-> 用途：为 SemanticAlign-Bench 提供 paper→repo 的 agent 系统，生成 final repo 供语义对齐评估
+`baselines/` 放的是我们用来生成候选 repo 的基线系统。SemanticAlign-Bench 的测试流程不是“看代码能不能跑”，而是先让系统根据论文生成仓库，再把生成结果交给 `sa_bench`，按 SAU claims 逐条评分。
 
----
+## 系统概览
 
-## 已 Clone 的系统
+| 系统 | 作用 | 输入 | 备注 |
+| --- | --- | --- | --- |
+| `BasicAgent` | 我们自己的 ReAct baseline | `data/papers/<paper_id>/paper.md` + `config.yaml` + `blacklist.txt` | 静态-only，工具是 `bash` / `read_file_chunk` / `search_file` / `submit` |
+| `PaperCoder` | 专门的 paper-to-code 多 agent 系统 | PDF -> S2ORC JSON | 三阶段：planning / analysis / generation |
+| `OpenHands` | 通用 coding agent scaffold | 论文文本或 markdown | 批量测试时用 headless/static 模式 |
 
-```
-baselines/
-├── OpenHands/    ← 通用 agent scaffold，PaperBench 官方 baseline（21.0%）
-├── PaperCoder/   ← 专为 paper→repo 设计，PaperBench 45.1%
-└── DeepCode/     ← 多 agent 系统，支持 Paper2Code 模式
-```
+## 我们怎么用它测试自己的 benchmark
 
----
+1. 准备输入数据
+   - 每个 paper 放在 `data/papers/<paper_id>/`
+   - 关键文件是 `paper.md`、`config.yaml`、`sau.json`、`blacklist.txt`
+   - 其中 `sau.json` 是 `sa_bench` 的评分依据
 
-## 1. OpenHands
+2. 生成候选 repo
+   - `BasicAgent`：用 `experiments/run_basic_batch.py` 批量跑
+   - `OpenHands`：用 `experiments/run_openhands_batch.py` 批量跑
+   - `PaperCoder`：先按它自己的 README 把 PDF 转成 JSON，再运行它的脚本
+   - 最终用于评分的目录约定是 `experiments/runs/<generator>/<paper>/repo`
 
-**来源**：[All-Hands-AI/OpenHands](https://github.com/All-Hands-AI/OpenHands) | ICLR 2025
+3. 评分
+   - 批量评分：`python experiments/run_sau_score.py`
+   - 单篇评分：`python -m sa_bench --paper <paper_id> --repo <path>/repo --data-dir data/papers`
+   - `run_sau_score.py` 会把结果写到 `repo/result/<paper>-sau-score.json`
+   - 批量评分默认读取 `.env` 里的 `DEEPSEEK_API_KEY` 和 `DEEPSEEK_BASE_URL=https://api.deepseek.com`
 
-**定位**：通用 AI 软件工程 agent，能执行代码、浏览网页、操作文件系统。PaperBench 最强 agent 使用 Claude 3.5 Sonnet (New) + open-source scaffolding，得分 21.0%（论文原文：arXiv:2504.01848）。具体 scaffold 框架论文摘要未点名，OpenHands 是当时最主流的开源 coding agent，但需读论文方法章节确认。
+## 常用命令
 
-**安装**：
+BasicAgent:
+
 ```bash
-cd OpenHands
-pip install -e .
-export ANTHROPIC_API_KEY=sk-ant-...
+PAPERBENCH_RUNS_ROOT=experiments/runs/gpt4o_basic \
+python experiments/run_basic_batch.py \
+  --model gpt-4o \
+  --concurrency 4
 ```
 
-**Headless batch 模式**（适合批量跑 benchmark）：
+OpenHands:
+
 ```bash
-openhands --headless \
-  --task "Read /workspace/paper.md and generate a complete executable repository reproducing all experiments." \
-  --model anthropic/claude-sonnet-4-5 \
-  --workspace ./output/paper_name/
+PAPERBENCH_RUNS_ROOT=experiments/runs/openhands_deepseek \
+python experiments/run_openhands_batch.py \
+  --model deepseek-v4-pro \
+  --api-base https://api.deepseek.com \
+  --concurrency 2
 ```
 
-**批量脚本**：
-```bash
-for paper in papers/*.md; do
-  name=$(basename $paper .md)
-  openhands --headless \
-    --task "$(cat paper_repro_prompt.txt)
+PaperCoder:
 
-Paper content:
-$(cat $paper)" \
-    --model anthropic/claude-sonnet-4-5 \
-    --workspace ./outputs/$name
-done
-```
+- 详细流程看 [`PaperCoder/README.md`](PaperCoder/README.md)
 
-**Paper reproduction prompt 模板**：
-```
-You are a research engineer. Reproduce the experiments from the following ML paper.
-1. Create a complete Python repository (model.py, train.py, data.py, requirements.txt, README.md)
-2. Implement all models, datasets, baselines, and training procedures described in the paper
-3. Ensure the code is executable and reproduces the main results
-4. Write all files to /workspace/reproduction/
-```
+## 目录约定
 
-**与 PaperBench 的关系**：OpenHands 是 PaperBench 的 reference agent，可直接用 PaperBench harness 运行：
-```bash
-git clone https://github.com/openai/preparedness
-cd preparedness/project/paperbench
-# 按 README 配置 OpenHands 作为 agent
-```
+- `data/papers/`：benchmark 输入
+- `experiments/runs/`：生成出来的 repo 和评分结果
+- `experiments/specs/`：每次运行的配置快照
+- `experiments/logs/`：generator 日志
+- `experiments/score_progress/`：批量评分进度
 
----
+## 相关入口
 
-## 2. PaperCoder（Paper2Code）
-
-**来源**：[HimJoe/paper2code](https://github.com/HimJoe/paper2code) | arXiv:2504.17192
-
-**定位**：专为 paper→repo 设计的三阶段多 agent 系统：Planning（架构设计）→ Analysis（算法提取）→ Generation（代码生成）。PaperBench 得分 45.1%，是目前最强的专用系统。
-
-**安装**：
-```bash
-cd PaperCoder
-pip install openai
-```
-
-**输入格式**：需要先把 PDF 转成 JSON（用 s2orc-doc2json）：
-```bash
-# 安装 PDF 转换工具
-git clone https://github.com/allenai/s2orc-doc2json.git
-cd s2orc-doc2json/grobid-0.7.3 && ./gradlew run  # 启动 Grobid 服务
-
-# 转换 PDF
-python s2orc-doc2json/doc2json/grobid2json/process_pdf.py \
-  -i paper.pdf -t ./temp/ -o ./output/
-```
-
-**运行**：
-```bash
-cd scripts
-bash run.sh  # 默认跑 Attention is All You Need 示例
-```
-
-**注意**：PaperCoder 依赖 OpenAI API（o3-mini 或 GPT-4o），不支持 Anthropic。
-
----
-
-## 3. DeepCode
-
-**来源**：[HKUDS/DeepCode](https://github.com/HKUDS/DeepCode) | arXiv:2512.07921
-
-**定位**：HKU 数据智能实验室开发的多 agent 编程系统，支持 Paper2Code、Text2Web、Text2Backend 三种模式。支持 OpenAI-compatible API（可接 Claude、GPT-5 等）。
-
-**安装（本地模式，无 Docker）**：
-```bash
-cd DeepCode
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv venv --python=3.13
-source .venv/bin/activate
-uv pip install -r requirements.txt
-
-# 配置 API key
-cp mcp_agent.secrets.yaml.example mcp_agent.secrets.yaml
-# 编辑 mcp_agent.secrets.yaml，填入 API key
-```
-
-**运行**：
-```bash
-deepcode --local  # 本地模式（无 Docker）
-# 或
-deepcode          # Docker 模式（推荐）
-```
-
-**Paper2Code 模式**：在 UI 或 CLI 中选择 Paper2Code 任务类型，输入论文 PDF 或 arXiv URL。
-
----
-
-## 4. Claude Sonnet 直接 API（无 scaffold）
-
-**定位**：最简单的 lower bound baseline，单次生成，无 agent loop，无工具调用。
-
-**运行**：
-```python
-import anthropic
-
-client = anthropic.Anthropic()
-paper_text = open("paper.md").read()
-
-response = client.messages.create(
-    model="claude-sonnet-4-5",
-    max_tokens=8192,
-    messages=[{
-        "role": "user",
-        "content": f"""Generate a complete Python repository that reproduces the experiments in this paper.
-Output all files with their full content.
-
-Paper:
-{paper_text}"""
-    }]
-)
-```
-
----
-
-## 系统对比
-
-| 系统 | 类型 | PaperBench 分数 | 输入格式 | 开源 | 适合 batch |
-|------|------|--------------|--------|------|----------|
-| OpenHands | 通用 agent | **21.0%** | 文本 prompt | ✅ | ✅ headless |
-| PaperCoder | 专用 paper→repo | **45.1%** | PDF→JSON | ✅ | ✅ Python API |
-| DeepCode | 多 agent | 未测 | PDF / arXiv URL | ✅ | ⚠️ UI 为主 |
-| Claude 直接 API | 单次生成 | 未测（模型同 OpenHands） | 文本 | ❌ | ✅ |
+- [`../README.md`](../README.md)：项目总说明
+- [`../experiments/run_sau_score.py`](../experiments/run_sau_score.py)：批量 SAU 评分
+- [`../sa_bench/cli.py`](../sa_bench/cli.py)：单篇或自定义 repo 的评分 CLI
