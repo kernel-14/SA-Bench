@@ -1,0 +1,19 @@
+# Core scientific computing
+numpy
+scipy
+pandas
+scikit-learn
+matplotlib
+
+# YAML configuration
+pyyaml
+
+# LLM API clients (install as needed based on which models you use)
+openai
+anthropic
+google-generativeai
+together
+
+# Optional: for Jupyter notebooks
+jupyter
+ipykernel

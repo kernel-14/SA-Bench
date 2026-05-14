@@ -1,0 +1,97 @@
+## config.yaml
+# Shared configuration for reproduction of "Bridging Neural Operator and Flow Matching"
+
+data:
+  h5_path: "/path/to/processed_data.h5"   # Preprocessed HDF5 file
+  sub_datasets:
+    - fno_v3
+    - fno_v4
+    - fno_v5
+    - pa_ns
+    - pa_nsc
+    - pa_swe
+    - pb_cns
+    - pb_swe
+    - w_am
+    - w_gs
+    - w_swe
+    - w_rb
+    - w_sf
+    - w_tr
+    - w_ve
+  seq_len: 4
+  image_size: 128
+  channels: 3
+  normalize: "minmax"                     # "minmax" or "zscore"
+  val_split: 0.1
+  test_split: 0.1
+  use_equal_sampling: true
+
+p2vae:
+  base_dim: 64                           # P2VAE-16M (use 128 for P2VAE-87M)
+  latent_dim: 16
+  kl_beta: 0.001
+  optimizer:
+    name: "adamw"
+    lr: 0.0001                           # base lr for batch_size 256
+    betas: [0.9, 0.995]
+    weight_decay: 0.0001
+  scheduler:
+    type: "cosine"
+    warmup_ratio: 0.1
+  total_steps: 100000
+  batch_size: 256                        # total effective batch size
+  gradient_accumulation: 1
+  mixed_precision: true                  # fp16
+
+fmt:
+  variant: "base"                        # "small", "base", "large"
+  small:
+    dim: 256
+    depth: 12
+    heads: 8
+  base:
+    dim: 512
+    depth: 12
+    heads: 8
+  large:
+    dim: 768
+    depth: 24
+    heads: 12
+  pyramid_factors: [8, 4, 2, 1]         # downsampling per frame (0..3)
+  latent_dim: 16                         # input latent channels
+  diffusion_forcing:
+    gru_hidden: null                     # if null, same as transformer dim
+  optimizer:
+    name: "adamw"
+    lr: 0.0001                           # base lr for batch_size 256
+    betas: [0.9, 0.95]
+    weight_decay: 0.01
+  scheduler:
+    type: "cosine"
+    warmup_ratio: 0.1
+  total_steps: 100000
+  batch_size: 256
+  gradient_accumulation: 1
+  mixed_precision: true
+
+inference:
+  ode_steps: 100
+  dt: 0.01
+  deterministic_k: 1.0                   # for prediction
+  stochastic_k: [0.0, 0.3, 0.6, 0.9]    # for ensemble generation
+  ensemble_size: 32
+
+finetuning:
+  dataset: "kolmogorov"
+  train_trajectories: 200
+  test_trajectories: 500
+  lambda_vae: 1.0
+  steps: 5000
+  batch_size: 32
+  lr: 0.00005
+
+logging:
+  log_every_n_steps: 100
+  checkpoint_dir: "./checkpoints"
+  use_wandb: false

@@ -1,0 +1,9 @@
+{
+  "paper_id": "masked-diffusion-token-ordering",
+  "run_id": "masked-diffusion-token-ordering-20260506-203610",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 251.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 12
+}

@@ -1,0 +1,36 @@
+# config.yaml
+training:
+  learning_rate: 0.01 # Not specified in paper, common default for gradient ascent, may require tuning.
+  num_iterations_exp1: 2000 # As specified in Section 4 for Figure 1(a).
+  num_iterations_exp2: 2000 # Not explicitly specified, assuming 2000 iterations for consistency with Exp1 plot duration.
+  num_iterations_exp3: 3000 # As specified in Section 4 for Figure 2.
+
+mdp_config:
+  experiment1:
+    mdp_sizes:
+      - [3, 3]
+      - [9, 9]
+      - [81, 81]
+    reward_variance_level: "max variance" # As specified in Section C.1.
+
+  experiment2:
+    fixed_S: 16 # As specified in Section C.2.
+    fixed_A: 16 # As specified in Section C.2.
+    reward_variance_levels: # As specified in Section C.2.
+      - "no variance"
+      - "low variance"
+      - "high variance"
+      - "max variance"
+
+  experiment3:
+    fixed_S: 16 # As specified in Section C.3.
+    fixed_A: 16 # As specified in Section C.3.
+    transition_types: # As specified in Section C.3.
+      - "uniform"
+      - "non-uniform"
+      - "deterministic"
+    reward_variance_level: "high variance" # As specified in Section C.3.
+
+general:
+  random_seed: 42 # For reproducibility of random MDP generation and initial policies.
+  plot_dir: "plots" # Directory to save generated plots.

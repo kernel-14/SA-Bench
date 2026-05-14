@@ -1,0 +1,9 @@
+{
+  "paper_id": "ngpt",
+  "run_id": "ngpt-20260506-230110",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 826.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 39
+}

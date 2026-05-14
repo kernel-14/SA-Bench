@@ -1,0 +1,132 @@
+{
+  "case_id": "conformal-bayesian-quadrature",
+  "run_id": "conformal-bayesian-quadrature-20260505-164440",
+  "model_name": "gpt-4o",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 194337,
+    "total_output_tokens": 2627,
+    "total_tokens": 196964,
+    "estimated_cost_usd": 0.6224,
+    "elapsed_seconds": 121.3,
+    "steps": 19,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 2.36,
+        "input_tokens": 1203,
+        "output_tokens": 24
+      },
+      {
+        "step": 2,
+        "elapsed_s": 2.14,
+        "input_tokens": 1245,
+        "output_tokens": 27
+      },
+      {
+        "step": 3,
+        "elapsed_s": 2.7,
+        "input_tokens": 2976,
+        "output_tokens": 32
+      },
+      {
+        "step": 4,
+        "elapsed_s": 2.8,
+        "input_tokens": 4277,
+        "output_tokens": 32
+      },
+      {
+        "step": 5,
+        "elapsed_s": 2.91,
+        "input_tokens": 5442,
+        "output_tokens": 32
+      },
+      {
+        "step": 6,
+        "elapsed_s": 16.83,
+        "input_tokens": 6671,
+        "output_tokens": 438
+      },
+      {
+        "step": 7,
+        "elapsed_s": 3.87,
+        "input_tokens": 8356,
+        "output_tokens": 32
+      },
+      {
+        "step": 8,
+        "elapsed_s": 4.22,
+        "input_tokens": 9765,
+        "output_tokens": 32
+      },
+      {
+        "step": 9,
+        "elapsed_s": 10.18,
+        "input_tokens": 11831,
+        "output_tokens": 433
+      },
+      {
+        "step": 10,
+        "elapsed_s": 4.71,
+        "input_tokens": 12576,
+        "output_tokens": 22
+      },
+      {
+        "step": 11,
+        "elapsed_s": 4.39,
+        "input_tokens": 12697,
+        "output_tokens": 48
+      },
+      {
+        "step": 12,
+        "elapsed_s": 3.67,
+        "input_tokens": 13010,
+        "output_tokens": 26
+      },
+      {
+        "step": 13,
+        "elapsed_s": 16.88,
+        "input_tokens": 13063,
+        "output_tokens": 413
+      },
+      {
+        "step": 14,
+        "elapsed_s": 8.58,
+        "input_tokens": 14029,
+        "output_tokens": 162
+      },
+      {
+        "step": 15,
+        "elapsed_s": 10.88,
+        "input_tokens": 14204,
+        "output_tokens": 316
+      },
+      {
+        "step": 16,
+        "elapsed_s": 6.03,
+        "input_tokens": 15173,
+        "output_tokens": 72
+      },
+      {
+        "step": 17,
+        "elapsed_s": 7.16,
+        "input_tokens": 15265,
+        "output_tokens": 316
+      },
+      {
+        "step": 18,
+        "elapsed_s": 6.28,
+        "input_tokens": 16234,
+        "output_tokens": 66
+      },
+      {
+        "step": 19,
+        "elapsed_s": 4.6,
+        "input_tokens": 16320,
+        "output_tokens": 104
+      }
+    ]
+  }
+}

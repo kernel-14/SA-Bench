@@ -1,0 +1,121 @@
+# config.yaml
+training:
+  stages:
+    - name: "Stage 1: Image Training"
+      global_batch_size: 1536
+      learning_rate: 1e-4
+      training_steps: 50000
+      warmup_steps: 1000
+      optimizer_beta1: 0.9
+      optimizer_beta2: 0.999
+      optimizer_epsilon: 1e-6
+      gradient_clipping: 1.0
+      weight_decay: 1e-4
+      dataset_type: "image"
+      dataset_names: ["LAION-5B-Aesthetic-Subset", "CC-12M", "SA-1B-NonBlurred", "JourneyDB", "Synthetic-Public"]
+      dataset_paths: # Placeholder for actual paths
+        LAION-5B-Aesthetic-Subset: "/data/laion_aesthetic"
+        CC-12M: "/data/cc12m"
+        SA-1B-NonBlurred: "/data/sa1b_nonblurred"
+        JourneyDB: "/data/journeydb"
+        Synthetic-Public: "/data/synthetic_public"
+    - name: "Stage 2: Low-Resolution Video Training"
+      global_batch_size: 768
+      learning_rate: 1e-4
+      training_steps: 200000 # 80k for 2s + 120k for 5s
+      warmup_steps: 1000
+      optimizer_beta1: 0.9
+      optimizer_beta2: 0.95
+      optimizer_epsilon: 1e-6
+      gradient_clipping: 1.0
+      weight_decay: 1e-4
+      dataset_type: "video"
+      dataset_names: ["WebVid-10M", "OpenVid-1M", "Open-Sora-Plan-1M-NoWatermark"]
+      dataset_paths: # Placeholder for actual paths
+        WebVid-10M: "/data/webvid10m"
+        OpenVid-1M: "/data/openvid1m"
+        Open-Sora-Plan-1M-NoWatermark: "/data/open_sora_plan"
+      image_data_proportion: 0.125 # 12.5% image data from Stage 1 in each batch
+      history_condition_noise_strength: [0.0, 0.33333333] # Uniformly sampled from [0, 1/3]
+    - name: "Stage 3: High-Resolution Video Training"
+      global_batch_size: 384
+      learning_rate: 5e-5
+      training_steps: 50000
+      warmup_steps: 1000
+      optimizer_beta1: 0.9
+      optimizer_beta2: 0.95
+      optimizer_epsilon: 1e-6
+      gradient_clipping: 1.0
+      weight_decay: 1e-4
+      dataset_type: "video"
+      dataset_names: ["WebVid-10M", "OpenVid-1M", "Open-Sora-Plan-1M-NoWatermark"] # Same datasets, varying durations (5-10s)
+      dataset_paths: # Placeholder for actual paths
+        WebVid-10M: "/data/webvid10m"
+        OpenVid-1M: "/data/openvid1m"
+        Open-Sora-Plan-1M-NoWatermark: "/data/open_sora_plan"
+      history_condition_noise_strength: [0.0, 0.33333333]
+
+model:
+  name: "PyramidalFlowMatching"
+  dit_backbone_name: "SD3_Medium" # Based on the paper's mention
+  dit_params:
+    num_layers: 24
+    num_attention_heads: 16 # Common for 2B models, needs confirmation
+    hidden_size: 1024 # Common for 2B models, needs confirmation
+    mlp_ratio: 4 # Common, needs confirmation
+    in_channels: 4 # VAE output channels
+    out_channels: 4 # Velocity field output channels
+    block_wise_causal_attention: True
+  text_encoder:
+    t5_model_name: "google/t5-v1_1-large" # Placeholder, actual T5 model not specified
+    clip_model_name: "openai/clip-vit-large-patch14" # Placeholder, actual CLIP model not specified
+    max_text_length: 77 # Common
+  vae:
+    name: "VideoVAE"
+    compression_rate: [8, 8, 8] # Spatial, Temporal
+    latent_channels: 4 # Placeholder, common for latent diffusion
+    base_channels: 128 # Placeholder, common
+    num_res_blocks: 2 # Placeholder, common
+    attn_resolutions: [16] # Placeholder, common
+    use_causal_conv3d: True # For 3D causal convolutions
+    kl_regularization: True
+    # Placeholder for specific architecture details if found/determined
+  pyramid_stages: 3
+  spatial_pyramid_time_windows: # Placeholder, derived from s_k, e_k
+    - [0.0, 0.33] # Example, needs derivation based on formula e_k+1 = 2s_k / (1+s_k)
+    - [0.33, 0.66]
+    - [0.66, 1.0]
+  # Specific s_k values will need to be derived based on the renoising formula.
+  # Assuming for K=3, the highest resolution stage is k=0, lowest k=2.
+  # Let's propose a base s_k that ensures valid e_k+1 from the formula.
+  # If s_0 is the end of the last stage, then s_k would be decreasing towards 0.
+  # This needs to be carefully determined.
+  # Let's assume s_k values are set to ensure appropriate overlaps and continuity.
+  # For now, these are illustrative and need precise calculation based on paper's formula.
+
+inference:
+  guidance_scale: 7.0 # Common value, not specified in paper
+  num_inference_steps: 50 # Common value for ODE solvers, not specified
+  ode_solver: "dpm_solver" # Placeholder, not specified in paper
+  output_resolution: [768, 768] # 768p
+  output_fps: 24
+  output_duration: 5 # seconds, for standard evaluation
+  max_output_duration: 10 # seconds, model capable of up to 10s
+  seed: 42
+
+evaluation:
+  vbench_path: "/path/to/VBENCH_scripts"
+  evalcrafter_path: "/path/to/EVALCRAFTER_scripts"
+  evaluation_prompts_path: "/data/evaluation_prompts.txt" # Path to list of prompts for evaluation
+  generated_video_output_dir: "./generated_videos"
+
+compute:
+  device: "cuda"
+  num_gpus: 128 # For training, can be adjusted for local inference/smaller runs
+  mixed_precision: "bfloat16"
+
+data_paths:
+  image_data_root: "/data/images" # Root for all image datasets
+  video_data_root: "/data/videos" # Root for all video datasets
+  vae_weights: "./weights/vae.pth" # Path to pre-trained VAE weights
+  model_weights: "./weights/pyramidal_flow_matching_model.pth" # Path to pre-trained model weights

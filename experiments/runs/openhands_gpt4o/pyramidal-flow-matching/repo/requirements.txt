@@ -1,0 +1,7 @@
+# requirements.txt
+
+torch
+torchvision
+tqdm
+numpy
+pandas

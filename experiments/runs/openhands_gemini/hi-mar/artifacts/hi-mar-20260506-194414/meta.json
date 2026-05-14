@@ -1,0 +1,9 @@
+{
+  "paper_id": "hi-mar",
+  "run_id": "hi-mar-20260506-194414",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 1743.4,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 50
+}

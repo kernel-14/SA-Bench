@@ -1,0 +1,141 @@
+## config.yaml
+# General Configuration
+device: "cuda" # Or "cpu", based on available hardware
+output_dir: "./output"
+project_name: "himar_reproduction"
+seed: 42
+
+# Tokenizer Configuration
+# The paper refers to "pre-trained variational autoencoder (KL-16 version) trained by MAR (Li et al., 2024)".
+# If this specific VAE is not publicly available, a compatible VAE from another source (e.g., Diffusers library)
+# would need to be adopted. We assume an 8x downsampling factor.
+tokenizer:
+  vae_path: "path/to/pretrained/mar_kl16_vae.pt" # Placeholder: Path to the specific MAR VAE checkpoint
+  latent_channels: 4 # Common latent channel dimension for 8x downsampling VAEs (e.g., Stable Diffusion)
+  high_res_image_size: 256 # Input image size for high-resolution tokens
+  low_res_image_size: 128 # Input image size for low-resolution tokens
+  # Based on 8x downsampling:
+  # 256x256 image -> 32x32 latent grid (1024 tokens)
+  # 128x128 image -> 16x16 latent grid (256 tokens)
+
+# CLIP Text Encoder Configuration (for Text-to-Image tasks)
+# The paper states "following Stable Diffusion (Rombach et al., 2022), we convert captions
+# into a sequence of text embeddings with CLIP text encoder."
+clip_text_encoder:
+  model_name: "openai/clip-vit-large-patch14" # Common choice for Stable Diffusion
+
+# Model Configuration - Variants (Table 1 from paper)
+model_config:
+  variant: "Hi-MAR-B" # Select from "Hi-MAR-B", "Hi-MAR-L", "Hi-MAR-H"
+  num_scales: 2 # Always 2 for Hi-MAR (low-res and high-res)
+  common_transformer_params: # Parameters common to all Hi-MAR Transformer blocks (Hi-MAR backbone and Diffusion Transformer head)
+    num_attention_heads: 12 # Not specified, common default for hidden size 768/1024
+    dropout_rate: 0.1 # Not specified, common default
+    ffn_multiplier: 4 # Not specified, common default for FFN expansion
+    activation_fn: "GELU" # Not specified, common default
+  variants_details: # Details for each model variant, used by Config.get_model_config()
+    Hi-MAR-B:
+      himar_transformer_layers: 24
+      himar_hidden_size: 768
+      diff_head1_layers: 6
+      diff_head1_hidden_size: 1024
+      diff_head2_layers: 6
+      diff_head2_hidden_size: 512
+      # total_params_M: 244 # For reference, not used in model construction
+    Hi-MAR-L:
+      himar_transformer_layers: 32
+      himar_hidden_size: 1024
+      diff_head1_layers: 8
+      diff_head1_hidden_size: 1280
+      diff_head2_layers: 8
+      diff_head2_hidden_size: 512
+      # total_params_M: 529 # For reference
+    Hi-MAR-H:
+      himar_transformer_layers: 40
+      himar_hidden_size: 1280
+      diff_head1_layers: 12
+      diff_head1_hidden_size: 1536
+      diff_head2_layers: 12
+      diff_head2_hidden_size: 768
+      # total_params_M: 1090 # For reference
+
+# Training Configuration
+training:
+  optimizer:
+    name: "AdamW"
+    betas: [0.9, 0.95]
+    eps: 1e-8 # Common default for AdamW
+  ema_momentum: 0.9999 # "The exponential moving average is adopted with a momentum of 0.9999." (Mentioned for MS-COCO, assume general best practice)
+  gradient_accumulation_steps: 1 # Not specified, default to 1
+
+  # ImageNet Specific Training (Class-Conditional)
+  imagenet:
+    enabled: true
+    dataset_name: "ImageNet"
+    data_path: "path/to/imagenet/dataset" # Placeholder
+    learning_rate: 1e-4 # "constant lr schedule with a 1e-4 learning rate"
+    weight_decay: 0.02 # "0.02 weight decay"
+    epochs: 800 # "for 800 epochs"
+    warmup_epochs: 100 # "100-epoch linear warmup"
+    batch_size: 128 # Inferred from "batch size 128" for speed test on H100
+    phase1_masking_strategy: "random_uniform" # "In the first phase, the masking ratio is randomly sampled in [0.7, 1.0] as MAR"
+    phase1_masking_params: [0.7, 1.0] # [min_ratio, max_ratio]
+    phase2_masking_strategy: "cosine" # "the second phase uses the cosine masking strategy following MaskGIT"
+    conditional_type: "class" # Class-conditional generation
+    log_every_n_steps: 100
+    validate_every_n_epochs: 10
+
+  # MS-COCO Specific Training (Text-to-Image)
+  mscoco:
+    enabled: false # Set to true to train on MS-COCO
+    dataset_name: "MS-COCO"
+    data_path: "path/to/mscoco/dataset" # Placeholder
+    learning_rate: 8e-4 # "an 8e-4 learning rate"
+    weight_decay: 0.03 # "0.03 weight decay"
+    warmup_steps: 8000 # "8K-step linear warmup"
+    # epochs: Not explicitly stated for MS-COCO, a reasonable default might be 100-300 epochs given the warmup steps.
+    # We will use epochs for consistency, but steps based LR might be more appropriate.
+    epochs: 200 # Placeholder: needs to be chosen or inferred.
+    batch_size: 64 # Placeholder: not explicitly stated, common for T2I
+    # "randomly sample the masking ratio by Beta distribution (alpha=4, beta=1)"
+    # Assumed to apply to both phases.
+    phase1_masking_strategy: "beta_distribution"
+    phase1_masking_params: [4, 1] # [alpha, beta]
+    phase2_masking_strategy: "beta_distribution"
+    phase2_masking_params: [4, 1]
+    conditional_type: "text" # Text-to-image generation
+    log_every_n_steps: 50
+    validate_every_n_epochs: 5
+
+# Generation/Inference Configuration
+generation:
+  noise_scheduler_type: "cosine" # Standard cosine noise schedule (for both training and inference diffusion process)
+  inference_steps:
+    phase1: 32 # "we use 32 and 4 steps for the first and second phases"
+    phase2: 4 # "we use 32 and 4 steps for the first and second phases"
+  guidance_scale: 7.0 # Not specified in paper. Common default for diffusion/AR models, requires tuning.
+  # "For our method under the w/o CFG setting, the CFG is only turned off during the prediction of dense tokens"
+  # This implies CFG is ON for Phase 1 even in 'w/o CFG' imageNet eval.
+  phase1_cfg_on_for_eval: true
+  num_generated_samples_per_run: 16 # For qualitative examples
+  save_generated_images: true
+
+# Evaluation Configuration
+evaluation:
+  imagenet:
+    enabled: true
+    num_samples: 50000 # "on 50K generated samples"
+    metrics: ["FID", "IS", "Precision", "Recall"]
+    # Real image features path (for FID/Precision/Recall calculation, precomputed to save time)
+    real_features_path: "path/to/imagenet_real_features.npz" # Placeholder
+    # Classifier-Free Guidance during evaluation:
+    # 'true' for 'w/CFG' setting, 'false' for 'w/o CFG' setting in Table 2
+    eval_with_cfg: true
+    eval_without_cfg: true
+  mscoco:
+    enabled: false # Set to true to evaluate on MS-COCO
+    num_samples: 30000 # "randomly draw 30K prompts from the validation set"
+    metrics: ["FID", "T2I-CompBench"]
+    real_features_path: "path/to/mscoco_real_features.npz" # Placeholder
+    evaluation_prompts_file: "path/to/mscoco_val_prompts.json" # Placeholder for 30K validation prompts
+    eval_with_cfg: true # For MS-COCO, assume CFG is always used for best results

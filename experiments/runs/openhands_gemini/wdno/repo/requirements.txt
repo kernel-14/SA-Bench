@@ -1,0 +1,9 @@
+
+torch
+numpy
+scipy
+pytorch_wavelets
+einops
+tqdm
+matplotlib
+opencv-python

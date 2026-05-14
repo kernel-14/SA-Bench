@@ -1,0 +1,9 @@
+{
+  "paper_id": "hi-mar",
+  "run_id": "hi-mar-20260506-164109",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 408.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 29
+}

@@ -1,0 +1,14 @@
+model:
+  modes: 8
+  width: 20
+  layers: 4
+
+training:
+  epochs: 100
+  learning_rate: 0.001
+  batch_size: 16
+
+data:
+  train_size: 1000
+  val_size: 200
+  test_size: 200

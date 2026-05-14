@@ -1,0 +1,186 @@
+{
+  "case_id": "sc-fno",
+  "run_id": "sc-fno-20260504-133556",
+  "model_name": "deepseek-v4-pro",
+  "api_base_url": "https://api.deepseek.com",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 1787659,
+    "total_output_tokens": 44325,
+    "total_tokens": 1831984,
+    "estimated_cost_usd": 6.0279,
+    "elapsed_seconds": 1255.1,
+    "steps": 28,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 5.01,
+        "input_tokens": 1654,
+        "output_tokens": 136
+      },
+      {
+        "step": 2,
+        "elapsed_s": 5.91,
+        "input_tokens": 1900,
+        "output_tokens": 167
+      },
+      {
+        "step": 3,
+        "elapsed_s": 5.05,
+        "input_tokens": 16887,
+        "output_tokens": 112
+      },
+      {
+        "step": 4,
+        "elapsed_s": 4.34,
+        "input_tokens": 23160,
+        "output_tokens": 96
+      },
+      {
+        "step": 5,
+        "elapsed_s": 4.06,
+        "input_tokens": 30191,
+        "output_tokens": 96
+      },
+      {
+        "step": 6,
+        "elapsed_s": 6.36,
+        "input_tokens": 30306,
+        "output_tokens": 187
+      },
+      {
+        "step": 7,
+        "elapsed_s": 19.31,
+        "input_tokens": 30964,
+        "output_tokens": 587
+      },
+      {
+        "step": 8,
+        "elapsed_s": 89.57,
+        "input_tokens": 31670,
+        "output_tokens": 3031
+      },
+      {
+        "step": 9,
+        "elapsed_s": 3.48,
+        "input_tokens": 38632,
+        "output_tokens": 61
+      },
+      {
+        "step": 10,
+        "elapsed_s": 4.22,
+        "input_tokens": 38794,
+        "output_tokens": 112
+      },
+      {
+        "step": 11,
+        "elapsed_s": 5.85,
+        "input_tokens": 39365,
+        "output_tokens": 194
+      },
+      {
+        "step": 12,
+        "elapsed_s": 85.02,
+        "input_tokens": 39814,
+        "output_tokens": 2897
+      },
+      {
+        "step": 13,
+        "elapsed_s": 48.16,
+        "input_tokens": 46300,
+        "output_tokens": 1607
+      },
+      {
+        "step": 14,
+        "elapsed_s": 44.87,
+        "input_tokens": 51046,
+        "output_tokens": 1462
+      },
+      {
+        "step": 15,
+        "elapsed_s": 64.88,
+        "input_tokens": 55153,
+        "output_tokens": 2148
+      },
+      {
+        "step": 16,
+        "elapsed_s": 47.69,
+        "input_tokens": 60876,
+        "output_tokens": 1558
+      },
+      {
+        "step": 17,
+        "elapsed_s": 237.66,
+        "input_tokens": 65479,
+        "output_tokens": 9467
+      },
+      {
+        "step": 18,
+        "elapsed_s": 70.32,
+        "input_tokens": 78812,
+        "output_tokens": 2323
+      },
+      {
+        "step": 19,
+        "elapsed_s": 114.89,
+        "input_tokens": 84738,
+        "output_tokens": 4590
+      },
+      {
+        "step": 20,
+        "elapsed_s": 71.57,
+        "input_tokens": 92474,
+        "output_tokens": 2796
+      },
+      {
+        "step": 21,
+        "elapsed_s": 63.64,
+        "input_tokens": 98167,
+        "output_tokens": 2096
+      },
+      {
+        "step": 22,
+        "elapsed_s": 80.22,
+        "input_tokens": 103398,
+        "output_tokens": 2706
+      },
+      {
+        "step": 23,
+        "elapsed_s": 72.26,
+        "input_tokens": 111286,
+        "output_tokens": 2820
+      },
+      {
+        "step": 24,
+        "elapsed_s": 58.04,
+        "input_tokens": 117429,
+        "output_tokens": 1883
+      },
+      {
+        "step": 25,
+        "elapsed_s": 3.94,
+        "input_tokens": 122741,
+        "output_tokens": 62
+      },
+      {
+        "step": 26,
+        "elapsed_s": 5.95,
+        "input_tokens": 124260,
+        "output_tokens": 151
+      },
+      {
+        "step": 27,
+        "elapsed_s": 10.29,
+        "input_tokens": 125395,
+        "output_tokens": 290
+      },
+      {
+        "step": 28,
+        "elapsed_s": 22.02,
+        "input_tokens": 126768,
+        "output_tokens": 690
+      }
+    ]
+  }
+}

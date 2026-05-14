@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "This submission provides a comprehensive architectural framework and training pipeline based on the core contributions of the paper 'Towards Universal Neural Operators through Multiphysics Pretraining'. It includes implementations of FNO, MambaFNO, and PerceiverFNO models, adapter-based lifting and projection layers, a universal neural operator for pre-training and fine-tuning, and the NMAE evaluation metric. The repository structure and a detailed README.md file describe the implemented components and highlight any assumptions made during the reproduction process.",
+  "steps": 42,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/universal-neural-operators/universal-neural-operators-20260505-151805/workspace/repo"
+}

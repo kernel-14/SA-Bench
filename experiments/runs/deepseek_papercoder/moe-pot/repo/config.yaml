@@ -1,0 +1,77 @@
+## config.yaml
+
+# Model architecture size: "tiny", "small", "medium"
+model_size: "small"
+
+# Data settings
+data:
+  spatial_resolution: [128, 128]          # H, W
+  input_frames: 10                         # T_in
+  max_channels: 5                          # padding constant (CNS:4 + mask)
+  mask_channel_index: 4                    # index of mask channel (0-based)
+  noise_std: 0.01                          # epsilon for pre-training noise (only during pretrain)
+  balanced_sampling_weight: 1.0            # w_k for all datasets
+
+# Pretraining hyperparameters
+pretrain:
+  epochs: 1000
+  warmup_epochs: 200
+  learning_rate: 0.001
+  weight_decay: 1.0e-6
+  beta1: 0.9
+  beta2: 0.9
+  batch_size: 20                           # total across GPUs
+  load_balance_weight: 0.1
+  noise_enabled: true
+
+# Fine‑tuning hyperparameters (on pre‑training datasets)
+finetune:
+  epochs: 200
+  warmup_epochs: 40
+  learning_rate: 0.001
+  freeze_router: true
+  noise_enabled: false
+
+# Downstream task hyperparameters
+downstream:
+  epochs: 500
+  warmup_epochs: 100
+  learning_rate: 0.001
+  freeze_router: true
+  noise_enabled: false
+
+# Model component details (automatically set from model_size in code)
+# but listed here for reference:
+# tiny:
+#   attention_dim: 512
+#   mlp_dim: 512
+#   n_blocks: 4
+#   n_heads: 4
+#   routed_experts: 16
+#   shared_experts: 2
+#   top_k: 4
+#   patch_size: 8
+# small:
+#   attention_dim: 1024
+#   mlp_dim: 1024
+#   n_blocks: 6
+#   n_heads: 8
+#   routed_experts: 16
+#   shared_experts: 2
+#   top_k: 4
+#   patch_size: 8
+# medium:
+#   attention_dim: 1024
+#   mlp_dim: 2048
+#   n_blocks: 8
+#   n_heads: 8
+#   routed_experts: 16
+#   shared_experts: 2
+#   top_k: 4
+#   patch_size: 8
+
+# Evaluation settings
+evaluation:
+  rollout_steps: 10                        # number of future frames to predict for L2RE
+  warmup_inference: 10                     # warmup iterations for timing
+  repeat_inference: 100                    # measurement repeats for timing

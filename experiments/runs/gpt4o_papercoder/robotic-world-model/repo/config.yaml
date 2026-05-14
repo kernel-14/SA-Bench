@@ -1,0 +1,47 @@
+## config.yaml
+training:
+  learning_rate: 0.0001
+  batch_size: 1024
+  epochs: 2500
+  weight_decay: 0.00001
+  forecast_horizon: 8
+  history_horizon: 32
+  forecast_decay: 1.0
+  gradient_clip_val: 0.2
+  max_training_hours: 1
+
+model:
+  input_dim: 48  # Example: depends on the number of observation dimensions
+  hidden_dim: 256
+  architecture:
+    base: GRU
+    heads:
+      type: MLP
+      activation: ReLU
+      hidden_dim: 128
+  output_dim: 48  # Same as input_dim for predictions
+
+simulation:
+  control_frequency_hz: 50
+  state_transitions: 6000000  # Approximate transitions in pretraining dataset
+  replay_buffer_size: 1000
+  imagination_steps: 100
+
+policy_optimizer:
+  learning_rate: 0.001
+  discount_factor: 0.99
+  kl_target: 0.01
+  entropy_coeff: 0.005
+  ppo_epochs: 5
+  ppo_minibatches: 4
+  imagination_envs: 4096
+
+evaluation:
+  noise_levels: [0.05, 0.1, 0.2]  # Gaussian noise perturbations for robustness tests
+  test_tasks:
+    - QuadrupedVelocityTracking
+    - HumanoidTracking
+hardware:
+  robots: 
+    - ANYmal_D
+    - Unitree_G1

@@ -1,0 +1,15 @@
+# Core dependencies
+torch>=2.0
+torchvision>=0.15
+numpy
+Pillow
+scipy
+pycocotools
+pyyaml
+tqdm
+
+# Optional: for faster attention
+# flash-attn  # FlashAttention-2 for efficient attention kernels
+
+# Optional: for evaluation
+# davis2017-evaluation  # DAVIS evaluation toolkit

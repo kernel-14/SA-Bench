@@ -1,0 +1,178 @@
+## config.yaml
+# Global settings
+global:
+  seed: 42
+  output_dir: ./output
+  precision: bfloat16
+  mixed_precision: fp16  # for AMP
+  log_interval: 100
+
+# 3D VAE configuration (similar to MAGVIT-v2 but with KL regularization)
+vae:
+  architecture: magvit_v2_kl
+  input_channels: 3
+  latent_channels: 4
+  spatial_compression: 8   # 8x down in H and W
+  temporal_compression: 8   # 8x down in T
+  # Encoder channels at each level (from input to latent)
+  encoder_channels: [128, 256, 512, 512]   # 4 levels (including latent)
+  num_res_blocks: 2
+  # Training (VAE from scratch)
+  train:
+    batch_size: 8
+    learning_rate: 1e-4
+    weight_decay: 0.0
+    epochs: 100
+    kl_weight: 1e-6   # KL divergence weight
+    perceptual_loss_weight: 1.0
+    perceptual_loss_net: lpips_vgg
+  # Data for VAE training
+  data:
+    train_videos: "data/webvid10m/train/"
+    train_images: "data/sa1b_nonblurred/"
+
+# MM-DiT Architecture (based on SD3 Medium, 2B parameters)
+model:
+  base_architecture: sd3_medium   # Initialize from SD3 Medium weights
+  num_layers: 24
+  hidden_size: 1536
+  attention_heads: 24
+  mlp_ratio: 4.0
+  patch_size: [2, 2]   # Spatial patch size
+  temporal_rope: true   # Add 1D Rotary Position Embedding for time
+  causal_attention: true
+  text_conditioning:
+    use_t5: true
+    use_clip: true
+    t5_model_name: "google/t5-v1_1-xxl"
+    clip_model_name: "openai/clip-vit-large-patch14"
+    context_dim: 4096   # concatenated T5 + CLIP embedding dim? We'll set to sum
+  # Pyramidal flow matching
+  pyramid:
+    num_stages: 3   # K = 3
+    # Stage schedule: s_k (start), e_k (end) for each stage from coarsest (k=2) to finest (k=0)
+    # Derived from recursion e_{k+1} = 2*s_k/(1+s_k) and chosen values
+    schedules:
+      s: [0.0, 0.2, 0.5]   # coarsest to finest
+      e: [0.3333, 0.6667, 1.0]
+    down_mode: bilinear
+    up_mode: nearest   # must be nearest for renoising covariance
+
+# Temporal pyramid for autoregressive conditioning
+temporal_pyramid:
+  max_history_frames: 8
+  # Downsampling factors: offset -> factor relative to current stage resolution
+  # offset = distance from current frame (1=previous, 2=two back, etc.)
+  mapping:
+    - offset: [1, 2]   factor: 0   # no extra downsample
+    - offset: [3, 4]   factor: 1   # downsample by 2
+    - offset: [5, 8]   factor: 2   # downsample by 4
+  corrupt_noise_max: 0.333   # uniform [0, 1/3]
+  corrupt_noise_min: 0.0
+
+# Training stages
+training:
+  stage1:
+    name: image_pretraining
+    data:  # See dataset section for paths
+      type: image
+    batch_size:
+      tokens_per_batch: 262144   # approximate, will be packed; paper says global bs 1536 (samples?)
+      global_samples: 1536   # global batch size in number of images? Paper says "Global batch size 1536" in Table4 for stage1, likely refers to number of samples per step across GPUs
+    learning_rate: 1e-4
+    lr_schedule: constant
+    warmup_steps: 1000
+    steps: 50000
+    weight_decay: 1e-4
+    gradient_clipping: 1.0
+    optimizer:
+      name: AdamW
+      betas: [0.9, 0.999]
+      eps: 1.0e-6
+    gpu_count: 128
+    gpu_type: A100
+    estimated_time: 12h
+  stage2:
+    name: low_res_video
+    data:
+      type: video
+    video_frames: [2, 5]   # first 80k steps on 2s, next 120k on 5s
+    batch_size:
+      global_samples: 768   # from Table4 stage2
+    learning_rate: 1e-4
+    lr_schedule: constant
+    warmup_steps: 1000
+    steps:
+      short: 80000   # 2s videos
+      long: 120000   # 5s videos
+    weight_decay: 1e-4
+    gradient_clipping: 1.0
+    optimizer:
+      name: AdamW
+      betas: [0.9, 0.95]   # different beta2 for video
+      eps: 1.0e-6
+    gpu_count: 128
+    gpu_type: A100
+    estimated_time: 90h
+    history_window: 8   # number of past frames used as condition
+    image_data_ratio: 0.125   # 12.5% images in each batch
+  stage3:
+    name: high_res_video
+    data:
+      type: video
+    video_frames: [120, 241]   # 5s to 10s at 24fps
+    batch_size:
+      global_samples: 384
+    learning_rate: 5e-5
+    lr_schedule: constant
+    warmup_steps: 1000
+    steps: 50000
+    weight_decay: 1e-4
+    gradient_clipping: 1.0
+    optimizer:
+      name: AdamW
+      betas: [0.9, 0.95]
+      eps: 1.0e-6
+    gpu_count: 128
+    gpu_type: A100
+    estimated_time: 60h
+    history_window: 8
+    image_data_ratio: 0.125
+
+# Dataset paths (user must fill)
+datasets:
+  image:
+    laion_high_aesthetic: "/path/to/laion_5b_aesthetic/"
+    cc12m: "/path/to/cc12m/"
+    sa1b_nonblurred: "/path/to/sa1b/"
+    journeydb: "/path/to/journeydb/"
+    synthetic: "/path/to/synthetic/"
+  video:
+    webvid10m: "/path/to/webvid10m/"
+    openvid1m: "/path/to/openvid1m/"
+    opensora_plan_highres: "/path/to/opensora_plan_nw/"
+  recaptioning:   # If using recaptioning (VideoLLaMA2)
+    model: "videollama2"
+    results_cache: "/path/to/recaptions/"
+
+# Inference
+inference:
+  total_nfe: 60   # number of function evaluations across all stages
+  guidance_scale: 7.0
+  solver: euler
+  video:
+    default_fps: 24
+    default_resolution: [768, 768]   # H, W (square 768p)
+  renoising: true   # apply corrective noise at jumps
+
+# Evaluation
+evaluation:
+  vbench_prompts: "vbench_prompts.json"
+  evalcrafter_prompts: "evalcrafter_prompts.json"
+  output_dir: "./eval_videos"
+
+# Logging
+logging:
+  use_wandb: true
+  project: pyramidal-flow-matching
+  run_name: reproduce

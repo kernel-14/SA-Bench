@@ -1,0 +1,9 @@
+torch
+numpy
+gymnasium
+mujoco
+dm_control
+matplotlib
+scikit-learn
+wandb
+tqdm

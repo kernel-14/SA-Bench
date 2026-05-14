@@ -1,0 +1,66 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE & tools
+.claude/
+.codex/
+.ace-tool/
+
+# Build artifacts
+*.aux
+*.bbl
+*.blg
+*.out
+*.log
+*.pdf
+texput.log
+paper/draft_emnlp/main.pdf
+
+# Temp
+tmp/
+
+# Large experiment artifacts (not for GitHub)
+expgen/
+archive/
+experiments/logs/
+experiments/records/
+experiments/__pycache__/
+experiments/score_progress/
+experiments/verification/
+
+# Third-party nested git (avoid giant pack files)
+baselines/OpenHands/.git/
+
+# Dataset (hosted on HuggingFace)
+data/
+
+# Internal docs & configs (not for GitHub)
+HANDOFF-SAU-SCORING.md
+HF_DATASET_CARD_README.md
+configs/
+
+# Deprecated pipeline
+sau_pipeline/
+
+# Internal docs
+docs/
+deep_research.md
+paper_selection.md
+paper_selection_new30.md
+paperbench_rubric_analysis.md
+sau_extract_research_report.md
+SAU_EXTRACTION_PROMPT.md
+
+# Case study papers (PDFs not needed)
+paperbench_case_study/papers/
+
+# Old experiments
+experiments/sau_extract_eval_tmp/
+experiments/sau_extract_eval_pilot/
+paperbench_lite/

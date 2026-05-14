@@ -1,0 +1,9 @@
+{
+  "paper_id": "conformal-bayesian-quadrature",
+  "run_id": "conformal-bayesian-quadrature-20260506-173219",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1322.6,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 28
+}

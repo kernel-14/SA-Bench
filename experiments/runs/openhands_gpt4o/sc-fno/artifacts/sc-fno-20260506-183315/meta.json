@@ -1,0 +1,9 @@
+{
+  "paper_id": "sc-fno",
+  "run_id": "sc-fno-20260506-183315",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 380.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 40
+}

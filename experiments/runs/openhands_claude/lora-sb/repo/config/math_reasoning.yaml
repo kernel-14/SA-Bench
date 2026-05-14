@@ -1,0 +1,61 @@
+# Math Reasoning: Mistral-7B and Gemma-2 9B on MetaMathQA
+# Evaluated on GSM8K and MATH
+# Paper Table 1
+
+# Model options: "mistralai/Mistral-7B-v0.1", "google/gemma-2-9b"
+model_name: "mistralai/Mistral-7B-v0.1"
+task: "math"
+
+# Dataset
+train_dataset: "meta-math/MetaMathQA"
+n_train_samples: 50000
+eval_datasets: ["gsm8k", "math"]
+max_seq_len: 512
+
+# LoRA configuration
+# Applied to: q, k, v, o, and all FC weight matrices
+target_modules:
+  - "q_proj"
+  - "k_proj"
+  - "v_proj"
+  - "o_proj"
+  - "gate_proj"
+  - "up_proj"
+  - "down_proj"
+
+# Rank options from paper: 32, 64, 96
+rank: 96
+alpha: 96  # alpha = r for LoRA-XS; for LoRA-SB s=1 so alpha is unused
+
+# Method: "lora_sb", "lora_xs", "lora", "rslora", "pissa", "dora", "lora_pro"
+method: "lora_sb"
+
+# LoRA-SB initialization
+# Use 0.1% of training data (50 samples from 50K)
+init_n_samples: 50
+init_batch_size: 1
+
+# Training hyperparameters (Table 8)
+optimizer: "adamw"
+learning_rate: 1.0e-4
+weight_decay: 0.0
+adam_beta1: 0.9
+adam_beta2: 0.999
+adam_epsilon: 1.0e-8
+batch_size: 1
+gradient_accumulation_steps: 32
+num_epochs: 1
+dropout: 0.0
+max_grad_norm: 1.0
+lr_scheduler: "cosine"
+warmup_ratio: 0.02
+
+# Logging
+logging_steps: 10
+save_steps: 500
+output_dir: "outputs/math_mistral7b"
+
+# Misc
+seed: 42
+dtype: "bfloat16"
+device: "cuda"

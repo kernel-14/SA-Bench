@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Implemented core components of Ca2-VDM: causal temporal/spatial attention mechanisms, temporal and spatial KV-cache systems, and structured training outline. README documents replication details, with placeholders for datasets and evaluation metrics.",
+  "steps": 21,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/ca2-vdm/ca2-vdm-20260505-164440/workspace/repo"
+}

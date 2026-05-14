@@ -1,0 +1,113 @@
+## config.yaml
+# ============================================================
+# Ca2-VDM reproduction configuration
+# ============================================================
+task: "t2v"  # options: "t2v" (text-to-video) or "video_prediction"
+model_variant: "ca2"  # "ca2", "os_fix", "os_ext"
+
+# ----------------------------------------------------------
+# Data & I/O
+# ----------------------------------------------------------
+data:
+  dataset: "internvid"  # internvid / ucf101 / sky_timelapse
+  data_root: "path/to/dataset"  # placeholder
+  resolution: 256
+  latent_size: 32  # after 8x downsampling
+  num_frames_per_sample: null  # overridden by training settings
+
+# ----------------------------------------------------------
+# Video parameters
+# ----------------------------------------------------------
+video:
+  chunk_size: 16       # l: frames per autoregressive chunk (8 for Sky)
+  max_prefix: 49       # P_max = 1 + 3*l (25 for Sky)
+  train_max_len: 65    # L_train = P_max + l
+  first_stage_max_len: 32  # for stage 1 causal pretraining
+  p_prime: 3           # prefix length for spatial attention enhancement
+
+# ----------------------------------------------------------
+# Model
+# ----------------------------------------------------------
+model:
+  vae_model: "stabilityai/sd-vae-ft-mse"  # or local path
+  text_encoder: "google/t5-v1_1-xxl"
+  transformer:
+    hidden_dim: 1152
+    num_heads: 16
+    num_layers: 28   # as in Open-Sora v1.0
+    mlp_ratio: 4.0
+  dtype: "bfloat16"  # or float16, float32
+
+# ----------------------------------------------------------
+# Diffusion process
+# ----------------------------------------------------------
+diffusion:
+  num_timesteps: 1000
+  beta_start: 0.0001
+  beta_end: 0.02
+  schedule: "linear"  # DDPM linear schedule
+
+# ----------------------------------------------------------
+# Training (stage‑specific)
+# ----------------------------------------------------------
+training:
+  optimizer: "adamw"
+  learning_rate: 2.0e-5
+  weight_decay: 0.0   # paper does not mention, default
+  mixed_precision: "bf16"
+  seed: 42
+
+  # Stage 1: causal pretraining (no clean prefix)
+  stage1:
+    enabled: true       # only for T2V
+    batch_size: 288
+    steps: 32000
+    num_frames: 32      # frames used (all denoised)
+    use_prefix: false
+
+  # Stage 2: training with extendable clean prefix
+  stage2:
+    enabled: true
+    batch_size: 144     # for T2V; 8 for Sky
+    steps: 21000        # for T2V; 11000 for Sky
+    prefix_length_sampler: "random_multiples"  # P ∈ {1, 1+l, …, 1+n*l}
+    loss_vlb_weight: 0.001
+
+  # Video prediction (SkyTimelapse) overrides
+  video_prediction:
+    batch_size: 8
+    steps: 11000
+    chunk_size: 8
+    max_prefix: 25
+    train_max_len: 33
+
+# ----------------------------------------------------------
+# Inference
+# ----------------------------------------------------------
+inference:
+  denoising_steps: 100     # improved DDPM
+  guidance_scale: 7.5      # classifier‑free guidance (T2V only)
+  generate_frames: 80      # example total frames
+  initial_frame_source: "first"  # or "given image"
+
+# ----------------------------------------------------------
+# Evaluation
+# ----------------------------------------------------------
+evaluation:
+  fvd:
+    i3d_model_path: "path/to/i3d_pretrained.pth"  # optional
+    num_generated_videos: 2048  # for UCF-101
+    chunk_size: 16
+    chunks_per_video: 3  # for autoregressive evaluation
+  metrics: ["fvd", "vbench"]  # vbench optional
+
+# ----------------------------------------------------------
+# System
+# ----------------------------------------------------------
+system:
+  device: "cuda"
+  num_gpus: 1         # adjust for multi-GPU
+  log_dir: "./logs"
+  checkpoint_dir: "./checkpoints"
+
+# ============================================================

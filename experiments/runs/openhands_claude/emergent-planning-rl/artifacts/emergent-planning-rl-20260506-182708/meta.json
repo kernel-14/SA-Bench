@@ -1,0 +1,9 @@
+{
+  "paper_id": "emergent-planning-rl",
+  "run_id": "emergent-planning-rl-20260506-182708",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1213.6,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 58
+}

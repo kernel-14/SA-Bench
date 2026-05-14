@@ -1,0 +1,9 @@
+{
+  "paper_id": "sc-fno",
+  "run_id": "sc-fno-20260507-162309",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 4225.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 67
+}

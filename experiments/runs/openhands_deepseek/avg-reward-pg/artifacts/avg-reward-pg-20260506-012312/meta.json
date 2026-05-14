@@ -1,0 +1,9 @@
+{
+  "paper_id": "avg-reward-pg",
+  "run_id": "avg-reward-pg-20260506-012312",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 782.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 22
+}

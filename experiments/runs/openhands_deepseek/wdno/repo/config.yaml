@@ -1,0 +1,67 @@
+# WDNO Configuration
+
+# Wavelet settings
+wavelet:
+  type_1d: "bior2.4"        # For 1D Burgers, Advection, Navier-Stokes
+  type_2d: "bior1.3"        # For 2D incompressible fluid, ERA5
+  mode_1d: "periodization"
+  mode_2d: "zero"
+
+# Diffusion settings
+diffusion:
+  num_timesteps: 1000
+  beta_start: 1.0e-4
+  beta_end: 0.02
+  schedule: "linear"         # or "cosine"
+  
+# DDIM sampling
+ddim:
+  sampling_steps: 50
+  eta: 1.0
+  
+# 1D U-Net architecture (for Burgers, Advection, Navier-Stokes)
+unet_1d:
+  init_dim: 128
+  down_up_layers: 4
+  kernel_size: 3
+  dim_mult_phi: [1, 2, 4, 8]    # for phi network
+  dim_mult_theta: [1, 2, 4, 8]   # for theta network
+  resnet_groups: 8
+  attn_hidden_dim: 32
+  attn_heads: 4
+
+# 3D U-Net architecture (for 2D fluid)
+unet_3d:
+  init_dim: 100
+  kernel_size: [3, 3, 3]
+  kernel_padding: [1, 1, 1]
+  attn_heads: 4
+  down_sample_kernel: [1, 4, 4]
+  down_sample_padding: [1, 2, 2]
+  down_sample_stride: [1, 1, 1]  # Actually (0, 1, 1) from paper
+
+# Multi-resolution training
+multires:
+  num_levels: 3             # number of downsampling levels for SRM
+  sr_steps: [1, 2, 3]       # possible super-resolution steps during inference
+
+# Training
+training:
+  batch_size: 16
+  optimizer: "adam"
+  learning_rate: 1.0e-4
+  training_steps: 190000
+  lr_scheduler: "cosine"
+  
+# Control guidance
+control:
+  guidance_weight: 120000   # lambda in paper
+  guidance_scheduler: "cosine"
+
+# Data paths
+data:
+  burgers_dir: "./data/burgers/"
+  advection_dir: "./data/advection/"
+  navier_stokes_dir: "./data/navier_stokes/"
+  fluid_2d_dir: "./data/fluid_2d/"
+  era5_dir: "./data/era5/"

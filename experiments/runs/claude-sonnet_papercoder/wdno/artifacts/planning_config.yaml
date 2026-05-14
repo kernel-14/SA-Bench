@@ -1,0 +1,567 @@
+## config.yaml
+## Central configuration for WDNO (Wavelet Diffusion Neural Operator) reproduction.
+## All hyperparameters are sourced directly from the paper and its appendices.
+## Fields marked with [PAPER: TableX / AppendixY] indicate the exact source.
+
+experiment:
+  ## One of: burgers | advection | compressible_ns | fluid_2d | era5
+  name: burgers
+  ## One of: simulate | control | super_resolve | ablation
+  mode: simulate
+  ## Spatial dimensionality of the PDE (1 or 2)
+  spatial_dim: 1
+  seed: 42
+
+## ---------------------------------------------------------------------------
+## Wavelet Transform Configuration
+## [PAPER: Appendix A, Section 3.1, Appendix F.3, Appendix H.2]
+## ---------------------------------------------------------------------------
+wavelet:
+  ## 1D PDE experiments (Burgers, advection, compressible NS):
+  ##   wavelet=bior2.4, mode=periodization, transform_dim=2 (2D DWT on time x space)
+  ## 2D PDE experiments (fluid_2d, era5):
+  ##   wavelet=bior1.3, mode=zero, transform_dim=3 (3D DWT on time x height x width)
+  burgers:
+    wavelet_type: bior2.4
+    padding_mode: periodization
+    transform_dim: 2        ## 2D DWT applied to (time x space) data
+    level: 1                ## l0 = L (finest level); yields 1 coarse + 3 detail sets
+    library: pytorch_wavelets
+  advection:
+    wavelet_type: bior2.4
+    padding_mode: periodization
+    transform_dim: 2
+    level: 1
+    library: pytorch_wavelets
+  compressible_ns:
+    wavelet_type: bior2.4
+    padding_mode: periodization
+    transform_dim: 2
+    level: 1
+    library: pytorch_wavelets
+  fluid_2d:
+    wavelet_type: bior1.3
+    padding_mode: zero
+    transform_dim: 3        ## 3D DWT applied to (time x height x width) data
+    level: 1                ## yields 1 coarse + 7 detail sets
+    library: ptwt
+  era5:
+    wavelet_type: bior1.3
+    padding_mode: zero
+    transform_dim: 3
+    level: 1
+    library: ptwt
+
+## ---------------------------------------------------------------------------
+## Data Configuration
+## [PAPER: Appendix F.1, F.2, G.1, H.1]
+## ---------------------------------------------------------------------------
+data:
+  data_path: ./data/raw
+  checkpoint_dir: ./checkpoints
+  results_dir: ./results
+
+  burgers:
+    ## PDE parameters [PAPER: Appendix F.1]
+    nu: 0.01
+    T: 8.0
+    domain: [0.0, 1.0]
+    ## Fine grid used by solver before downsampling [PAPER: Appendix F.2]
+    nx_fine: 1920           ## 120 * 16
+    nt_fine: 76800          ## 4800 * 16
+    ## Coarse grid stored in dataset after 16x downsampling [PAPER: Appendix F.2]
+    nx_coarse: 120
+    nt_coarse: 80           ## 80 time stamps stored; state shape [81, 120] including t=0
+    ## Dataset sizes [PAPER: Appendix F.2]
+    num_train: 40000
+    num_test_control: 50
+    num_test_sr_base: 2000  ## for 0x super-resolution task
+    num_test_sr_levels: 100 ## shared across 1x, 2x, 3x SR tasks
+    ## Initial condition: sum of 2 Gaussians [PAPER: Appendix F.2]
+    ic_num_gaussians: 2
+    ic_a1_range: [0.0, 2.0]
+    ic_a2_range: [-2.0, 0.0]
+    ic_b1_range: [0.2, 0.4]
+    ic_b2_range: [0.6, 0.8]
+    ic_sigma1_range: [0.05, 0.15]
+    ic_sigma2_range: [0.05, 0.15]
+    ## Force term: sum of 8 Gaussians in space-time [PAPER: Appendix F.2]
+    force_num_gaussians: 8
+    force_b1_range: [0.0, 1.0]
+    force_b2_range: [0.0, 1.0]
+    force_sigma1_range: [0.1, 0.4]
+    force_sigma2_range: [0.1, 0.4]
+    force_a1_range: [-1.5, 1.5]
+    force_ai_zero_prob: 0.5  ## for i>=2, ai=0 with this probability
+    ## Super-resolution target resolutions [PAPER: Section 4.6]
+    sr_resolutions:
+      - [80, 120]    ## base (0x SR)
+      - [160, 240]   ## 1x SR
+      - [320, 480]   ## 2x SR
+      - [640, 960]   ## 3x SR
+    ## Control objective weight [PAPER: Section 4.1, Eq. 6]
+    control_alpha: 0.1      ## weight alpha in I = ||u(T)-u*||^2 + alpha*||f||^2
+    ## Solver internal grid for evaluation [PAPER: Appendix F.1]
+    solver_nx: 1920
+    solver_nt: 76800
+
+  compressible_ns:
+    ## [PAPER: Appendix G.1]
+    hdf5_filename: 1D_CFD_Shock_Eta1.e-8_Zeta1.e-8_trans_Train.hdf5
+    eta: 1.0e-8
+    zeta: 1.0e-8
+    ## Downsampled to same resolution as Burgers [PAPER: Appendix G.1]
+    nx_coarse: 120
+    nt_coarse: 80           ## state shape [81, 120] after downsampling
+    num_variables: 3        ## rho (density), v (velocity), p (pressure)
+
+  advection:
+    ## [PAPER: Section 4.2]
+    ## Predict 80 timesteps from 1-step initial condition
+    nt: 80
+    ic_steps: 1
+
+  fluid_2d:
+    ## [PAPER: Section 4.4, Appendix H.1]
+    ## Data shape: [N, 32, 64, 64] (time x height x width)
+    nt: 32
+    nx: 64
+    ny: 64
+    ## Control variables per timestep in peripheral regions [PAPER: Section 4.4]
+    num_control_vars_per_step: 3584
+    ## Super-resolution target [PAPER: Section 4.6]
+    sr_resolutions:
+      - [32, 64, 64]    ## base (0x SR)
+      - [32, 128, 128]  ## 1x SR
+
+  era5:
+    ## [PAPER: Section 4.5]
+    variable: temperature
+    input_hours: 12
+    output_hours: 20
+    resolution_deg: 0.25
+
+## ---------------------------------------------------------------------------
+## Diffusion Model Configuration
+## [PAPER: Section 2.2, Appendix F.4, G.3, H.3]
+## ---------------------------------------------------------------------------
+diffusion:
+  ## Total diffusion timesteps during training
+  ## Not explicitly stated; standard DDPM default used
+  num_timesteps: 1000
+  beta_schedule: cosine     ## cosine schedule (Nichol & Dhariwal 2021)
+  ## Classifier-free guidance dropout probability
+  ## Not explicitly stated in paper; standard default
+  cfg_dropout_prob: 0.1
+  cfg_weight: 1.0           ## omega in CFG combination
+
+## ---------------------------------------------------------------------------
+## U-Net Architecture (1D experiments)
+## [PAPER: Appendix F.4, Table 18, Table 19]
+## ---------------------------------------------------------------------------
+unet_1d:
+  ## Shared architecture for both BRM and SRM in 1D experiments
+  ## [PAPER: Table 18 - Base-Resolution Model and Super-Resolution Model]
+  init_dim: 128
+  n_downsample_layers: 4
+  conv_kernel_size: 3
+  dim_mults: [1, 2, 4, 8]
+  resnet_block_groups: 8
+  attn_hidden_dim: 32
+  attn_heads: 4
+  ## Two separate UNets used in 1D:
+  ##   eps_phi: denoises force/control wavelet coefficients
+  ##   eps_theta: denoises state wavelet coefficients conditioned on force
+  use_dual_unet: true
+
+## ---------------------------------------------------------------------------
+## 3D U-Net Architecture (2D experiments)
+## [PAPER: Appendix H.3, Table 20]
+## ---------------------------------------------------------------------------
+unet_3d:
+  ## Inspired by Video Diffusion Models (Ho et al. 2022)
+  ## Uses spatial-temporal 3D convolutions
+  attn_heads: 4
+  ## Conv3d parameters [PAPER: Table 20]
+  conv3d_kernel: [3, 3, 3]
+  conv3d_padding: [1, 1, 1]
+  conv3d_stride: [1, 1, 1]
+  ## Downsampling: preserves temporal dim, halves spatial dims [PAPER: Table 20]
+  downsample_kernel: [1, 4, 4]
+  downsample_padding: [0, 1, 1]
+  downsample_stride: [1, 2, 2]
+  ## Upsampling [PAPER: Table 20]
+  upsample_kernel: [1, 4, 4]
+  upsample_padding: [0, 1, 1]
+  upsample_stride: [1, 2, 2]
+
+## ---------------------------------------------------------------------------
+## Training Configuration
+## [PAPER: Appendix F.4 Table 18, G.3 Table 19, H.3 Table 20, Appendix C.6]
+## ---------------------------------------------------------------------------
+training:
+  ## --- 1D experiments (Burgers, advection, compressible NS) ---
+  ## [PAPER: Table 18, Table 19]
+  burgers:
+    batch_size: 16
+    optimizer: adam
+    learning_rate: 1.0e-4
+    train_steps: 190000
+    lr_scheduler: cosine_annealing
+    ## Hardware: 1x A100 [PAPER: Table 12]
+    num_gpus: 1
+    ## Training time reference [PAPER: Table 12, Table 13]
+    ## BRM: ~2.5h on A100 for simulation, ~2.4h for control
+
+  advection:
+    batch_size: 16
+    optimizer: adam
+    learning_rate: 1.0e-4
+    train_steps: 190000
+    lr_scheduler: cosine_annealing
+    num_gpus: 1
+
+  compressible_ns:
+    batch_size: 16
+    optimizer: adam
+    learning_rate: 1.0e-4
+    train_steps: 190000
+    lr_scheduler: cosine_annealing
+    num_gpus: 1
+
+  ## --- 2D experiments (fluid_2d, era5) ---
+  ## [PAPER: Table 20, Appendix C.6 Table 12]
+  fluid_2d:
+    batch_size: 4           ## inferred from 2x A100 memory constraints
+    optimizer: adam
+    learning_rate: 1.0e-4
+    train_steps: 190000
+    lr_scheduler: cosine_annealing
+    ## Hardware: 2x A100 [PAPER: Table 12]
+    num_gpus: 2
+    ## Training time reference: ~7.8h on 2x A100 [PAPER: Table 12]
+
+  era5:
+    batch_size: 4
+    optimizer: adam
+    learning_rate: 1.0e-4
+    train_steps: 190000
+    lr_scheduler: cosine_annealing
+    num_gpus: 2
+
+## ---------------------------------------------------------------------------
+## Inference / Sampling Configuration
+## [PAPER: Appendix F.4 Table 18, G.3 Table 19, H.3 Table 20]
+## ---------------------------------------------------------------------------
+inference:
+  burgers:
+    ## DDIM sampling [PAPER: Table 18]
+    ddim_steps: 50
+    ddim_eta: 1.0           ## [PAPER: Table 18, sensitivity analysis Table 7]
+    ## Control guidance [PAPER: Table 18, Table 15]
+    guidance_lambda: 120000
+    guidance_schedule: cosine
+    ## CFG weight
+    cfg_weight: 1.0
+
+  advection:
+    ddim_steps: 50
+    ddim_eta: 1.0
+    cfg_weight: 1.0
+
+  compressible_ns:
+    ## [PAPER: Table 19] - notably higher DDIM steps for this harder problem
+    ddim_steps: 850
+    ddim_eta: 1.0
+    guidance_schedule: cosine
+    cfg_weight: 1.0
+
+  fluid_2d:
+    ## [PAPER: Table 20]
+    ddim_steps: 100
+    ddim_eta: 1.0
+    ## Control guidance intensity [PAPER: Table 20]
+    guidance_lambda: 100
+    guidance_schedule: cosine
+    cfg_weight: 1.0
+
+  era5:
+    ddim_steps: 100
+    ddim_eta: 1.0
+    cfg_weight: 1.0
+
+## ---------------------------------------------------------------------------
+## Super-Resolution Configuration
+## [PAPER: Section 4.6, Appendix C.8, Table 16, Table 17]
+## ---------------------------------------------------------------------------
+super_resolution:
+  ## Number of SR levels to apply at inference
+  ## 0 = base resolution only, 1/2/3 = progressive upsampling
+  num_levels: 0
+  ## Interpolation modes for evaluation baseline comparison
+  ## [PAPER: Section 4.6]
+  eval_interp_modes: [linear, nearest]
+  ## Baselines for SR comparison [PAPER: Section 4.6, Table 16, Table 17]
+  sr_baselines: [fno, wno]
+
+## ---------------------------------------------------------------------------
+## Ablation Study Configuration
+## [PAPER: Section 4.7, Appendix C]
+## ---------------------------------------------------------------------------
+ablation:
+  ## Measurement noise scale factors [PAPER: Section 4.7, Figure 5d]
+  noise_scale_factors: [0.0001, 0.001, 0.01]
+  ## Training data size fractions [PAPER: Section 4.7, Figure 5b]
+  ## Full training set = 9000 samples (used in ablation, subset of 40000)
+  ablation_train_size: 9000
+  data_size_fractions: [0.2, 0.4, 0.6, 0.8]
+  ## DDIM step sensitivity [PAPER: Table 7]
+  ddim_step_values: [20, 40, 50, 100, 200]
+  ## DDIM eta sensitivity [PAPER: Table 7]
+  ddim_eta_values: [0.2, 0.5, 0.8, 1.0]
+  ## Guidance weight sensitivity [PAPER: Table 8]
+  guidance_lambda_values_2d: [9.0e4, 1.0e5, 1.15e5, 1.25e5, 1.3e5]
+  ## Wavelet type comparison [PAPER: Table 3, Table 7]
+  wavelet_types_to_compare: [bior1.3, bior2.4, db4, sym4]
+  ## Control noise robustness [PAPER: Appendix C.5, Table 9]
+  control_noise_prob: 0.1
+
+## ---------------------------------------------------------------------------
+## Baseline Model Configurations
+## [PAPER: Appendix J, K]
+## ---------------------------------------------------------------------------
+baselines:
+  fno_1d:
+    ## [PAPER: Appendix J.1, Table 26]
+    modes: 16
+    width: 64
+    in_channels: 3
+    out_channels: 1
+    n_layers: 4
+    hidden_channels_lift: 256
+    hidden_channels_proj: 256
+    expansion_mlp: 0.5
+    nonlinearity: gelu
+    rank_factorization: 1.0
+    padding_mode: one-sided
+    optimizer: adam
+    learning_rate: 1.0e-4
+
+  fno_2d:
+    ## [PAPER: Appendix K.1, Table 32]
+    modes: 16
+    width: 64
+    in_channels: 6
+    out_channels: 4
+    n_layers: 4
+    hidden_channels_lift: 256
+    hidden_channels_proj: 256
+    expansion_mlp: 0.5
+    nonlinearity: gelu
+    rank_factorization: 1.0
+    padding_mode: one-sided
+    optimizer: adam
+    learning_rate: 1.0e-4
+    train_epochs: 1000
+    batch_size: 16
+    lr_scheduler: cosine
+
+  wno_1d:
+    ## [PAPER: Appendix J.2, Table 27]
+    ## wavelet: sym4 for Burgers, bior2.4 for compressible NS
+    wavelet_type: sym4
+    level: 5
+    width: 40
+    n_layers: 4
+    optimizer: adam
+    learning_rate: 1.0e-3
+    train_epochs: 1000
+    batch_size: 100
+    lr_scheduler: steplr
+
+  wno_2d:
+    ## [PAPER: Appendix K.2, Table 33]
+    wavelet_type: bior1.3
+    level: 2
+    width: 8
+    n_layers: 3
+    optimizer: adam
+    learning_rate: 0.05
+    train_epochs: 500
+    batch_size: 50
+    lr_scheduler: steplr
+
+  mwt_1d:
+    ## [PAPER: Appendix J.4, Table 29]
+    wavelet_basis: legendre
+    n_fourier_modes: 10
+    kernel_size: 4
+    optimizer: adam
+    train_epochs: 300
+    batch_size: 256
+    lr_scheduler: multisteplr
+
+  mwt_2d:
+    ## [PAPER: Appendix K.3, Table 34]
+    wavelet_basis: legendre
+    n_fourier_modes: 12
+    kernel_size: 3
+    optimizer: adam
+    train_epochs: 300
+    batch_size: 200
+    lr_scheduler: multisteplr
+
+  oformer_1d:
+    ## [PAPER: Appendix J.5, Table 30]
+    encoder_type: SpatialEncoder2D
+    in_channels: 3
+    token_emb_dim: 96
+    encoded_seq_dim: 256
+    heads: 4
+    depth: 6
+    resolution: 120
+    dropout: 0.05
+    decoder_type: PointWiseDecoder2DSimple
+    out_channels: 1
+    latent_channels: 256
+    scale: 0.5
+    res: 120
+    optimizer: adam
+    learning_rate: 1.0e-4
+    train_iterations: 500000
+    batch_size: 32
+
+  oformer_2d:
+    ## [PAPER: Appendix K.4, Table 35]
+    encoder_type: SpatialTemporalEncoder2D
+    in_channels: 3
+    token_emb_dim: 496
+    encoded_seq_dim: 192
+    heads: 1
+    depth: 5
+    decoder_type: PointWiseDecoder2D
+    out_channels: 1
+    propagate_forward: true
+    output_seq_len: 1
+    propagator_depth: 3
+    curriculum_ratio: 0.16
+    curriculum_steps: 10
+    optimizer: adam
+    learning_rate: 1.0e-4
+    train_iterations: 1000000
+    batch_size: 8
+
+  cnn_1d:
+    ## [PAPER: Appendix J.3, Table 28]
+    ## CNN with VAE-style autoencoder following Hwang et al. 2022
+    conv_kernel_size: 5
+    conv_padding: 2
+    activation: elu
+    latent_dim: 256
+    optimizer: adam
+    learning_rate: 1.0e-3
+    train_epochs: 500
+    batch_size: 5100
+    lr_scheduler: cosine_annealing
+
+  ## Control baselines
+  pid:
+    ## ANN-PID [PAPER: Appendix I.1, Table 21]
+    conv_kernel_size: 3
+    conv_padding: 1
+    conv_stride: 1
+    activation: softsign
+    optimizer: adam
+    learning_rate: 1.0e-4
+    batch_size: 16
+    loss: mae
+
+  sac:
+    ## [PAPER: Appendix I.2, Table 22]
+    discount_factor: 0.5
+    target_smoothing_coeff: 0.05
+    lr_critic: 3.0e-4
+    lr_entropy: 3.0e-3
+    lr_policy: 3.0e-3
+    batch_size: 8192
+    num_episodes: 1500
+    model_updates_per_step: 50
+    value_target_updates_per_step: 15
+    replay_buffer_size: 1000000
+    energy_weight: 2.0e-5
+    trajectories_per_step: 1
+    n_step: 3
+    n_atoms: 4096
+    n_quantiles: 5
+
+  bppo:
+    ## [PAPER: Appendix I.4, Table 24]
+    ## Value network
+    lr_value: 1.0e-4
+    value_train_steps: 2000000
+    value_n_layers: 3
+    value_batch_size: 512
+    value_hidden_dim: 512
+    ## Q network
+    lr_q: 1.0e-4
+    q_train_steps: 2000000
+    q_n_layers: 2
+    q_batch_size: 512
+    q_hidden_dim: 1024
+    q_target_updates_per_step: 2
+    q_soft_update_factor: 0.005
+    discount_factor: 0.99
+    ## Behavior cloning
+    lr_bc: 1.0e-4
+    bc_batch_size: 512
+    bc_episodes: 500000
+    ## BPPO policy
+    bppo_episodes: 100
+    policy_n_layers: 2
+    policy_hidden_dim: 1024
+    lr_bppo: 1.0e-5
+    bppo_batch_size: 512
+    clip_ratio: 0.25
+    weight_decay: 0.96
+    advantage_weight: 0.9
+    replay_buffer_size: 2000000
+    activation: relu
+
+  bc:
+    ## [PAPER: Appendix I.5, Table 25]
+    learning_rate: 1.0e-4
+    batch_size: 512
+    num_episodes: 500000
+    replay_buffer_size: 2000000
+    policy_n_layers: 2
+    policy_hidden_dim: 1024
+    activation: relu
+
+  supervised_learning:
+    ## [PAPER: Appendix I.3, Table 23]
+    ## LBFGS-based optimization of control signal
+    lr_control: 0.1
+    num_epochs: 100
+    weight_objective: 1.0
+    weight_reconstruction: 0.01
+    lbfgs_tol_grad: 1.0e-5
+    lbfgs_tol_change: 1.0e-5
+
+## ---------------------------------------------------------------------------
+## Evaluation Configuration
+## [PAPER: Section 4, Table 1, Table 2]
+## ---------------------------------------------------------------------------
+evaluation:
+  ## Simulation metric: MSE on entire state sequence excluding initial condition
+  ## [PAPER: Section 4]
+  exclude_initial_condition: true
+  ## Number of test samples for control evaluation [PAPER: Appendix F.2]
+  num_control_test_samples: 50
+  ## Report mean and std over test samples [PAPER: Appendix C.5, Table 10]
+  report_mean_std: true
+  ## Metrics to compute
+  simulation_metrics: [mse, mae, l_inf, relative_l2]
+  control_metrics: [mean_J, std_J]
+  sr_metrics: [mse]
+  ## Per-timestep error for long-term dependency analysis [PAPER: Figure 5a]
+  compute_per_timestep_error: true

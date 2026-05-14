@@ -1,0 +1,104 @@
+## config.yaml
+
+# ========== Model Configuration ==========
+model:
+  # Base model identifier from HuggingFace.
+  # NOTE: Paper originally used Gemini 1.5 Flash and 1.0 Pro.
+  # Replace with a strong open-source alternative for reproduction.
+  name: "meta-llama/Llama-2-7b-hf"
+  max_seq_length: 2048               # not specified in paper; chosen to balance memory/context
+
+# ========== MATH Experiment Settings ==========
+math:
+  training:
+    stage1:
+      steps: 3000                    # paper: 3000 steps
+      batch_size: 512                # paper: 512 trajectories per step
+      learning_rate: 5e-6            # paper: 5e-6
+      temperature: 1.0               # paper: 1.0
+    stage2:
+      steps: 3000
+      batch_size: 512
+      learning_rate: 5e-6
+      temperature: 1.0
+      # offline mixing (paper mentions this, exact values not specified; defaults as per plan)
+      offline_mixing_probability: 0.5
+      num_offline_samples_per_prompt: 4
+  reward_shaping:
+    alpha: 10                        # paper: 10
+  kl_penalty:
+    beta1_default: 0.01              # paper: 0.01 (default KL on both attempts)
+    beta2_stage1_first_turn: 0.1     # paper: 0.1 (Stage I heavy KL on first turn)
+  dataset:
+    train:
+      # MATH training set augmented with 4500 problems from test set (Lightman et al. split)
+      subset: "math"
+      # Lightman split: use all of training (7500) + 4500 from test, rest 500 for eval
+      extra_from_test: 4500
+    eval:
+      subset: "math"
+      num_test: 500                  # MATH500
+
+# ========== Code Experiment Settings (MBPP -> HumanEval) ==========
+code:
+  training:
+    stage1:
+      steps: 1500                    # paper: 1500 steps
+      batch_size: 128                # paper: 128 trajectories per step
+      learning_rate: 1e-5            # paper: 1e-5
+      temperature: 1.0
+    stage2:
+      steps: 1500
+      batch_size: 128
+      learning_rate: 1e-5
+      temperature: 1.0
+      offline_mixing_probability: 0.5
+      num_offline_samples_per_prompt: 4
+  reward_shaping:
+    alpha: 10                        # paper: 10
+  kl_penalty:
+    beta1_default: 0.01              # paper: 0.01
+    beta2_stage1_first_turn: 0.25    # paper: 0.25 (for code)
+  dataset:
+    train:
+      subset: "mbpp"                 # train on MBPP
+      prompt_style: "3shot"          # canonical 3-shot prompt as in paper
+    eval:
+      subset: "humaneval"            # test on HumanEval
+
+# ========== Evaluation Settings ==========
+evaluation:
+  temperature: 0.0                   # greedy decoding for main metrics
+  inference_scaling:
+    temperature: 0.7
+    num_parallel_samples_K: 16       # example for scaling experiment
+
+# ========== Prompt Templates ==========
+prompts:
+  # MATH prompts (exact wording from Appendix C)
+  math_zero_shot: |
+    You are a math expert. When you respond, respond only with the Solution of the final Problem, thinking step by step. At the end of the Solution, when you give your final answer, write it in the form "Final Answer: The final answer is \boxed{answer}. I hope it is correct."
+  math_self_correction: |
+    There might be an error in the solution above because of lack of understanding of the question. Please correct the error, if any, and rewrite the solution. Only output the final solution! At the end of the Solution, when you give your final answer, write it in the form "Final Answer: The final answer is \boxed{answer}. I hope it is correct."
+  # MBPP 3-shot prompt (abbreviated; full version from Appendix C)
+  mbpp_3shot: |
+    You are an expert Python programmer,...
+  # HumanEval zero-shot prompt (same as MBPP 3-shot but without examples)
+  humaneval_zero_shot: |
+    You are an expert Python programmer, and here is your task: {problem}. Your code should pass these tests: {tests}.
+  # Self-correction instruction for code
+  code_self_correction: |
+    There might be an error in the code above because of lack of understanding of the question. Please correct the error, if any, and rewrite the solution. Only output the final correct Python program!
+
+# ========== Other Settings ==========
+training:
+  optimizer: "adam"
+  gradient_accumulation_steps: 1     # handled via effective batch size; keep at 1 if global batch size achieved
+  checkpoint_dir: "./checkpoints"
+  log_interval: 10                   # steps between logging
+  eval_interval: 500                 # optional evaluation during training
+  seed: 42                           # for reproducibility
+
+# ========== Notes ==========
+# - Exact adaptive β2 schedule is not detailed; we use fixed β2 values.
+# - For code sandbox, a subprocess timeout of 5 seconds per test case is assumed.

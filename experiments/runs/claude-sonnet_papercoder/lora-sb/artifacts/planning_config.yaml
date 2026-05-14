@@ -1,0 +1,344 @@
+## config.yaml
+## Master configuration file for LoRA-SB reproduction.
+## Override rank and method per experiment run via CLI arguments.
+## All hyperparameters are sourced directly from the paper (Tables 8, 9 and Appendices H, I).
+
+## ---------------------------------------------------------------------------
+## Default experiment settings (can be overridden per config file or CLI)
+## ---------------------------------------------------------------------------
+defaults:
+  method: lora_sb          ## one of: lora_sb | lora_xs | lora | pissa | rslora | dora | lora_pro | full_ft
+  rank: 32                 ## r in {32, 64, 96} for LLMs; {8, 16, 24} for RoBERTa
+  scaling: 1.0             ## s=1.0 for LoRA-SB (Theorem 5: scaling-factor independent)
+  seeds: [42, 43, 44]      ## paper reports average of 3 random seeds
+  precision: bfloat16      ## all models loaded in torch.bfloat16 (Appendix H)
+  output_dir: outputs/
+
+## ---------------------------------------------------------------------------
+## Experiment: Mistral-7B on MetaMathQA -> GSM8K + MATH  (Table 1)
+## ---------------------------------------------------------------------------
+mistral_math:
+  model_name: mistralai/Mistral-7B-v0.1
+  task: math
+  dataset_name: meta-math/MetaMathQA
+  num_train_samples: 50000          ## 50K samples from MetaMathQA (Section 3.1)
+  eval_datasets:
+    - gsm8k                         ## grade-school math, exact numeric match
+    - math                          ## competition math, exact numeric match
+
+  ## LoRA module placement: all attention + MLP projections (Section 3.1)
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+  ## Ranks tested (Table 1)
+  ranks: [32, 64, 96]
+
+  ## Training hyperparameters (Table 8)
+  training:
+    optimizer: adamw
+    batch_size: 1
+    grad_accum_steps: 32            ## effective batch size = 1 * 32 = 32
+    max_seq_len: 512
+    epochs: 1
+    dropout: 0.0
+    learning_rate: 1.0e-4
+    lr_scheduler: cosine
+    warmup_ratio: 0.02
+    weight_decay: 0.01              ## standard AdamW weight decay
+
+  ## LoRA-SB initialization (Section 2.4 and Appendix H)
+  initialization:
+    num_init_samples: 50            ## 0.1% of 50K = 50 samples (Section 4 ablation)
+    init_fraction: 0.001            ## 1/1000 of dataset size (Appendix H)
+
+  ## Baseline-specific: LoRA-XS uses alpha=r (Appendix H)
+  lora_xs:
+    alpha_equals_rank: true         ## alpha = r for LoRA-XS baseline
+
+  ## Inference benchmark sequence length (Table 7)
+  inference:
+    sequence_length: 256
+
+## ---------------------------------------------------------------------------
+## Experiment: Gemma-2 9B on MetaMathQA -> GSM8K + MATH  (Table 1)
+## ---------------------------------------------------------------------------
+gemma_math:
+  model_name: google/gemma-2-9b
+  task: math
+  dataset_name: meta-math/MetaMathQA
+  num_train_samples: 50000
+
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+  ranks: [32, 64, 96]
+
+  ## Training hyperparameters (Table 8 — same as Mistral-7B)
+  training:
+    optimizer: adamw
+    batch_size: 1
+    grad_accum_steps: 32
+    max_seq_len: 512
+    epochs: 1
+    dropout: 0.0
+    learning_rate: 1.0e-4
+    lr_scheduler: cosine
+    warmup_ratio: 0.02
+    weight_decay: 0.01
+
+  initialization:
+    num_init_samples: 50
+    init_fraction: 0.001
+
+  lora_xs:
+    alpha_equals_rank: true
+
+  inference:
+    sequence_length: 256
+
+## ---------------------------------------------------------------------------
+## Experiment: Llama-3.2 3B on COMMONSENSE170K  (Table 2)
+## ---------------------------------------------------------------------------
+llama_commonsense:
+  model_name: meta-llama/Llama-3.2-3B
+  task: commonsense
+  dataset_name: commonsense170k
+
+  ## 8 commonsense reasoning sub-datasets (Appendix I)
+  eval_datasets:
+    - boolq
+    - piqa
+    - social_i_qa
+    - hellaswag
+    - winogrande
+    - arc_easy
+    - arc_challenge
+    - openbookqa
+
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+  ranks: [32, 64, 96]
+
+  ## Training hyperparameters (Table 8)
+  training:
+    optimizer: adamw
+    batch_size: 6
+    grad_accum_steps: 24            ## effective batch size = 6 * 24 = 144
+    max_seq_len: 256
+    epochs: 2
+    dropout: 0.05
+    learning_rate: 2.0e-3
+    lr_scheduler: linear
+    warmup_ratio: 0.02
+    weight_decay: 0.01
+
+  initialization:
+    ## 0.1% of COMMONSENSE170K total size; paper uses same 1/1000 heuristic
+    num_init_samples: 170           ## ~0.1% of ~170K samples
+    init_fraction: 0.001
+
+  lora_xs:
+    alpha_equals_rank: true
+
+  inference:
+    sequence_length: 256
+
+## ---------------------------------------------------------------------------
+## Experiment: RoBERTa-large on GLUE  (Table 3)
+## ---------------------------------------------------------------------------
+roberta_glue:
+  model_name: roberta-large
+  task: glue
+  dataset_name: glue
+
+  ## GLUE sub-tasks (Table 3)
+  ## Metrics: Matthew's correlation for CoLA, Pearson for STS-B, Accuracy for others
+  eval_datasets:
+    - cola                          ## Matthew's correlation coefficient
+    - rte                           ## Accuracy
+    - mrpc                          ## Accuracy
+    - stsb                          ## Pearson correlation
+    - qnli                          ## Accuracy
+    - sst2                          ## Accuracy
+
+  ## Self-attention layers only for RoBERTa (Section 3.3)
+  target_modules:
+    - query
+    - key
+    - value
+    - dense
+
+  ## Ranks tested (Table 3)
+  ranks: [8, 16, 24]
+
+  ## LoRA baselines use rank=8 for RoBERTa (Table 3)
+  lora_baseline_rank: 8
+
+  ## Per-task sequence lengths (standard GLUE practice; Table 9 formatting note)
+  sequence_lengths:
+    cola: 128
+    rte: 128
+    mrpc: 128
+    stsb: 128
+    qnli: 256
+    sst2: 128
+
+  ## Training hyperparameters (Table 9)
+  training:
+    optimizer: adamw
+    batch_size: 30
+    grad_accum_steps: 1             ## no gradient accumulation for RoBERTa
+    max_seq_len: 128                ## default; overridden per task above
+    epochs: 30
+    dropout: 0.0
+    learning_rate: 1.0e-3
+    lr_scheduler: linear
+    warmup_ratio: 0.06
+    weight_decay: 0.01
+
+  initialization:
+    ## 0.1% of each GLUE task's training set
+    init_fraction: 0.001
+    min_init_samples: 10            ## floor for small GLUE tasks (e.g., RTE ~2.5K)
+
+  ## LoRA-XS baseline: alpha=16 fixed (Appendix H)
+  lora_xs:
+    alpha: 16
+    alpha_equals_rank: false
+
+  inference:
+    sequence_length: 128
+
+## ---------------------------------------------------------------------------
+## Baseline method configurations
+## ---------------------------------------------------------------------------
+baselines:
+  ## Standard LoRA (ref 17): rank=32 for LLMs, rank=8 for RoBERTa
+  lora:
+    ## alpha = rank (standard setting used in paper comparisons)
+    alpha_equals_rank: true
+    init_lora_weights: true         ## standard Gaussian init for A, zeros for B
+
+  ## rsLoRA (ref 20): rank-stabilized scaling s = alpha / sqrt(r)
+  rslora:
+    use_rslora: true
+    alpha_equals_rank: true
+
+  ## PiSSA (ref 30): initialize with principal singular vectors of W0
+  pissa:
+    init_lora_weights: pissa
+    alpha_equals_rank: true
+
+  ## DoRA (ref 26): weight-decomposed low-rank adaptation
+  dora:
+    use_dora: true
+    alpha_equals_rank: true
+
+  ## LoRA-Pro (ref 46): optimal gradient approximation for LoRA
+  lora_pro:
+    ## Closed-form gradient correction at each step
+    ## (B^T B)^{-1} g^R (A A^T)^{-1} applied per optimizer step
+    alpha_equals_rank: true
+
+  ## LoRA-XS (ref 2): frozen B and A, only R trainable, PiSSA-style init on W0
+  lora_xs:
+    ## B, A initialized via SVD of W0 (NOT delta_w like LoRA-SB)
+    init_from_pretrained: true
+    ## alpha = r for LLM experiments (Appendix H)
+    ## alpha = 16 fixed for RoBERTa experiments (Appendix H)
+    alpha_equals_rank: true         ## overridden to false for RoBERTa
+
+## ---------------------------------------------------------------------------
+## LoRA-SB specific settings
+## ---------------------------------------------------------------------------
+lora_sb:
+  ## Scaling factor s=1.0: Theorem 5 proves scaling-factor independence
+  ## when B^T B = A A^T = I (orthonormal initialization)
+  scaling: 1.0
+
+  ## SVD computation: torch.svd_lowrank for memory efficiency (Appendix F)
+  svd_niter: 4                      ## number of power iterations for svd_lowrank
+
+  ## Gradient estimation: sign of summed gradients over init subset (Appendix C)
+  ## delta_w_avg = -eta * sign(sum_i grad_W L(W0, x_i))
+  use_sign_gradient: true
+
+  ## Memory-efficient initialization: layerwise backward hooks (Section 2.6)
+  ## Ensures O(1) memory usage independent of number of layers
+  layerwise_grad_hooks: true
+
+  ## Orthonormality verification tolerance
+  ortho_atol: 1.0e-5
+
+## ---------------------------------------------------------------------------
+## Hardware and reproducibility settings (Appendix H)
+## ---------------------------------------------------------------------------
+hardware:
+  ## All experiments run on single NVIDIA A6000 GPU (Appendix H)
+  gpu: a6000
+  ## Enable gradient checkpointing for 7B/9B models to fit on single GPU
+  gradient_checkpointing: true      ## not stated in paper; required for A6000
+  ## Mixed precision
+  precision: bfloat16               ## torch.bfloat16 (Appendix H)
+
+reproducibility:
+  seeds: [42, 43, 44]               ## 3 random seeds; report mean (Appendix H)
+  deterministic: true
+
+## ---------------------------------------------------------------------------
+## Evaluation settings
+## ---------------------------------------------------------------------------
+evaluation:
+  ## Math tasks: greedy decoding, extract final numeric answer
+  math:
+    do_sample: false
+    num_beams: 1
+    max_new_tokens: 512
+    ## GSM8K: extract answer after "####" delimiter
+    ## MATH: extract answer from \boxed{} expression
+    answer_extraction:
+      gsm8k_delimiter: "####"
+      math_delimiter: "\\boxed{"
+
+  ## Commonsense: multiple-choice via log-likelihood scoring
+  commonsense:
+    scoring: log_likelihood         ## pick choice with highest log-likelihood
+
+  ## GLUE: standard classification metrics
+  glue:
+    metrics:
+      cola: matthews_correlation
+      rte: accuracy
+      mrpc: accuracy
+      stsb: pearsonr
+      qnli: accuracy
+      sst2: accuracy
+
+## ---------------------------------------------------------------------------
+## Logging and output
+## ---------------------------------------------------------------------------
+logging:
+  log_every_n_steps: 100
+  save_best_checkpoint: true
+  use_tensorboard: false
+  use_wandb: false
+  log_trainable_params: true        ## log # trainable params at start (Tables 1-3)

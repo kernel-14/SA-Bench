@@ -1,0 +1,9 @@
+{
+  "paper_id": "score",
+  "run_id": "score-20260507-030306",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1024.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 37
+}

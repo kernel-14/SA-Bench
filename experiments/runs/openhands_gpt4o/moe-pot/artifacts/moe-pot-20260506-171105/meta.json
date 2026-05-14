@@ -1,0 +1,9 @@
+{
+  "paper_id": "moe-pot",
+  "run_id": "moe-pot-20260506-171105",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 372.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 29
+}

@@ -1,0 +1,9 @@
+{
+  "paper_id": "mrq",
+  "run_id": "mrq-20260506-055831",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 2275.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 42
+}

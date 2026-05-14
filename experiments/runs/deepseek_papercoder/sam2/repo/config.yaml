@@ -1,0 +1,137 @@
+### Model Configuration
+model:
+  image_encoder:
+    variant: "hiera_b_plus"       # Options: "hiera_tiny", "hiera_small", "hiera_b_plus", "hiera_large"
+    pretrained: true              # Load MAE pre-trained weights
+    global_attention_blocks: [12, 16, 20]  # Indices of global attention layers for B+
+  resolution: 1024                # Square input size
+  memory:
+    max_recent_frames: 6
+    max_prompted_frames: 6        # Up to M prompted frames (same as N by default)
+    feature_channels: 64          # Projected memory feature dim
+    object_pointers: true
+  memory_attention:
+    num_layers: 4                 # L
+    num_heads: 8                  # Typical for transformer
+  mask_decoder:
+    multi_mask: true              # Predict 3 masks on ambiguous prompts
+    occlusion_head: true
+  fpn_channels: 256               # Output channels of FPN after fusing stride 16 and 32
+
+### Training Hyperparameters
+training:
+  pretrain:
+    dataset: "SA-1B"
+    steps: 90000
+    batch_size: 256               # Global batch size (simulate with gradient accumulation if fewer GPUs)
+    learning_rate: 4.0e-4
+    optimizer: "AdamW"
+    betas: [0.9, 0.999]
+    weight_decay: 0.1
+    grad_clip_norm: 0.1
+    lr_schedule:
+      type: "reciprocal_sqrt"
+      timescale: 1000
+      warmup_steps: 1000
+      cooldown_steps: 5000
+    layer_decay: 0.9              # For hiera_b_plus; use 0.925 for large, 0.8 for tiny/small
+    loss_weights:
+      focal: 20
+      dice: 1
+      iou_l1: 1
+    correction_points: 7           # Number of corrective clicks after initial prompt
+    max_masks_per_image: 64
+    mask_area_threshold: 0.9       # Exclude masks covering >90% of image
+
+  full_training:
+    steps: 200000
+    batch_size: 128               # Global batch size (video+image mixture)
+    learning_rate: 4.0e-4         # Same as pre-training
+    optimizer: "AdamW"
+    betas: [0.9, 0.999]
+    weight_decay: 0.1
+    grad_clip_norm: 0.1
+    lr_schedule:
+      type: "reciprocal_sqrt"
+      timescale: 1000
+      warmup_steps: 1000
+      cooldown_steps: 5000
+    layer_decay: 0.9
+    loss_weights:
+      focal: 20
+      dice: 1
+      iou_l1: 1
+      occlusion_ce: 1
+    sequence_length: 8             # Frames per video clip
+    max_masklets_per_clip: 3
+    initial_prompt_probs:          # Probabilities for type of first prompt
+      mask: 0.5
+      click: 0.25
+      box: 0.25
+    correction_click_random_prob: 0.1  # 10% chance to sample correction clicks from GT randomly
+    reverse_time_prob: 0.5
+    mosaic_prob: 0.1               # Mosaic augmentation probability
+    gradient_accumulation_steps: 4 # Example: effective batch size per device = 1, accumulate 4 steps
+
+  finetune:
+    steps: 50000
+    learning_rate: 2.0e-4         # Half of original
+    freeze_image_encoder: true
+    sequence_length: 16            # Longer clips
+    hard_example_ratio: 0.5        # Use top 50% most edited masklets
+
+### Data Paths
+data:
+  sa1b_root: "/path/to/SA-1B"
+  sav_root: "/path/to/SA-V"
+  davis_root: "/path/to/DAVIS"
+  mose_root: "/path/to/MOSE"
+  ytv_root: "/path/to/YouTubeVOS"
+  internal_root: null              # Not released
+
+  # Data mix ratios (by sampling probability)
+  mix_weights:
+    sa1b: 0.155
+    sav_manual: 0.495
+    davis: 0.013
+    mose: 0.094
+    ytvos: 0.092
+    # internal: 0.151 (ignored if not available)
+
+### Augmentation
+augmentation:
+  train:
+    horizontal_flip: true
+    random_affine: true
+    color_jitter:
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+    grayscale_prob: 0.1
+    mosaic: true                   # Enabled with probability `training.full_training.mosaic_prob`
+
+### Evaluation
+evaluation:
+  interactive_offline:
+    max_frames: 8
+    clicks_per_frame: 3
+    ioU_threshold: 0.75            # (not used here directly; part of online)
+    annotation_time_params:
+      T_loc: 1.0
+      T_click: 1.5
+      T_exam_base: 30.0            # for 300-frame video
+    datasets: ["EndoVis2018", "ESD", "LVOSv2", "LV-VIS", "UVO", "VOST", "PUMaVOS", "VirtualKITTI2", "VIPSeg"]
+  interactive_online:
+    max_frames: 8
+    clicks_per_frame: 3
+    ioU_threshold: 0.75
+    annotation_time_params: same as offline
+    datasets: same as interactive_offline
+  semi_supervised:
+    prompts: ["1-click", "3-click", "5-click", "box", "mask"]
+    datasets: all 17 zero-shot datasets
+  image_segmentation:
+    clicks: [1, 5]
+    datasets: "all 37 (23 SAM + 14 video frames)"
+    metric: "mIoU"

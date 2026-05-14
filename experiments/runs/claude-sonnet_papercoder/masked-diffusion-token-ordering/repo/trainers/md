@@ -1,0 +1,785 @@
+## trainers/mdm_trainer.py
+"""MDM training loop for Masked Diffusion Model experiments.
+
+Implements MDMTrainer, which orchestrates the full training lifecycle for
+MDMTransformer models using the MDMLoss (continuous-time ELBO). Supports
+both iteration-based training (NAE-SAT: 2k/50k iters) and epoch-based
+training (Sudoku/Zebra: 300 epochs).
+
+Config alignment (config.yaml):
+    optimizer.beta1: 0.9
+    optimizer.beta2: 0.95
+    optimizer.weight_decay: 0.1   (NAE-SAT/scaling law)
+    optimizer.grad_clip: 1.0
+    lr_schedule.type: cosine
+    lr_schedule.max_lr: 4.0e-4
+    lr_schedule.min_lr: 4.0e-5
+    lr_schedule.warmup_steps: 1000
+    nae_sat.training.max_iters: 2000
+    nae_sat.training.proxy_max_iters: 50000
+    sudoku.training.lr: 0.001
+    sudoku.training.epochs: 300
+    zebra.training.lr: 0.001
+    zebra.training.epochs: 300
+    log_to_wandb: false
+
+Typical usage::
+
+    # NAE-SAT experiment (iteration-based)
+    schedule   = NoiseSchedule(schedule_type='linear', T=50)
+    loss_fn    = MDMLoss(noise_schedule=schedule, mask_token_id=0, pad_token_id=4)
+    checkpointer = Checkpointer(save_dir='checkpoints', experiment_name='nae_sat')
+    trainer    = MDMTrainer(
+        model=mdm_model,
+        loss_fn=loss_fn,
+        config=training_config,
+        checkpointer=checkpointer,
+        device='cuda',
+    )
+    history = trainer.train(train_loader, val_loader)
+
+    # Sudoku experiment (epoch-based)
+    trainer = MDMTrainer(model=mdm_6m, loss_fn=loss_fn, config=sudoku_config,
+                         checkpointer=ckpt, device='cuda')
+    history = trainer.train(train_loader, val_loader)
+"""
+
+import logging
+import math
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.optim.lr_scheduler import LambdaLR
+from torch.utils.data import DataLoader
+
+from diffusion.mdm_loss import MDMLoss
+from models.mdm_transformer import MDMTransformer
+from utils.checkpointing import Checkpointer
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Module-level constants (aligned with config.yaml)
+# ---------------------------------------------------------------------------
+
+#: Default AdamW beta1, from config.yaml optimizer.beta1
+_DEFAULT_BETA1: float = 0.9
+
+#: Default AdamW beta2, from config.yaml optimizer.beta2
+_DEFAULT_BETA2: float = 0.95
+
+#: Default weight decay, from config.yaml optimizer.weight_decay
+_DEFAULT_WEIGHT_DECAY: float = 0.1
+
+#: Default gradient clipping norm, from config.yaml optimizer.grad_clip
+_DEFAULT_GRAD_CLIP: float = 1.0
+
+#: Default maximum learning rate, from config.yaml lr_schedule.max_lr
+_DEFAULT_MAX_LR: float = 4.0e-4
+
+#: Default minimum learning rate, from config.yaml lr_schedule.min_lr
+_DEFAULT_MIN_LR: float = 4.0e-5
+
+#: Default warmup steps, from config.yaml lr_schedule.warmup_steps
+_DEFAULT_WARMUP_STEPS: int = 1000
+
+#: Default number of training iterations (NAE-SAT standard)
+_DEFAULT_MAX_ITERS: int = 2000
+
+#: Default evaluation frequency (every N iterations/epochs)
+_DEFAULT_EVAL_EVERY: int = 500
+
+#: Default checkpoint save frequency (every N iterations/epochs)
+_DEFAULT_SAVE_EVERY: int = 1000
+
+#: Large float used as initial best_val_loss sentinel
+_LARGE_FLOAT: float = float("inf")
+
+
+# ---------------------------------------------------------------------------
+# TrainingConfig dataclass
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class TrainingConfig:
+    """Configuration for MDMTrainer and ARMTrainer.
+
+    All fields correspond directly to entries in config.yaml under the
+    ``training`` sections of each experiment.
+
+    Attributes:
+        lr: Base learning rate. For puzzle experiments: 0.001 (paper-stated).
+            For NAE-SAT/scaling law: 4e-4 (paper-stated max_lr).
+        lr_min: Minimum learning rate for cosine schedule. From config.yaml
+            lr_schedule.min_lr = 4e-5.
+        weight_decay: AdamW weight decay. From config.yaml
+            optimizer.weight_decay = 0.1 (NAE-SAT) or 0.01 (puzzles).
+        beta1: AdamW beta1. From config.yaml optimizer.beta1 = 0.9.
+        beta2: AdamW beta2. From config.yaml optimizer.beta2 = 0.95.
+        grad_clip: Gradient clipping norm. From config.yaml
+            optimizer.grad_clip = 1.0.
+        max_iters: Maximum training iterations (iteration-based mode).
+            Set to None for epoch-based training. From config.yaml
+            nae_sat.training.max_iters = 2000.
+        epochs: Number of training epochs (epoch-based mode).
+            Set to None for iteration-based training. From config.yaml
+            sudoku.training.epochs = 300.
+        warmup_steps: Linear LR warmup steps. From config.yaml
+            lr_schedule.warmup_steps = 1000.
+        save_every: Checkpoint save frequency (iterations or epochs).
+        eval_every: Validation frequency (iterations or epochs).
+        batch_size: Training batch size. From config.yaml
+            nae_sat.data.batch_size = 128.
+        num_workers: DataLoader worker count.
+        log_to_wandb: Whether to log metrics to Weights & Biases.
+            From config.yaml log_to_wandb = false.
+    """
+
+    lr: float = _DEFAULT_MAX_LR
+    lr_min: float = _DEFAULT_MIN_LR
+    weight_decay: float = _DEFAULT_WEIGHT_DECAY
+    beta1: float = _DEFAULT_BETA1
+    beta2: float = _DEFAULT_BETA2
+    grad_clip: float = _DEFAULT_GRAD_CLIP
+    max_iters: Optional[int] = _DEFAULT_MAX_ITERS
+    epochs: Optional[int] = None
+    warmup_steps: int = _DEFAULT_WARMUP_STEPS
+    save_every: int = _DEFAULT_SAVE_EVERY
+    eval_every: int = _DEFAULT_EVAL_EVERY
+    batch_size: int = 128
+    num_workers: int = 4
+    log_to_wandb: bool = False
+
+
+# ---------------------------------------------------------------------------
+# MDMTrainer
+# ---------------------------------------------------------------------------
+
+
+class MDMTrainer:
+    """Training orchestrator for Masked Diffusion Model experiments.
+
+    Handles the full training lifecycle for MDMTransformer models:
+      - AdamW optimizer with cosine LR schedule and linear warmup
+      - Iteration-based training (NAE-SAT: 2k/50k iters)
+      - Epoch-based training (Sudoku/Zebra: 300 epochs)
+      - Periodic validation and checkpointing
+      - Optional Weights & Biases logging
+
+    The training loss is the continuous-time ELBO from MDMLoss, which
+    implements order-agnostic training by randomly masking tokens at
+    uniformly sampled noise levels t ~ Uniform(0, 1).
+
+    Attributes:
+        model: The MDMTransformer denoiser being trained.
+        loss_fn: The MDMLoss instance for computing the ELBO.
+        optimizer: AdamW optimizer.
+        scheduler: LambdaLR scheduler with warmup + cosine decay.
+        config: TrainingConfig with all hyperparameters.
+        checkpointer: Checkpointer for saving/loading model state.
+        device: Target device (e.g., 'cuda', 'cpu').
+    """
+
+    def __init__(
+        self,
+        model: MDMTransformer,
+        loss_fn: MDMLoss,
+        config: TrainingConfig,
+        checkpointer: Checkpointer,
+        device: str = "cuda",
+    ) -> None:
+        """Initialises MDMTrainer with optimizer and LR scheduler.
+
+        Args:
+            model: The MDMTransformer to train. Moved to ``device`` in
+                ``__init__``.
+            loss_fn: The MDMLoss instance. Must expose
+                ``compute(model, x0) -> Tensor`` (scalar loss).
+            config: TrainingConfig with all hyperparameters. Key fields:
+                - ``lr``: max learning rate (4e-4 for NAE-SAT, 0.001 for puzzles)
+                - ``lr_min``: min learning rate for cosine decay (4e-5)
+                - ``max_iters``: for iteration-based training (NAE-SAT)
+                - ``epochs``: for epoch-based training (puzzles)
+                - ``warmup_steps``: linear warmup duration (1000)
+                - ``grad_clip``: gradient clipping norm (1.0)
+            checkpointer: Checkpointer instance for saving model state.
+            device: Target device string. Defaults to 'cuda'.
+
+        Raises:
+            ValueError: If neither ``config.max_iters`` nor ``config.epochs``
+                is set (at least one must be specified).
+        """
+        if config.max_iters is None and config.epochs is None:
+            raise ValueError(
+                "TrainingConfig must specify either max_iters (iteration-based) "
+                "or epochs (epoch-based) training. Both are None."
+            )
+
+        self.model: MDMTransformer = model
+        self.loss_fn: MDMLoss = loss_fn
+        self.config: TrainingConfig = config
+        self.checkpointer: Checkpointer = checkpointer
+        self.device: str = device
+
+        # Move model to target device.
+        self.model = self.model.to(device)
+
+        # ------------------------------------------------------------------ #
+        # Optimizer: AdamW with paper-stated hyperparameters                  #
+        # ------------------------------------------------------------------ #
+        # From config.yaml: optimizer.beta1=0.9, optimizer.beta2=0.95,
+        # optimizer.weight_decay=0.1 (NAE-SAT) or 0.01 (puzzles).
+        self.optimizer: optim.AdamW = optim.AdamW(
+            self.model.parameters(),
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            weight_decay=config.weight_decay,
+        )
+
+        # ------------------------------------------------------------------ #
+        # LR Scheduler: linear warmup + cosine decay                          #
+        # ------------------------------------------------------------------ #
+        # From config.yaml: lr_schedule.type=cosine, warmup_steps=1000,
+        # max_lr=4e-4, min_lr=4e-5.
+        # The total number of steps for cosine decay depends on training mode.
+        total_steps: int = self._compute_total_steps()
+        self.scheduler: LambdaLR = self._build_scheduler(
+            optimizer=self.optimizer,
+            warmup_steps=config.warmup_steps,
+            total_steps=total_steps,
+            max_lr=config.lr,
+            min_lr=config.lr_min,
+        )
+
+        # ------------------------------------------------------------------ #
+        # Internal state                                                        #
+        # ------------------------------------------------------------------ #
+        self._global_iter: int = 0
+        self._best_val_loss: float = _LARGE_FLOAT
+        self._best_checkpoint_path: str = ""
+
+        logger.info(
+            "MDMTrainer initialised: device='%s', lr=%.2e, lr_min=%.2e, "
+            "weight_decay=%.4f, grad_clip=%.1f, warmup_steps=%d, "
+            "max_iters=%s, epochs=%s.",
+            device,
+            config.lr,
+            config.lr_min,
+            config.weight_decay,
+            config.grad_clip,
+            config.warmup_steps,
+            config.max_iters,
+            config.epochs,
+        )
+
+    # ------------------------------------------------------------------
+    # Public interface
+    # ------------------------------------------------------------------
+
+    def train(
+        self,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+    ) -> Dict[str, Any]:
+        """Runs the full training loop.
+
+        Dispatches to iteration-based or epoch-based training depending on
+        whether ``config.max_iters`` or ``config.epochs`` is set.
+
+        Args:
+            train_loader: DataLoader for training data. Each batch must be
+                a dict with key ``'x0'`` (LongTensor of shape [B, L]).
+            val_loader: DataLoader for validation data. Same format as
+                train_loader.
+
+        Returns:
+            Training history dict with keys:
+              - ``'train_losses'``: List[float] of per-step/epoch losses.
+              - ``'val_losses'``: List[float] of validation losses at eval
+                checkpoints.
+              - ``'best_val_loss'``: float — best validation loss achieved.
+              - ``'best_checkpoint_path'``: str — path to best checkpoint.
+        """
+        train_losses: List[float] = []
+        val_losses: List[float] = []
+
+        if self.config.max_iters is not None:
+            # Iteration-based training (NAE-SAT experiment).
+            train_losses, val_losses = self._train_iteration_based(
+                train_loader=train_loader,
+                val_loader=val_loader,
+            )
+        else:
+            # Epoch-based training (Sudoku/Zebra experiments).
+            train_losses, val_losses = self._train_epoch_based(
+                train_loader=train_loader,
+                val_loader=val_loader,
+            )
+
+        return {
+            "train_losses": train_losses,
+            "val_losses": val_losses,
+            "best_val_loss": self._best_val_loss,
+            "best_checkpoint_path": self._best_checkpoint_path,
+        }
+
+    def train_epoch(self, train_loader: DataLoader) -> float:
+        """Runs one training epoch and returns the mean training loss.
+
+        Sets the model to training mode, iterates over all batches in
+        ``train_loader``, and returns the average loss over the epoch.
+
+        Args:
+            train_loader: DataLoader for training data.
+
+        Returns:
+            Mean training loss over the epoch (float).
+        """
+        self.model.train()
+        total_loss: float = 0.0
+        n_batches: int = 0
+
+        for batch in train_loader:
+            step_loss: float = self.train_step(batch)
+            total_loss += step_loss
+            n_batches += 1
+
+        mean_loss: float = total_loss / max(n_batches, 1)
+        return mean_loss
+
+    def validate(self, val_loader: DataLoader) -> float:
+        """Computes the mean validation loss over the full validation set.
+
+        Sets the model to eval mode, disables gradients, iterates over all
+        batches in ``val_loader``, and returns the average loss.
+
+        The validation loss uses the same MDMLoss computation as training
+        (random masking at sampled noise levels), which gives an unbiased
+        estimate of the ELBO on held-out data.
+
+        Args:
+            val_loader: DataLoader for validation data.
+
+        Returns:
+            Mean validation loss (float).
+        """
+        self.model.eval()
+        total_loss: float = 0.0
+        n_batches: int = 0
+
+        with torch.no_grad():
+            for batch in val_loader:
+                x0: torch.Tensor = batch["x0"].to(self.device)
+                loss: torch.Tensor = self.loss_fn.compute(self.model, x0)
+                total_loss += loss.item()
+                n_batches += 1
+
+        self.model.train()
+        mean_loss: float = total_loss / max(n_batches, 1)
+        return mean_loss
+
+    def train_step(self, batch: Dict[str, torch.Tensor]) -> float:
+        """Performs one training step (forward + backward + optimizer step).
+
+        Implements the core MDM training update:
+          1. Move x0 to device
+          2. Compute MDM ELBO loss via loss_fn.compute(model, x0)
+          3. Backward pass
+          4. Gradient clipping
+          5. Optimizer step
+          6. Scheduler step
+
+        Args:
+            batch: Dict with key ``'x0'`` (LongTensor [B, L]).
+                Additional keys (e.g., 'latent_mask', 'obs_mask') are
+                ignored by the trainer.
+
+        Returns:
+            Scalar training loss value (float).
+        """
+        self.model.train()
+
+        # Move x0 to device.
+        x0: torch.Tensor = batch["x0"].to(self.device)
+
+        # Zero gradients before forward pass.
+        self.optimizer.zero_grad()
+
+        # Forward pass: compute MDM ELBO loss.
+        # MDMLoss.compute internally:
+        #   1. Samples t ~ Uniform(0,1) per sample
+        #   2. Applies masking via apply_masking
+        #   3. Runs model.forward(x_t) to get logits
+        #   4. Computes cross-entropy only over masked positions
+        #   5. Weights by |alpha_t'| / (1 - alpha_t)
+        loss: torch.Tensor = self.loss_fn.compute(self.model, x0)
+
+        # Backward pass.
+        loss.backward()
+
+        # Gradient clipping: prevents exploding gradients.
+        # From config.yaml: optimizer.grad_clip = 1.0
+        if self.config.grad_clip > 0.0:
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(),
+                max_norm=self.config.grad_clip,
+            )
+
+        # Optimizer step.
+        self.optimizer.step()
+
+        # Scheduler step (called every iteration for both modes).
+        self.scheduler.step()
+
+        # Increment global iteration counter.
+        self._global_iter += 1
+
+        return loss.item()
+
+    def save_checkpoint(
+        self,
+        epoch_or_iter: int,
+        val_loss: float,
+    ) -> None:
+        """Saves a training checkpoint via the Checkpointer.
+
+        Args:
+            epoch_or_iter: Current epoch or iteration number.
+            val_loss: Current validation loss to store in checkpoint metadata.
+        """
+        metrics: Dict[str, float] = {
+            "val_loss": val_loss,
+            "train_iter": float(self._global_iter),
+        }
+        self.checkpointer.save(
+            model=self.model,
+            optimizer=self.optimizer,
+            epoch_or_iter=epoch_or_iter,
+            metrics=metrics,
+            scheduler=self.scheduler,
+        )
+
+        # Track best checkpoint.
+        if val_loss < self._best_val_loss:
+            self._best_val_loss = val_loss
+            self._best_checkpoint_path = self.checkpointer.get_best_checkpoint(
+                metric="val_loss", mode="min"
+            )
+            logger.info(
+                "New best val_loss=%.6f at epoch/iter=%d.",
+                val_loss,
+                epoch_or_iter,
+            )
+
+    def load_checkpoint(self, path: str) -> None:
+        """Loads a checkpoint into the model and optimizer.
+
+        Args:
+            path: Full path to the checkpoint file.
+        """
+        epoch_or_iter, metrics = self.checkpointer.load(
+            path=path,
+            model=self.model,
+            optimizer=self.optimizer,
+            scheduler=self.scheduler,
+        )
+        self._global_iter = epoch_or_iter
+        logger.info(
+            "Loaded checkpoint from '%s' (epoch/iter=%d, metrics=%s).",
+            path,
+            epoch_or_iter,
+            metrics,
+        )
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _train_iteration_based(
+        self,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+    ) -> Tuple[List[float], List[float]]:
+        """Runs iteration-based training loop (NAE-SAT experiment).
+
+        Iterates over the training data in a cyclic fashion until
+        ``config.max_iters`` total steps are completed. Performs validation
+        and checkpointing at the specified intervals.
+
+        Args:
+            train_loader: Training DataLoader.
+            val_loader: Validation DataLoader.
+
+        Returns:
+            Tuple of (train_losses, val_losses) lists.
+        """
+        max_iters: int = self.config.max_iters  # type: ignore[assignment]
+        train_losses: List[float] = []
+        val_losses: List[float] = []
+        last_val_loss: float = _LARGE_FLOAT
+
+        logger.info(
+            "Starting iteration-based training: max_iters=%d, "
+            "eval_every=%d, save_every=%d.",
+            max_iters,
+            self.config.eval_every,
+            self.config.save_every,
+        )
+
+        # Cycle through the DataLoader indefinitely until max_iters is reached.
+        # This handles the case where max_iters > len(train_loader).
+        global_iter: int = 0
+
+        while global_iter < max_iters:
+            for batch in train_loader:
+                if global_iter >= max_iters:
+                    break
+
+                # Training step.
+                step_loss: float = self.train_step(batch)
+                train_losses.append(step_loss)
+                global_iter += 1
+
+                # Log training loss.
+                if global_iter % 100 == 0 or global_iter == 1:
+                    current_lr: float = self.scheduler.get_last_lr()[0]
+                    logger.info(
+                        "Iter %d/%d | train_loss=%.4f | lr=%.2e",
+                        global_iter,
+                        max_iters,
+                        step_loss,
+                        current_lr,
+                    )
+                    self._maybe_log_wandb(
+                        {
+                            "train/loss": step_loss,
+                            "train/lr": current_lr,
+                            "train/iter": global_iter,
+                        }
+                    )
+
+                # Validation.
+                if global_iter % self.config.eval_every == 0:
+                    last_val_loss = self.validate(val_loader)
+                    val_losses.append(last_val_loss)
+                    logger.info(
+                        "Iter %d/%d | val_loss=%.4f",
+                        global_iter,
+                        max_iters,
+                        last_val_loss,
+                    )
+                    self._maybe_log_wandb(
+                        {
+                            "val/loss": last_val_loss,
+                            "train/iter": global_iter,
+                        }
+                    )
+
+                # Checkpointing.
+                if global_iter % self.config.save_every == 0:
+                    self.save_checkpoint(
+                        epoch_or_iter=global_iter,
+                        val_loss=last_val_loss,
+                    )
+
+        # Final validation and checkpoint.
+        final_val_loss: float = self.validate(val_loader)
+        val_losses.append(final_val_loss)
+        self.save_checkpoint(epoch_or_iter=global_iter, val_loss=final_val_loss)
+
+        logger.info(
+            "Iteration-based training complete: %d iters, "
+            "final_val_loss=%.4f, best_val_loss=%.4f.",
+            global_iter,
+            final_val_loss,
+            self._best_val_loss,
+        )
+
+        return train_losses, val_losses
+
+    def _train_epoch_based(
+        self,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+    ) -> Tuple[List[float], List[float]]:
+        """Runs epoch-based training loop (Sudoku/Zebra experiments).
+
+        Iterates over the training data for ``config.epochs`` complete passes.
+        Performs validation and checkpointing at the specified intervals.
+
+        Args:
+            train_loader: Training DataLoader.
+            val_loader: Validation DataLoader.
+
+        Returns:
+            Tuple of (train_losses, val_losses) lists.
+        """
+        epochs: int = self.config.epochs  # type: ignore[assignment]
+        train_losses: List[float] = []
+        val_losses: List[float] = []
+        last_val_loss: float = _LARGE_FLOAT
+
+        logger.info(
+            "Starting epoch-based training: epochs=%d, "
+            "eval_every=%d, save_every=%d.",
+            epochs,
+            self.config.eval_every,
+            self.config.save_every,
+        )
+
+        for epoch in range(1, epochs + 1):
+            # Train one epoch.
+            epoch_loss: float = self.train_epoch(train_loader)
+            train_losses.append(epoch_loss)
+
+            current_lr: float = self.scheduler.get_last_lr()[0]
+            logger.info(
+                "Epoch %d/%d | train_loss=%.4f | lr=%.2e",
+                epoch,
+                epochs,
+                epoch_loss,
+                current_lr,
+            )
+            self._maybe_log_wandb(
+                {
+                    "train/loss": epoch_loss,
+                    "train/lr": current_lr,
+                    "train/epoch": epoch,
+                }
+            )
+
+            # Validation.
+            if epoch % self.config.eval_every == 0 or epoch == epochs:
+                last_val_loss = self.validate(val_loader)
+                val_losses.append(last_val_loss)
+                logger.info(
+                    "Epoch %d/%d | val_loss=%.4f",
+                    epoch,
+                    epochs,
+                    last_val_loss,
+                )
+                self._maybe_log_wandb(
+                    {
+                        "val/loss": last_val_loss,
+                        "train/epoch": epoch,
+                    }
+                )
+
+            # Checkpointing.
+            if epoch % self.config.save_every == 0 or epoch == epochs:
+                self.save_checkpoint(
+                    epoch_or_iter=epoch,
+                    val_loss=last_val_loss,
+                )
+
+        logger.info(
+            "Epoch-based training complete: %d epochs, "
+            "final_val_loss=%.4f, best_val_loss=%.4f.",
+            epochs,
+            last_val_loss,
+            self._best_val_loss,
+        )
+
+        return train_losses, val_losses
+
+    def _compute_total_steps(self) -> int:
+        """Computes the total number of training steps for the LR scheduler.
+
+        For iteration-based training, returns ``max_iters``.
+        For epoch-based training, returns a large number (the scheduler
+        will decay over the full training duration).
+
+        Returns:
+            Total number of training steps.
+        """
+        if self.config.max_iters is not None:
+            return self.config.max_iters
+        # For epoch-based training, use a large number as a proxy.
+        # The actual total steps depend on dataset size, which is not known
+        # at construction time. We use 1e6 as a safe upper bound — the
+        # cosine schedule will decay slowly enough that this is fine for
+        # 300 epochs of typical puzzle datasets.
+        return int(1e6)
+
+    @staticmethod
+    def _build_scheduler(
+        optimizer: optim.Optimizer,
+        warmup_steps: int,
+        total_steps: int,
+        max_lr: float,
+        min_lr: float,
+    ) -> LambdaLR:
+        """Builds a LambdaLR scheduler with linear warmup + cosine decay.
+
+        Implements the schedule from config.yaml:
+          - Linear warmup from 0 to max_lr over warmup_steps steps
+          - Cosine decay from max_lr to min_lr over remaining steps
+
+        The LambdaLR multiplier is relative to the optimizer's base lr
+        (which is set to max_lr at construction time).
+
+        Args:
+            optimizer: The AdamW optimizer.
+            warmup_steps: Number of linear warmup steps.
+            total_steps: Total number of training steps.
+            max_lr: Maximum learning rate (optimizer base lr).
+            min_lr: Minimum learning rate at end of cosine decay.
+
+        Returns:
+            A LambdaLR scheduler instance.
+        """
+        # Ratio of min_lr to max_lr for the cosine decay floor.
+        # The LambdaLR multiplier is applied to the optimizer's base lr.
+        min_lr_ratio: float = min_lr / max(max_lr, 1e-10)
+
+        def lr_lambda(current_step: int) -> float:
+            """Computes the LR multiplier at the given step.
+
+            Args:
+                current_step: Current training step (0-indexed).
+
+            Returns:
+                LR multiplier in [min_lr_ratio, 1.0].
+            """
+            if current_step < warmup_steps:
+                # Linear warmup: 0 → 1.0 over warmup_steps.
+                return float(current_step) / float(max(warmup_steps, 1))
+
+            # Cosine decay: 1.0 → min_lr_ratio over remaining steps.
+            progress: float = float(current_step - warmup_steps) / float(
+                max(total_steps - warmup_steps, 1)
+            )
+            # Clamp progress to [0, 1] to handle steps beyond total_steps.
+            progress = min(progress, 1.0)
+
+            # Cosine annealing formula:
+            # multiplier = min_ratio + 0.5 * (1 - min_ratio) * (1 + cos(pi * progress))
+            cosine_decay: float = 0.5 * (1.0 + math.cos(math.pi * progress))
+            multiplier: float = min_lr_ratio + (1.0 - min_lr_ratio) * cosine_decay
+
+            return multiplier
+
+        return LambdaLR(optimizer, lr_lambda=lr_lambda)
+
+    def _maybe_log_wandb(self, metrics: Dict[str, Any]) -> None:
+        """Logs metrics to Weights & Biases if enabled.
+
+        Args:
+            metrics: Dict of metric name → value to log.
+        """
+        if not self.config.log_to_wandb:
+            return
+
+        try:
+            import wandb  # noqa: PLC0415
+            wandb.log(metrics)
+        except ImportError:
+            logger.debug(
+                "wandb not installed; skipping W&B logging."
+            )
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.debug("W&B logging failed: %s", exc)

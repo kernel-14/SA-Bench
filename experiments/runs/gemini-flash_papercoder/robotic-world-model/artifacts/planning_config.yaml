@@ -1,0 +1,79 @@
+## config.yaml
+environment:
+  robot_type: "ANYmal D" # Can be "ANYmal D" or "Unitree G1"
+  control_frequency: 50 # Hz
+  delta_t: 0.02 # Seconds per step
+  pretraining_data_collection_steps: 6000000 # 6M state transitions for RWM pretraining
+  # Isaac Lab environment specific settings would go here, e.g., domain randomization, terrains
+
+rwm_model:
+  architecture:
+    base_hidden_shape: [256, 256] # GRU hidden states. Interpreted as [num_layers, hidden_size]
+    heads_hidden_shape: 128 # MLP hidden layer size
+    heads_activation: "ReLU"
+  training:
+    max_iterations: 2500
+    learning_rate: 0.0001 # 1e-4
+    weight_decay: 0.00001 # 1e-5
+    batch_size: 1024
+    history_horizon_M: 32
+    forecast_horizon_N: 8
+    forecast_decay_alpha: 1.0 # No decay
+    rwm_finetune_iterations_per_mbpo_step: 10 # Not explicitly stated, common practice, assume small number for fine-tuning
+    
+mbpo_ppo:
+  policy_value_architecture:
+    hidden_shape: [128, 128, 128]
+    activation: "ELU"
+  training:
+    imagination_environments: 4096
+    imagination_steps_per_iteration: 100
+    replay_buffer_size: 1000 # |D|
+    max_iterations: 2500
+    learning_rate: 0.001
+    weight_decay: 0.0 # From Table S11
+    learning_epochs: 5
+    mini_batches: 4
+    kl_divergence_target: 0.01
+    discount_factor_gamma: 0.99
+    clip_range_epsilon: 0.2
+    entropy_coefficient: 0.005
+
+rewards: # Reward weights from Table S6
+  ANYmal_D:
+    Wvxy: 1.0
+    Wwz: 0.5
+    Wvz: -2.0
+    Wwxy: -0.05
+    Wqt: -2.5e-5
+    Wq: -2.5e-7
+    Wa: -0.01
+    Wfa: 0.5
+    Wc: -1.0
+    Wg: -5.0
+    Wfc: 0.0
+    Wqd: 0.0
+  Unitree_G1:
+    Wvxy: 1.0
+    Wwz: 0.5
+    Wvz: -2.0
+    Wwxy: -0.05
+    Wqt: -2.5e-5
+    Wq: -2.5e-7
+    Wa: -0.05
+    Wfa: 0.0
+    Wc: -1.0
+    Wg: -5.0
+    Wfc: 1.0
+    Wqd: -1.0
+  reward_temperature_vxy: 0.25
+  reward_temperature_wz: 0.25
+
+global:
+  seed: 0 # Default seed, will iterate for num_seeds
+  num_seeds: 5
+  device: "cuda" # or "cpu"
+  log_dir: "logs"
+  model_dir: "models"
+  eval_freq: 50 # Evaluate every N iterations
+  save_freq: 100 # Save models every N iterations

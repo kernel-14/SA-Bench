@@ -1,0 +1,148 @@
+## config.yaml
+# Global Configuration
+experiment_name: "emergent_planning_reproduction"
+seed: 42 # For general reproducibility, but probes use 5 unique seeds
+
+# Environment Configuration
+environment:
+  name: "Sokoban" # Default environment, can be overridden by experiment
+  sokoban:
+    grid_size: [8, 8]
+    observation_channels: 7 # x_t in R^(8x8x7)
+    episode_length_min: 115 # For random episode termination
+    episode_length_max: 120 # For random episode termination
+    reward_structure:
+      step_penalty: -0.01
+      box_on_target: 1.0
+      box_off_target: -1.0
+      all_boxes_on_targets: 10.0
+    boxoban_paths: # Placeholder for paths to Boxoban level sets
+      unfiltered_train: "data/boxoban/unfiltered_train.txt"
+      unfiltered_validation: "data/boxoban/unfiltered_validation.txt"
+      medium: "data/boxoban/medium.txt"
+      hard: "data/boxoban/hard.txt"
+  mini_pacman: # Configuration for Appendix H
+    grid_size: [13, 13]
+    observation_channels: 14 # x_t in R^(13x13x14)
+    maze_generation:
+      primm_wall_removal_prob: 0.3
+      initial_ghosts_poisson_lambda: 1.0 # 1 + Poisson(1)
+    reward_structure:
+      food: 1.0
+      pill: 2.0
+      ghost: 5.0
+    episode_max_steps: 500 # Per level
+    ghost_a_star_heuristic: "manhattan" # Assumed based on common practice
+
+# Agent Configuration
+agent:
+  type: "DRCAgent" # Default agent type
+  drc_agent:
+    D: 3 # Number of ConvLSTM layers (main agent)
+    N: 3 # Number of internal ticks (main agent)
+    convlstm_channels: 32 # G_d
+    convlstm_kernel_size: 3
+    convlstm_padding: 1 # Single layer of zero padding
+    # Encoder details are ambiguous, assuming a simple Conv2d for now
+    encoder:
+      type: "Conv2d"
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      activation: "ReLU"
+    policy_value_head:
+      mlp_hidden_dim: 256 # Not explicitly stated, common practice
+  resnet_agent: # Configuration for Appendix G
+    num_residual_blocks: 24
+    block_channels: 32
+    mlp_output_dim: 256 # Before policy/value heads
+
+# RL Training Configuration (IMPALA)
+rl_training:
+  num_transitions: 250000000 # Main agent, others 100M
+  optimizer: "Adam"
+  learning_rate: 0.0004 # Decays linearly to 0
+  learning_rate_final: 0.0 # Linear decay to 0
+  unroll_length: 20
+  batch_size: 16
+  discount_rate: 0.97 # gamma
+  v_trace_lambda: 0.97 # lambda
+  l2_action_logits_penalty: 0.001
+  l2_policy_value_heads_reg: 0.00001 # 1e-5
+  entropy_penalty: 0.01 # 1e-2
+  inference_greedy: True # Use greedy policy for evaluation
+
+# Interpretability - Probing Configuration
+probing:
+  optimizer: "AdamW"
+  learning_rate: 0.001
+  weight_decay: 0.001
+  epochs: 10
+  batch_size: 16
+  initialization_seeds: 5 # Number of unique seeds for probe training
+  concept_types:
+    - "CA" # Agent Approach Direction
+    - "CB" # Box Push Direction
+    - "AgentApproach" # Binary simplified CA
+    - "BoxPush" # Binary simplified CB
+    - "AgentExitDirection" # Reversed asymmetrical
+    - "BoxApproachDirection" # Reversed asymmetrical
+    - "AgentApproachDirection_MiniPacMan_16" # For MiniPacMan Appendix H
+    - "AgentApproach_MiniPacMan_16" # For MiniPacMan Appendix H
+  probe_data_collection:
+    full_agent:
+      train_episodes: 3000
+      val_episodes: 1000
+    checkpoint:
+      train_episodes: 1000
+      val_episodes: 500
+  probe_kernel_sizes: # For spatially-localized probes
+    - 1 # 1x1 probes
+    - 3 # 3x3 probes
+    - 5 # 5x5 probes (Appendix D.3)
+    - 7 # 7x7 probes (Appendix D.3)
+  global_probe_action_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # For 'Action To Take in N Time Steps'
+
+# Interpretability - Intervention Configuration
+intervention:
+  default_alpha: 1.0 # Scaling factor for concept vectors
+  # Specific alphas for agents/layers will be handled by code
+  num_squares_p: [0, 1, 2, 3] # Number of squares for directional intervention
+  include_short_route_removal: [True, False] # Whether to include NEVER intervention
+  level_types:
+    - "AgentShortcut"
+    - "BoxShortcut"
+    - "Cutoff"
+  levels_per_type: 200 # For Agent-Shortcut, Box-Shortcut, Cutoff
+  thinking_steps_for_cutoff: [0, 1, 2, 3, 4, 5] # For evaluating cutoff levels
+
+# Experiment Execution Configuration
+experiments_to_run:
+  rl_training_drc3_3: True
+  rl_training_drc1_9: False # Set to True for Appendix F.1
+  rl_training_drc9_1: False # Set to True for Appendix F.2
+  rl_training_resnet: False # Set to True for Appendix G
+  rl_training_mini_pacman: False # Set to True for Appendix H
+
+  probe_experiments_drc3_3: True
+  probe_experiments_drc1_9: False
+  probe_experiments_drc9_1: False
+  probe_experiments_resnet: False
+  probe_experiments_mini_pacman: False
+
+  plan_formation_experiments_drc3_3: True
+
+  causal_influence_experiments_drc3_3: True
+  causal_influence_experiments_drc1_9: False
+  causal_influence_experiments_drc9_1: False
+  causal_influence_experiments_resnet: False
+
+  emergence_experiments_drc3_3: True # Section 6.2 and Appendix C
+
+# Paths and Logging
+paths:
+  results_dir: "results"
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  data_dir: "data" # Base directory for datasets
+  figures_dir: "figures"

@@ -1,0 +1,253 @@
+## config.yaml
+## Ca2-VDM Configuration File
+## All hyperparameters are sourced directly from the paper.
+## Sections marked with [PAPER] cite the exact paper location.
+
+# ─────────────────────────────────────────────
+# Task selection: 't2v' or 'video_prediction'
+# ─────────────────────────────────────────────
+task: "video_prediction"  # Switch to 't2v' for text-to-video experiments
+
+# ─────────────────────────────────────────────
+# Paths
+# ─────────────────────────────────────────────
+paths:
+  data_root: "data/"
+  output_dir: "outputs/"
+  checkpoint_dir: "checkpoints/"
+  vae_path: "pretrained/sd-vae"           # Stable Diffusion VAE [PAPER Sec 4.1]
+  t5_path: "pretrained/t5-large"          # T5 text encoder [PAPER Sec 4.1]
+  opensora_ckpt: "pretrained/opensora-v1" # Open-Sora v1.0 init [PAPER Sec 4.1]
+  i3d_ckpt: "pretrained/i3d_kinetics.pt"  # For FVD evaluation [PAPER Sec D.2]
+  ucf101_prompts: "data/ucf101/pyoco_prompts.json"  # PYoCo prompts [PAPER Sec D.1]
+
+# ─────────────────────────────────────────────
+# Model Architecture
+# [PAPER Sec 4.1]: Built on spatial-temporal Transformer following Open-Sora v1.0
+# ─────────────────────────────────────────────
+model:
+  model_dim: 1152          # Open-Sora v1.0 hidden dimension
+  num_heads: 16
+  num_layers: 28
+  mlp_ratio: 4.0
+  vae_channels: 4          # SD VAE latent channels
+  vae_downsample: 8        # 8x spatial downsampling [PAPER Sec 3.1]
+  context_dim: 1024        # T5-Large output dimension
+  dropout: 0.0
+  use_cross_attn: true     # True for t2v, False for video_prediction [PAPER Sec 3.2]
+
+# ─────────────────────────────────────────────
+# Diffusion Schedule
+# [PAPER Sec C]: DDPM schedule with T=1000, beta_1=1e-4, beta_T=0.02
+# ─────────────────────────────────────────────
+diffusion:
+  schedule: "linear"
+  T: 1000                  # [PAPER Sec C]
+  beta_start: 0.0001       # beta_1 = 1e-4 [PAPER Sec C]
+  beta_end: 0.02           # beta_T = 0.02 [PAPER Sec C]
+  learn_sigma: true        # Learnable covariance Sigma_theta [PAPER Sec 3.2, Sec B]
+  loss_type: "simple_vlb"  # Combined L_tilde_simple + L_tilde_vlb [PAPER Sec B]
+
+# ─────────────────────────────────────────────
+# Inference Schedule
+# [PAPER Sec C]: Improved DDPM schedule with 100 steps at inference
+# ─────────────────────────────────────────────
+inference:
+  num_steps: 100           # [PAPER Sec C]
+  sampler: "improved_ddpm" # [PAPER Sec C, Sec 4.3]
+  cfg_scale: 7.5           # Classifier-free guidance scale for T2V [PAPER Sec C]
+  seed: 42
+
+# ─────────────────────────────────────────────
+# Ca2-VDM Core Parameters
+# ─────────────────────────────────────────────
+ca2vdm:
+  prefix_spatial_len: 3    # P' = 3 for prefix-enhanced spatial attention [PAPER Sec 3.2]
+
+# ─────────────────────────────────────────────
+# Task-specific configurations
+# ─────────────────────────────────────────────
+
+# ── Text-to-Video (T2V) ──────────────────────
+# [PAPER Sec 4.1, Sec C]
+t2v:
+  dataset: "internvid"
+  num_pairs: 4900000        # 4.9M filtered video-text pairs [PAPER Sec 4.1]
+  resolution: 256           # 256x256 [PAPER Sec 4.1]
+  chunk_len: 16             # l = 16 [PAPER Sec 4.1]
+  p_max: 49                 # P_max = 1 + 3*l = 1 + 3*16 = 49 [PAPER Sec 4.1]
+  l_train_max: 65           # max(L_train) = P_max + l = 49 + 16 = 65 [PAPER Sec C]
+  n_max: 3                  # P in {1, 1+l, 1+2l, 1+3l}, so n_max=3 [PAPER Sec 4.1]
+
+  # Two-stage training [PAPER Sec C]
+  stage1:
+    description: "Causal modeling without clean prefix on 32-frame videos"
+    num_frames: 32           # 32-frame videos [PAPER Sec C]
+    use_prefix: false        # No conditional frames in stage 1 [PAPER Sec C]
+    batch_size: 288          # [PAPER Sec C]
+    num_steps: 32000         # 32k steps [PAPER Sec C]
+    learning_rate: 0.00002   # 2e-5 [PAPER Sec C]
+    optimizer: "adamw"       # AdamW [PAPER Sec C]
+    weight_decay: 0.01
+
+  stage2:
+    description: "Training with clean prefix on up to 65-frame videos"
+    use_prefix: true         # With conditional frames [PAPER Sec C]
+    batch_size: 144          # [PAPER Sec C]
+    num_steps: 21000         # 21k steps [PAPER Sec C]
+    learning_rate: 0.00002   # 2e-5 [PAPER Sec C]
+    optimizer: "adamw"       # AdamW [PAPER Sec C]
+    weight_decay: 0.01
+
+  # OS-Fix baseline for T2V [PAPER Sec 4.1, Sec C]
+  os_fix_baseline:
+    l_train: 32              # L_train = 32 [PAPER Sec C]
+    prefix_len: 16           # P = l = L_train/2 = 16 (fixed) [PAPER Sec C]
+    chunk_len: 16            # l = 16 [PAPER Sec C]
+    batch_size: 288          # [PAPER Sec C]
+    num_steps: 20000         # 20k steps [PAPER Sec C]
+    learning_rate: 0.00002   # 2e-5 [PAPER Sec C]
+    optimizer: "adamw"
+    weight_decay: 0.01
+
+# ── Video Prediction ─────────────────────────
+# [PAPER Sec 4.1, Sec C]
+video_prediction:
+  dataset: "skytimelapse"
+  resolution: 256           # 256x256 [PAPER Sec 4.1]
+  chunk_len: 8              # l = 8 [PAPER Sec 4.1]
+  use_text: false           # No text prompt for video prediction [PAPER Sec 4.1]
+
+  # Ca2-VDM and OS-Ext share these settings [PAPER Sec 4.1, Sec C]
+  ca2vdm_and_os_ext:
+    p_max: 25               # P_max = 1 + 3*l = 1 + 3*8 = 25 [PAPER Sec 4.1]
+    l_train: 33             # L_train = P_max + l = 25 + 8 = 33 [PAPER Sec C]
+    n_max: 3                # P in {1, 9, 17, 25} [PAPER Sec 4.1]
+    batch_size: 8           # [PAPER Sec C]
+    num_steps: 11000        # 11k steps [PAPER Sec C]
+    learning_rate: 0.00002  # 2e-5 [PAPER Sec C]
+    optimizer: "adamw"      # AdamW [PAPER Sec C]
+    weight_decay: 0.01
+
+  # OS-Fix baseline for video prediction [PAPER Sec 4.1, Sec C]
+  os_fix_baseline:
+    prefix_len: 8           # P = 8 (fixed) [PAPER Sec 4.1]
+    l_train: 16             # L_train = 16 [PAPER Sec C]
+    chunk_len: 8            # l = 8 [PAPER Sec C]
+    batch_size: 8           # [PAPER Sec C]
+    num_steps: 11000        # 11k steps [PAPER Sec C]
+    learning_rate: 0.00002  # 2e-5 [PAPER Sec C]
+    optimizer: "adamw"
+    weight_decay: 0.01
+
+# ─────────────────────────────────────────────
+# Evaluation Datasets and Protocols
+# [PAPER Sec 4.1, Sec D]
+# ─────────────────────────────────────────────
+evaluation:
+  resolution: 256           # All evaluations at 256x256 [PAPER Sec 4.1]
+
+  msrvtt:
+    split: "test"
+    num_videos: 2990        # Official test split [PAPER Sec D.1]
+    captions_per_video: 20  # 20 manually annotated captions [PAPER Sec D.1]
+    num_generated: 2990     # One random caption per video [PAPER Sec D.1]
+    num_frames: 16          # 16-frame clips [PAPER Table 1]
+
+  ucf101:
+    num_samples_per_class: 2048   # Uniform distribution [PAPER Sec D.1]
+    num_classes: 101
+    total_samples: 206656         # 2048 * 101 (approx, uniform)
+    num_frames: 16                # 16-frame clips [PAPER Table 1]
+    prompt_source: "pyoco"        # Descriptive prompts from PYoCo [PAPER Sec D.1]
+
+  skytimelapse:
+    train_long_videos: 997        # [PAPER Sec D.1]
+    train_short_clips: 2392       # [PAPER Sec D.1]
+    test_long_videos: 111         # [PAPER Sec D.1]
+    test_short_clips: 225         # [PAPER Sec D.1]
+
+  # FVD computation settings [PAPER Sec D.2]
+  fvd:
+    feature_extractor: "i3d"      # Pretrained I3D model [PAPER Sec D.2]
+    codebase: "stylegan_v"        # StyleGAN-V FVD codebase [PAPER Sec D.2]
+    min_frames: 16                # I3D minimum input length [PAPER Sec D.2]
+
+  # Temporal consistency evaluation (Table 3) [PAPER Sec D.2]
+  temporal_consistency:
+    num_ar_steps: 6               # 6 AR steps [PAPER Sec D.2]
+    frames_per_step: 8            # l = 8 [PAPER Sec D.2]
+    total_frames: 48              # 6 * 8 = 48 frames [PAPER Sec D.2]
+    eval_chunk_size: 16           # 16-frame chunks for FVD (2 AR steps each) [PAPER Sec D.2]
+    num_samples: 512              # 512 videos for FVD [PAPER Sec D.2]
+    reference: "first_chunk"      # FVD w.r.t. first AR step [PAPER Table 3]
+
+  # Ablation evaluation (Table 4) [PAPER Sec D.2]
+  ablation:
+    num_ar_steps: 6               # 6 AR steps [PAPER Sec 4.2]
+    frames_per_step: 16           # l = 16 [PAPER Sec 4.2]
+    total_frames: 96              # 6 * 16 = 96 frames [PAPER Sec D.2]
+    eval_chunk_size: 16           # 16-frame chunks [PAPER Sec D.2]
+    num_samples: 512              # 512 videos for FVD [PAPER Sec D.2]
+    reference: "first_ar_step"    # FVD w.r.t. first AR step [PAPER Table 4]
+    p_max_variants: [25, 41]      # Ablation over P_max [PAPER Table 4]
+    prefix_enhancement: [true, false]  # Ablation over PE [PAPER Table 4]
+
+  # Efficiency evaluation (Table 5, Figure 6, 8) [PAPER Sec 4.3]
+  efficiency:
+    num_frames: 80                # Generate 80 frames [PAPER Table 5]
+    resolution: 256               # 256x256 [PAPER Table 5]
+    device: "cuda"                # Single NVIDIA A100 GPU [PAPER Sec 4.3]
+    denoising_steps: 100          # Improved DDPM 100 steps [PAPER Sec 4.3]
+    flop_count_frames: 56         # 7 AR steps for FLOPs [PAPER Figure 8]
+    flop_count_ar_steps: 7        # [PAPER Figure 8]
+    flop_count_denoising_steps: 1 # Single denoising step for FLOPs [PAPER Figure 8]
+
+  # VBench evaluation (Table 7) [PAPER Sec E]
+  vbench:
+    metrics:
+      - "aesthetic_quality"
+      - "imaging_quality"
+      - "motion_smoothness"
+      - "temporal_flickering"
+    dataset: "skytimelapse"
+    p_max: 25                     # [PAPER Table 7]
+    num_ar_steps: 6               # [PAPER Table 7]
+    resolution: 256               # [PAPER Table 7]
+
+# ─────────────────────────────────────────────
+# Autoregressive Inference Settings
+# ─────────────────────────────────────────────
+autoregressive:
+  # KV-cache queue settings
+  # P_max is inherited from task-specific config above
+  # Spatial KV-cache stores only 1 chunk (overwritten each AR step) [PAPER Sec 3.3]
+  spatial_cache_chunks: 1
+
+  # Cyclic-TPE: random offset during training [PAPER Sec 3.3]
+  cyclic_tpe:
+    enabled: true
+    random_offset_training: true  # Random cyclic shift during training [PAPER Sec 3.3]
+
+  # Timestep embedding strategy [PAPER Sec 3.2]
+  # Clean prefix always uses tEmb(0); denoising target uses tEmb(t)
+  clean_prefix_timestep: 0        # t=0 for clean prefix [PAPER Sec 3.2]
+
+# ─────────────────────────────────────────────
+# Logging and Checkpointing
+# ─────────────────────────────────────────────
+logging:
+  log_every: 100           # Log loss every N steps
+  save_every: 1000         # Save checkpoint every N steps
+  use_wandb: false
+  use_tensorboard: true
+  project_name: "ca2-vdm"
+
+# ─────────────────────────────────────────────
+# Hardware
+# ─────────────────────────────────────────────
+hardware:
+  num_gpus: 1              # Paper reports single A100 for efficiency eval [PAPER Sec 4.3]
+  mixed_precision: "bf16"  # Standard for large-scale video training
+  dataloader_num_workers: 4
+  pin_memory: true

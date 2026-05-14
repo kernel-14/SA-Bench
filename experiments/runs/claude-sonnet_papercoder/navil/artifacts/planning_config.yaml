@@ -1,0 +1,330 @@
+## configs/navil_2b.yaml
+
+model:
+  model_size: "2b"
+  visual_encoder:
+    depth: 24
+    width: 1472
+    mlp_width: 5888
+    num_heads: 23
+    patch_size: 16
+    num_params: "0.6B"
+  connector:
+    pixel_shuffle_factor: 2
+  llm:
+    name_or_path: "internlm/internlm2-1_8b"
+    depth: 24
+    width: 2048
+    mlp_width: 8192
+    num_heads: 16
+    num_experts: 2
+    activated_params: "1.8B"
+  total_params: "4.2B"
+  activated_params: "2.4B"
+
+inference:
+  tau: 0.7071067811865476  ## sqrt(2)/2, downsampling rate for visual multi-scale packing
+  min_area_threshold: 256  ## stop downsampling when area < patch_size^2 = 16*16
+  llm_max_seq_length: 16384
+  precision: "bfloat16"
+  patch_size: 16
+  image_pad_multiple: 32   ## pad H and W to multiples of 32
+
+training:
+  ## Stage 1.1: Multi-modal Generative Pre-training (web-scale noisy data)
+  ## Trainable: visual encoder, MLP connector, MoE visual experts only
+  ## Frozen: all LLM text parameters
+  s1_1:
+    steps: 70000
+    global_batch_size: 7000
+    peak_lr: 5.0e-5
+    weight_decay: 0.05
+    lr_schedule: "constant_warmup"
+    warmup_steps: 200
+    max_image_patches: 4096
+    visual_multiscale_packing: true
+    trainable_modules:
+      - "visual_encoder"
+      - "connector"
+      - "llm.moe_layers.*.visual_expert"
+    frozen_modules:
+      - "llm.embed_tokens"
+      - "llm.moe_layers.*.linguistic_expert"
+      - "llm.norm"
+      - "llm.lm_head"
+    data:
+      total_samples: 500000000
+      sources:
+        - name: "laion2b"
+          type: "webdataset"
+          weight: 0.30   ## 300M / 500M = 0.60 of web-scale; split evenly among 4 sources
+          caption_field: "txt"
+        - name: "coyo700m"
+          type: "webdataset"
+          weight: 0.20
+          caption_field: "caption"
+        - name: "wukong"
+          type: "webdataset"
+          weight: 0.05
+          caption_field: "caption"
+        - name: "sa1b"
+          type: "webdataset"
+          weight: 0.05
+          caption_field: "caption"
+        - name: "synthetic_internvl8b"
+          type: "webdataset"
+          weight: 0.40   ## 200M / 500M = 0.40
+          caption_field: "caption"
+
+  ## Stage 1.2: Multi-modal Generative Pre-training (high-quality alignment data)
+  ## Trainable: visual encoder, MLP connector, ALL MoE experts including text self-attention
+  ## Frozen: nothing (text self-attention layers also unfrozen)
+  s1_2:
+    steps: 40000
+    global_batch_size: 4614
+    peak_lr: 5.0e-5
+    weight_decay: 0.1
+    lr_schedule: "constant_warmup"
+    warmup_steps: 200
+    max_image_patches: 1218
+    visual_multiscale_packing: true
+    trainable_modules:
+      - "visual_encoder"
+      - "connector"
+      - "llm.moe_layers.*.visual_expert"
+      - "llm.moe_layers.*.linguistic_expert.q_proj"
+      - "llm.moe_layers.*.linguistic_expert.k_proj"
+      - "llm.moe_layers.*.linguistic_expert.v_proj"
+      - "llm.moe_layers.*.linguistic_expert.o_proj"
+    frozen_modules:
+      - "llm.embed_tokens"
+      - "llm.norm"
+      - "llm.lm_head"
+      - "llm.moe_layers.*.linguistic_expert.gate_proj"
+      - "llm.moe_layers.*.linguistic_expert.up_proj"
+      - "llm.moe_layers.*.linguistic_expert.down_proj"
+    data:
+      total_samples: 185000000
+      sources:
+        - name: "internvl25_hq_multimodal"
+          type: "jsonl"
+          weight: 0.80
+          ## Domains: image captioning, general QA, multi-turn dialogue,
+          ## charts, OCR, documents, knowledge
+        - name: "internlm25_pure_language"
+          type: "jsonl"
+          weight: 0.20
+
+  ## Stage 2: Supervised Fine-tuning
+  ## All parameters unfrozen
+  s2:
+    steps: 30000
+    global_batch_size: 2234
+    peak_lr: 2.0e-5
+    weight_decay: 0.01
+    lr_schedule: "cosine"
+    warmup_steps: 200
+    max_image_patches: 2457
+    visual_multiscale_packing: true
+    trainable_modules:
+      - "all"
+    frozen_modules: []
+    data:
+      total_samples: 68000000
+      sources:
+        - name: "internvl25_sft_hq"
+          type: "jsonl"
+          weight: 1.0
+          ## Domains: image captioning, general QA, multi-turn dialogue,
+          ## charts, OCR, documents, knowledge
+
+  ## Shared optimizer settings across all stages
+  optimizer:
+    type: "AdamW"
+    beta1: 0.9
+    beta2: 0.95
+    eps: 1.0e-8
+    gradient_accumulation_steps: 1
+    max_grad_norm: 1.0
+
+  precision: "bfloat16"
+
+data:
+  paths:
+    laion2b: "/data/laion2b"
+    coyo700m: "/data/coyo700m"
+    wukong: "/data/wukong"
+    sa1b: "/data/sa1b"
+    synthetic_internvl8b: "/data/synthetic_captions"
+    internvl25_hq_multimodal: "/data/internvl25_hq"
+    internlm25_pure_language: "/data/internlm25_text"
+    internvl25_sft_hq: "/data/internvl25_sft"
+  num_workers: 8
+  pin_memory: true
+
+evaluation:
+  benchmarks:
+    ## MLLM benchmarks (Table 1)
+    - name: "mmvet"
+      metric: "score"
+      max_value: 100
+      split: "test"
+    - name: "mmmu"
+      metric: "accuracy"
+      max_value: 100
+      split: "val"
+    - name: "mmbench_en"
+      metric: "accuracy"
+      max_value: 100
+      split: "test"
+    - name: "mme"
+      metric: "sum"           ## perception + cognition scores summed
+      max_value: 5000
+      split: "full"
+    - name: "mathvista_mini"
+      metric: "accuracy"
+      max_value: 100
+      split: "test"
+    - name: "ocrbench"
+      metric: "score"
+      max_value: 1000
+      split: "test"
+    - name: "ccbench"
+      metric: "accuracy"
+      max_value: 100
+      split: "test"
+    ## VQA benchmarks (Table 2)
+    - name: "textvqa"
+      metric: "accuracy"
+      max_value: 100
+      split: "val"
+    - name: "scienceqa_img"
+      metric: "accuracy"
+      max_value: 100
+      split: "test"
+    - name: "gqa"
+      metric: "accuracy"
+      max_value: 100
+      split: "test_dev"
+    - name: "docvqa"
+      metric: "anls"
+      max_value: 100
+      split: "test"
+    - name: "ai2d"
+      metric: "accuracy"
+      max_value: 100
+      split: "test"
+    - name: "chartqa"
+      metric: "relaxed_accuracy"
+      max_value: 100
+      split: "test"
+    - name: "infographicvqa"
+      metric: "anls"
+      max_value: 100
+      split: "test"
+    ## NLP benchmarks (Table 5)
+    - name: "mmlu"
+      metric: "accuracy"
+      max_value: 100
+      split: "test"
+    - name: "cmmlu"
+      metric: "accuracy"
+      max_value: 100
+      split: "test"
+    - name: "math"
+      metric: "accuracy"
+      max_value: 100
+      split: "test"
+  max_new_tokens: 512
+  decoding: "greedy"
+  output_dir: "results/navil_2b"
+
+output:
+  checkpoint_dir: "checkpoints/navil_2b"
+  max_checkpoints: 3
+  save_every_steps: 5000
+  log_every_steps: 100
+  log_dir: "logs/navil_2b"
+
+ablation:
+  ## Settings for design-space experiments (Sec 3.2 and 3.3)
+  ## All ablation models use InternLM2-Base as LLM unless testing LLM init
+  base_llm: "internlm/internlm2-1_8b"
+  fixed_visual_encoder_params: "600M"  ## fixed encoder size for LLM/MoE ablations
+  fixed_llm_size: "1.8B"              ## fixed LLM size for encoder ablations
+
+  ## Experiment 1: LLM initialization (Sec 3.2.1)
+  llm_init:
+    conditions:
+      - name: "initialized"
+        llm_init: "pretrained"
+        llm_path: "internlm/internlm2-1_8b"
+      - name: "from_scratch"
+        llm_init: "random"
+        llm_path: null
+    metrics:
+      - "validation_loss"
+      - "zero_shot_captioning_cider"
+
+  ## Experiment 2: MoE effectiveness (Sec 3.2.2)
+  moe_ablation:
+    conditions:
+      - name: "with_moe"
+        use_moe: true
+        moe_type: "mha_and_ffn"   ## both MHA-MMoE and FFN-MMoE
+      - name: "without_moe"
+        use_moe: false
+    metrics:
+      - "validation_loss"
+
+  ## Experiment 3: Visual encoder depth/width (Sec 3.2.3)
+  ## Fixed total encoder params ~600M, vary depth and width
+  encoder_architecture:
+    total_params: "600M"
+    configurations:
+      - depth: 3
+        width: 4096
+      - depth: 6
+        width: 2880
+      - depth: 12
+        width: 2048
+      - depth: 24
+        width: 1472
+      - depth: 48
+        width: 1024
+    metrics:
+      - "validation_loss"
+      - "zero_shot_captioning_cider"
+
+  ## Experiment 4 & 5: Independent scaling (Sec 3.3.1)
+  llm_scaling:
+    fixed_encoder_size: "600M"
+    llm_sizes:
+      - "0.5B"
+      - "1.8B"
+      - "7B"
+    metrics:
+      - "validation_loss"
+
+  encoder_scaling:
+    llm_sizes:
+      - "0.5B"
+      - "1.8B"
+      - "7B"
+    encoder_sizes:
+      - "75M"
+      - "150M"
+      - "300M"
+      - "600M"
+      - "1.2B"
+      - "2.4B"
+    metrics:
+      - "validation_loss"
+
+  ## Experiment 6: Joint scaling optimal encoder size (Sec 3.3.2)
+  ## Optimal encoder = smallest encoder where loss diff vs 2x larger < lambda
+  joint_scaling:
+    lambda_threshold: 0.01   ## 1% of loss with 75M encoder
+    reference_encoder_size: "75M"
+    metrics:
+      - "optimal_encoder_size_per_llm"

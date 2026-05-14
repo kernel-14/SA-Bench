@@ -1,0 +1,162 @@
+{
+  "case_id": "score",
+  "run_id": "score-20260505-151332",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 729175,
+    "total_output_tokens": 22415,
+    "total_tokens": 751590,
+    "estimated_cost_usd": 2.5237,
+    "elapsed_seconds": 373.7,
+    "steps": 24,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 2.89,
+        "input_tokens": 1181,
+        "output_tokens": 213
+      },
+      {
+        "step": 2,
+        "elapsed_s": 8.22,
+        "input_tokens": 1293,
+        "output_tokens": 149
+      },
+      {
+        "step": 3,
+        "elapsed_s": 6.58,
+        "input_tokens": 8083,
+        "output_tokens": 819
+      },
+      {
+        "step": 4,
+        "elapsed_s": 6.16,
+        "input_tokens": 15396,
+        "output_tokens": 658
+      },
+      {
+        "step": 5,
+        "elapsed_s": 4.34,
+        "input_tokens": 15435,
+        "output_tokens": 380
+      },
+      {
+        "step": 6,
+        "elapsed_s": 11.69,
+        "input_tokens": 15480,
+        "output_tokens": 1275
+      },
+      {
+        "step": 7,
+        "elapsed_s": 7.71,
+        "input_tokens": 18980,
+        "output_tokens": 1308
+      },
+      {
+        "step": 8,
+        "elapsed_s": 33.09,
+        "input_tokens": 22403,
+        "output_tokens": 128
+      },
+      {
+        "step": 9,
+        "elapsed_s": 4.29,
+        "input_tokens": 22486,
+        "output_tokens": 83
+      },
+      {
+        "step": 10,
+        "elapsed_s": 44.3,
+        "input_tokens": 22657,
+        "output_tokens": 1595
+      },
+      {
+        "step": 11,
+        "elapsed_s": 31.37,
+        "input_tokens": 24970,
+        "output_tokens": 1918
+      },
+      {
+        "step": 12,
+        "elapsed_s": 4.62,
+        "input_tokens": 28091,
+        "output_tokens": 395
+      },
+      {
+        "step": 13,
+        "elapsed_s": 58.14,
+        "input_tokens": 29012,
+        "output_tokens": 1686
+      },
+      {
+        "step": 14,
+        "elapsed_s": 24.82,
+        "input_tokens": 31888,
+        "output_tokens": 2788
+      },
+      {
+        "step": 15,
+        "elapsed_s": 29.66,
+        "input_tokens": 37750,
+        "output_tokens": 988
+      },
+      {
+        "step": 16,
+        "elapsed_s": 10.11,
+        "input_tokens": 39879,
+        "output_tokens": 774
+      },
+      {
+        "step": 17,
+        "elapsed_s": 13.72,
+        "input_tokens": 41969,
+        "output_tokens": 1072
+      },
+      {
+        "step": 18,
+        "elapsed_s": 12.93,
+        "input_tokens": 44059,
+        "output_tokens": 1258
+      },
+      {
+        "step": 19,
+        "elapsed_s": 12.97,
+        "input_tokens": 46213,
+        "output_tokens": 915
+      },
+      {
+        "step": 20,
+        "elapsed_s": 6.76,
+        "input_tokens": 48300,
+        "output_tokens": 785
+      },
+      {
+        "step": 21,
+        "elapsed_s": 9.22,
+        "input_tokens": 50387,
+        "output_tokens": 870
+      },
+      {
+        "step": 22,
+        "elapsed_s": 10.82,
+        "input_tokens": 52538,
+        "output_tokens": 787
+      },
+      {
+        "step": 23,
+        "elapsed_s": 11.16,
+        "input_tokens": 54617,
+        "output_tokens": 1007
+      },
+      {
+        "step": 24,
+        "elapsed_s": 7.88,
+        "input_tokens": 56108,
+        "output_tokens": 564
+      }
+    ]
+  }
+}

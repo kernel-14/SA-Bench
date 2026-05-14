@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "The codebase replicates the core contributions of the paper 'Interpreting Emergent Planning in Model-Free RL', focusing on probing concept representations, visualizing agent plans, and applying interventions to test behavioral dependencies. Three main modules are implemented: (1) probing_concepts.py for training linear probes to decode square-level concepts C_A and C_B; (2) visualize_plans.py for visualizing decoded concept representations over Sokoban grids; and (3) intervene_plans.py for manipulating agent states to steer actions. Additional configurations and documentation are organized for experimental reproduction.",
+  "steps": 16,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/emergent-planning-rl/emergent-planning-rl-20260505-164652/workspace/repo"
+}

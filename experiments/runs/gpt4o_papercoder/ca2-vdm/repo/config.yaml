@@ -1,0 +1,55 @@
+## config.yaml
+training:
+  learning_rate: 2e-5  # Extracted from the Training Details section
+  optimizer: AdamW     # As used in the paper for optimization
+  batch_size_t2v_stage1: 288  # Batch size for the first stage of T2V training
+  batch_size_t2v_stage2: 144  # Batch size for the second stage of T2V training
+  batch_size_video_pred: 8    # Batch size for video prediction training
+  epochs_t2v_stage1: 32       # Based on training steps for T2V stage 1 (32k steps with batch size 288)
+  epochs_t2v_stage2: 21       # Based on training steps for T2V stage 2 (21k steps with batch size 144)
+  epochs_video_pred: 11       # Based on steps for SkyTimelapse training (11k steps)
+  scheduler: LinearDecay      # Implicit from reference to DDPM scheduling strategy
+  noise_timesteps: 1000       # Number of diffusion steps (DDPM)
+
+vae:
+  pretrained: StableDiffusion  # Use the VAE from StableDiffusion (as referenced)
+  resolution: 256
+  downsample_factor: 8
+
+datasets:
+  intern_vid:
+    resolution: 256  # Resolution at 256x256
+    splits:
+      train: filtered_videos_train
+      test: msr_vtt_test
+  sky_timelapse:
+    resolution: 256  # Resolution at 256x256
+    splits:
+      train: short_videos_train
+      test: short_videos_test
+  ucf101:
+    resolution: 256
+    split: descriptive_prompts
+
+model:
+  base: SpatialTemporalTransformer  # Base architecture
+  prefix_length_max_t2v: 49        # Max prefix length for T2V training (1 + 3 * 16)
+  chunk_length_t2v: 16             # Chunk size per AR step for T2V
+  prefix_length_max_video_pred: 25 # Max prefix length for video prediction (1 + 3 * 8)
+  chunk_length_video_pred: 8       # Chunk size per AR step for video prediction
+  temporal_attention: Causal       # Use causal temporal attention
+  spatial_attention: PrefixEnhanced # Use prefix-enhanced spatial attention
+  positional_embeddings:
+    sinusoidal: True
+    cyclic_tpe: True
+  kv_cache:
+    enabled: True
+    max_length: 49  # Maximum cached prefix length
+    reset_strategy: queue
+
+evaluation:
+  metrics:
+    - fvd         # Frechet Video Distance
+  fvd:
+    pretrained_i3d: pretrained_i3d_weights.pt  # I3D weights for FVD computation
+    chunk_size: 16     # Evaluate FVD in chunks of 16 frames

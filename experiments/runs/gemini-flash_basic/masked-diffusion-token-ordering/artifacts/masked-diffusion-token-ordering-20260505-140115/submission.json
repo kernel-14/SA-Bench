@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Submitted a static codebase replicating the core contributions of the paper 'Train for the Worst, Plan for the Best: Understanding Token Ordering in Masked Diffusions'. The submission includes conceptual implementations of MDM and ARM architectures, loss functions, vanilla and adaptive inference strategies, data processing utilities, and evaluation metrics. A detailed README.md outlines the reproduction plan, assumptions, and limitations.",
+  "steps": 22,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/masked-diffusion-token-ordering/masked-diffusion-token-ordering-20260505-140115/workspace/repo"
+}

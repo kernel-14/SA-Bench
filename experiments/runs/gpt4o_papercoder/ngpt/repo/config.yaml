@@ -1,0 +1,56 @@
+## config.yaml
+training:
+  learning_rate: 2.0e-3
+  batch_size: 512
+  epochs: 100000
+  optimizer: Adam
+  weight_decay: 0.0
+  learning_rate_schedule: cosine_annealing
+  warmup_steps: 0
+
+model:
+  architecture: NGPT
+  context_length: [1000, 4000, 8000]
+  d_model: 1024  # for 0.5B model
+  n_layers: 24   # for 0.5B model
+  n_heads: 16    # for 0.5B model
+  d_mlp: 4096    # 4 * d_model
+  initialization_std: 1.0 / sqrt(d_model)
+  softmax_scaling_factor: sqrt(d_model / n_heads)
+  scaling_factors:
+    alpha_a_init: 0.05 / n_layers
+    alpha_m_init: 0.05 / n_layers
+    alpha_a_scale: 1.0 / sqrt(d_model)
+    alpha_m_scale: 1.0 / sqrt(d_model)
+    sqk_init: 1.0
+    sqk_scale: 1.0 / sqrt(d_model)
+    su_init: 1.0
+    su_scale: 1.0 / sqrt(d_model)
+    sv_init: 1.0
+    sv_scale: 1.0 / sqrt(d_model)
+    sz_init: 1.0
+    sz_scale: 1.0 / sqrt(d_model)
+
+dataset:
+  name: OpenWebText
+  tokenizer: LLaMA-2
+  vocabulary_size: 32000
+  max_tokens: 400000000000 # ~400 billion tokens in training
+  preprocessing:
+    tokenization: true
+
+hardware:
+  gpus: 64
+  gpu_model: A100
+  nodes: 8
+  distributed_batching: true
+  dtype: bfloat16
+
+evaluation:
+  metrics:
+    downstream_tasks:
+      - WMT14-FR-EN
+      - BLEU_score
+    perplexity_test: true
+  length_extrapolation: true
+  context_length_test: [1000, 32000]

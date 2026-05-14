@@ -1,0 +1,36 @@
+## config.yaml
+training:
+  learning_rate: 8e-5
+  batch_size: 768
+  epochs: 350
+  optimizer: "Adam"
+
+dataset:
+  name: "ImageNet"
+  train_split: "path/to/imagenet/train"
+  val_split: "path/to/imagenet/validation"
+  test_split: "path/to/imagenet/test"
+  resolution: 256
+
+model:
+  fr_vae:
+    encoder_params:
+      backbone: "VQ-GAN"
+      pretrained_weights: "DINOv2-base"
+    decoder_params:
+      backbone: "VQ-GAN"
+    codebook_size: 4096
+  transformer_generator:
+    vocab_size: 680
+    depth: 16
+    head_dim: 64
+
+evaluation:
+  metrics:
+    - "FID"
+    - "IS"
+    - "Precision"
+    - "Recall"
+  inference:
+    cfg: 4.5
+    top_k: 990

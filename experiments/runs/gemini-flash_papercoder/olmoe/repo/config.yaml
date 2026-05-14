@@ -1,0 +1,135 @@
+## config.yaml
+model:
+  d_model: 2048
+  num_layers: 16
+  num_attention_heads: 16
+  vocab_size: 50304
+  ffn_dim_expert: 1024
+  num_experts: 64
+  num_activated_experts: 8
+  rope_theta: 10000.0
+  norm_eps: 0.00001 # 1.0E-05
+  init_std: 0.02
+  init_trunc_cutoff: 0.06 # 3 * init_std
+  use_qk_norm: true
+  attn_variant: "full"
+  layer_norm_type: "RMSNorm"
+  weight_tying: false
+  activation_function: "SwigGLU"
+
+data:
+  pretraining_data_path: "https://hf.co/datasets/allenai/OLMoE-mix-0924" # Or local path if downloaded
+  sft_data_paths:
+    - "https://hf.co/datasets/allenai/tulu-v3.1-mix-preview-4096-OLMoE"
+  dpo_data_path: "https://hf.co/datasets/allenai/ultrafeedback_binarized_cleaned"
+  max_seq_len: 4096
+  tokenizer_name: "EleutherAI/gpt-neox-20b" # Inferred from 'GPT-NeoX tokens' usage
+  pretrain_mix_weights: # Proportional to GPT-NeoX tokens (billions) from Table 2
+    dclm_baseline: 3860.0
+    starcoder: 101.0
+    pes2o: 57.2
+    arxiv: 21.1
+    openwebmath: 12.7
+    algebraic_stack: 12.6
+    wikipedia_wikibooks: 3.69
+  pretrain_filter_ngram_len: 13 # Any span of 1 to 13 tokens
+  pretrain_filter_ngram_count: 32 # Sequence of 32 or more repeated n-grams
+  pretrain_starcoder_min_stars: 2
+  pretrain_starcoder_max_freq_word_ratio: 0.3 # 30%
+  pretrain_starcoder_max_top2_freq_words_ratio: 0.5 # 50%
+
+training:
+  project_name: "OLMoE_Reproducibility"
+  run_name: "OLMoE-1B-7B_Pretrain_Run"
+  total_tokens: 5.133e12 # 5.133 Trillion tokens
+  global_batch_size_samples: 1024
+  # global_batch_size_tokens: 4.0e6 # ~4M - will be derived from samples * max_seq_len after batching
+  per_device_batch_size_samples: 2 # Inferred from SFT details (2*256GPUs * 2 GAS = 1024 global samples)
+  gradient_accumulation_steps: 2 # From SFT details, consistent with derived pretraining batching
+  learning_rate_peak: 0.0004 # 4.0E-04
+  learning_rate_min: 0.00004 # 4.0E-05
+  warmup_steps: 2500
+  annealing_tokens: 1.0e11 # 100 Billion tokens for final linear decay to 0
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_epsilon: 0.00000001 # 1.0E-08
+  weight_decay: 0.1
+  gradient_clipping_norm: 1.0
+  lbl_weight: 0.01
+  rz_loss_weight: 0.001
+  precision: "bf16"
+  checkpoint_dir: "checkpoints"
+  log_interval: 100 # Not specified, reasonable default
+  eval_interval: 5000 # Pretraining checkpoints/evals mentioned every 5000 steps
+  device: "cuda"
+  num_gpus: 256 # For pretraining
+  # Annealing Learning Rate parameters (for the 100B tokens phase)
+  annealing_min_lr_final: 0.0
+
+  # Adaptation (SFT) settings
+  sft_epochs: 2
+  sft_lr: 0.00002 # 2.0E-5
+  sft_global_batch_size_samples: 128 # 4 H100 nodes with 8 GPUs each, a per device batch size of 2, and 2 gradient accumulation steps -> (4*8*2 samples / batch) * 2 gas = 128
+  sft_per_device_batch_size_samples: 2 # Explicitly mentioned
+  sft_gradient_accumulation_steps: 2 # Explicitly mentioned
+  sft_num_gpus: 32 # For SFT/DPO (4 H100 nodes * 8 GPUs/node)
+
+  # Adaptation (DPO) settings
+  dpo_epochs: 3
+  dpo_lr: 0.0000005 # 5.0E-7
+  dpo_beta: 0.1
+  dpo_global_batch_size_samples: 32 # 4 H100 nodes with 8 GPUs each and a per device batch size of 1 -> (4*8*1 samples / batch) * 1 gas = 32
+  dpo_per_device_batch_size_samples: 1 # Explicitly mentioned
+  dpo_gradient_accumulation_steps: 1 # Inferred from dpo_global_batch_size and per_device_batch_size
+
+evaluation:
+  pretrain_eval_tasks: # From Table 11
+    - "ARC-C"
+    - "ARC-E"
+    - "BoolQ"
+    - "COPA"
+    - "CSQA"
+    - "HellaSwag"
+    - "MMLU"
+    - "MMLU_Var"
+    - "OBQA"
+    - "PIQA"
+    - "SciQ"
+    - "SocialIQA"
+    - "Winogrande"
+    # Perplexity on Paloma sets
+    - "Paloma_Books"
+    - "Paloma_Reddit"
+    - "Paloma_Stack"
+  post_pretrain_eval_tasks: # From Table 4, 12, 13
+    - "MMLU"
+    - "HellaSwag"
+    - "ARC-C"
+    - "ARC-E"
+    - "PIQA"
+    - "WinoGrande"
+    - "DCLM_Core"
+    - "DCLM_Extended"
+    # OLMES suite - can be dynamically loaded or managed
+  adapt_eval_tasks: # From Table 5
+    - "MMLU"
+    - "GSM8k"
+    - "BBH"
+    - "HumanEval"
+    - "AlpacaEval_1.0"
+    - "XSTest"
+    - "IFEval"
+  few_shot_settings:
+    default_pretrain_progress: 0 # For most tasks in Table 11
+    default_post_pretrain: 5 # For OLMES in Table 4
+    MMLU_pretrain_progress: "0-5" # MMLU Var
+    MMLU_adapted: 0
+    GSM8k_adapted: 8
+    BBH_adapted: 3
+    HumanEval_adapted: 0
+    AlpacaEval_adapted: 0
+    XSTest_adapted: 0
+    IFEval_adapted: 0
+  olmes_config_path: "configs/olmes_tasks.yaml" # Placeholder for OLMES task configurations
+  dclm_eval_repo_path: "path/to/dclm-repo" # Local path to DCLM evaluation repository
+  evaluation_base_model_path: "allenai/OLMo-7B-0724-hf" # For comparison if needed during OLMES eval. Not strictly part of OLMoE, but good for context.

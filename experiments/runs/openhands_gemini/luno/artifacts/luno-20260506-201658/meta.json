@@ -1,0 +1,9 @@
+{
+  "paper_id": "luno",
+  "run_id": "luno-20260506-201658",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 845.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 30
+}

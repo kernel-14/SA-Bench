@@ -1,0 +1,104 @@
+## config.yaml
+# This configuration file contains all hyperparameters and settings needed to
+# reproduce the experiments described in "Towards Universal Neural Operators
+# through Multiphysics Pretraining".
+#
+# Note: The paper does not explicitly state values for learning rate, batch size,
+# number of epochs, etc. The entries marked with "ASSUMED" use values common in
+# neural operator literature and were chosen based on the typical settings of the
+# Fourier Neural Operator family. Adjust as needed.
+
+model:
+  architecture: "fno"  # one of 'fno', 'mamba_fno', 'perceiver_fno', 'swin_v2', 'coda_no'
+  # FNO backbone parameters
+  fno:
+    modes1: 12         # for 1D problems; for 2D both modes are used
+    modes2: 12
+    width: 32          # hidden channel dimension after lifting
+    n_layers: 4        # number of Fourier layers in the operator body
+    activation: "gelu"
+  # Mamba post‑lifting module (used when architecture == 'mamba_fno')
+  mamba:
+    d_state: 16
+    d_conv: 4
+    expand: 2          # expansion factor for the inner SSM dimension
+  # Perceiver IO module (used when architecture == 'perceiver_fno')
+  perceiver:
+    n_latent: 32       # number of latent tokens
+    n_heads: 4         # attention heads in cross‑ and self‑attention
+    n_self_attn: 2     # number of self‑attention layers on the latent array
+    fno_for_kv: false  # whether to use a separate FNO block to project keys/values
+  # SwinV2 backbone (used when architecture == 'swin_v2')
+  swin:
+    img_size: 64       # spatial resolution (assumed square)
+    window_size: 8
+    embed_dim: 96
+    depths: [2, 2, 6, 2]
+    num_heads: [3, 6, 12, 24]
+  # CoDA-NO specific settings (used when architecture == 'coda_no')
+  coda:
+    modes1: 12
+    modes2: 12
+    width: 32
+
+training:
+  # ASSUMED: the paper does not report exact training hyperparameters.
+  pretrain:
+    epochs: 500
+    batch_size: 16
+    learning_rate: 1.0e-3
+    weight_decay: 1.0e-4
+    optimizer: "adamw"
+    scheduler: "cosine"
+    grad_clip: 1.0
+  finetune:
+    epochs: 200
+    batch_size: 16
+    learning_rate: 1.0e-4      # lower learning rate when only adapters are trained
+    weight_decay: 1.0e-4
+    optimizer: "adamw"
+    scheduler: "cosine"
+    grad_clip: 1.0
+  scratch:
+    # identical to pretrain config, used for the "from scratch" baselines
+    epochs: 500
+    batch_size: 16
+    learning_rate: 1.0e-3
+    weight_decay: 1.0e-4
+    optimizer: "adamw"
+    scheduler: "cosine"
+    grad_clip: 1.0
+
+data:
+  # Number of samples per PDE problem (train/val/test split is 80/10/10 by default)
+  n_train_samples: 1000
+  n_val_samples: 125
+  n_test_samples: 125
+  # Spatial resolution
+  grid_size_1d: 1024
+  grid_size_2d: 64
+  # PDEBench tasks used for multi‑physics transfer
+  pdebench_pretrain_tasks: ["advection", "burgers"]   # used in the final experiment
+  pdebench_finetune_task: "reaction_diffusion"
+  # Parameter ranges for out‑of‑sample experiments
+  burgers:
+    nu_pretrain: [0.001, 0.01, 0.02, 0.05]
+    nu_finetune: 0.1
+  grayscott:
+    F_pretrain: [0.02, 0.04, 0.06]
+    k_pretrain: [0.05, 0.06, 0.07]
+    F_finetune: 0.08
+    k_finetune: 0.09
+  navierstokes:
+    Re_pretrain: [100, 200, 500]
+    Re_finetune: 1000
+
+eval:
+  metrics: ["mse", "nmae"]
+  epsilon_nmae: 1.0e-9    # small constant to avoid division by zero in NMAE
+
+logging:
+  log_dir: "./logs"
+  checkpoint_dir: "./checkpoints"
+  tensorboard: true
+  print_freq: 10  # print metrics every N batches

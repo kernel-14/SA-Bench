@@ -1,0 +1,84 @@
+{
+  "case_id": "universal-neural-operators",
+  "run_id": "universal-neural-operators-20260505-165836",
+  "model_name": "gpt-4o",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 103580,
+    "total_output_tokens": 3174,
+    "total_tokens": 106754,
+    "estimated_cost_usd": 0.3584,
+    "elapsed_seconds": 81.1,
+    "steps": 11,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 1.98,
+        "input_tokens": 1200,
+        "output_tokens": 22
+      },
+      {
+        "step": 2,
+        "elapsed_s": 1.56,
+        "input_tokens": 1436,
+        "output_tokens": 32
+      },
+      {
+        "step": 3,
+        "elapsed_s": 6.68,
+        "input_tokens": 4632,
+        "output_tokens": 247
+      },
+      {
+        "step": 4,
+        "elapsed_s": 7.23,
+        "input_tokens": 7265,
+        "output_tokens": 268
+      },
+      {
+        "step": 5,
+        "elapsed_s": 12.09,
+        "input_tokens": 10645,
+        "output_tokens": 459
+      },
+      {
+        "step": 6,
+        "elapsed_s": 6.52,
+        "input_tokens": 11396,
+        "output_tokens": 113
+      },
+      {
+        "step": 7,
+        "elapsed_s": 7.57,
+        "input_tokens": 11610,
+        "output_tokens": 113
+      },
+      {
+        "step": 8,
+        "elapsed_s": 14.67,
+        "input_tokens": 11742,
+        "output_tokens": 1119
+      },
+      {
+        "step": 9,
+        "elapsed_s": 5.75,
+        "input_tokens": 13976,
+        "output_tokens": 118
+      },
+      {
+        "step": 10,
+        "elapsed_s": 8.82,
+        "input_tokens": 14191,
+        "output_tokens": 440
+      },
+      {
+        "step": 11,
+        "elapsed_s": 8.12,
+        "input_tokens": 15487,
+        "output_tokens": 243
+      }
+    ]
+  }
+}

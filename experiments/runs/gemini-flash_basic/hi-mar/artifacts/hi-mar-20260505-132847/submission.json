@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced the Hi-MAR model architecture including the hierarchical two-phase transformer, scale-aware transformer blocks, and the Diffusion Transformer head. Provided a config file with Hi-MAR variants and an inference script demonstrating model usage. Documented implementations and assumptions in README.md.",
+  "steps": 22,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/hi-mar/hi-mar-20260505-132847/workspace/repo"
+}

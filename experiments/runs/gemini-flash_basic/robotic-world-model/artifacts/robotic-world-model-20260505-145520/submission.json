@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced the Robotic World Model (RWM) architecture, self-supervised autoregressive training, and Model-Based Policy Optimization with PPO (MBPO-PPO) framework, along with environment observation, action, and reward definitions. The codebase provides a structural representation of the paper's core contributions as described in the README.md, adhering to the static benchmark constraints.",
+  "steps": 27,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/robotic-world-model/robotic-world-model-20260505-145520/workspace/repo"
+}

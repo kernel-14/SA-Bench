@@ -1,0 +1,10 @@
+
+torch>=1.10.0
+torchvision>=0.11.0
+numpy>=1.20.0
+einops>=0.4.0
+tqdm>=4.62.0
+scipy>=1.7.0
+# Flash-Attention v2 requires specific CUDA versions and might be difficult to install universally.
+# For reproducibility, it's better to note it as an optional, performance-oriented dependency.
+# flash-attn>=2.0.0 # Uncomment if FlashAttention is used and compatible with your environment

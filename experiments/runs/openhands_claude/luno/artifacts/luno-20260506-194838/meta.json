@@ -1,0 +1,9 @@
+{
+  "paper_id": "luno",
+  "run_id": "luno-20260506-194838",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1544.8,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 65
+}

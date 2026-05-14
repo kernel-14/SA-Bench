@@ -1,0 +1,7 @@
+# No official repository from Google/DeepMind (ICLR 2025)
+# Best community reproduction (TRL + DeepSpeed)
+https://github.com/VityaVitalich/SCoRe
+# Community reproduction
+https://github.com/BY571/SCoRe
+# Community reproduction (Gemma-2B)
+https://github.com/daje0601/Google_SCoRe

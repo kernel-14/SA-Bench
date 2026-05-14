@@ -1,0 +1,47 @@
+## config.yaml
+experiment:
+  name: "iCT-GC"
+  dataset: "cifar10"
+  coupling_type: "gc"          # "ic", "ot", "gc"
+  mu: 0.5                      # probability of GC trajectory
+  use_ema_predictor: true      # use EMA model for GC endpoint prediction
+
+dataset:
+  name: "cifar10"
+  resolution: 32               # image size (32x32 for CIFAR-10)
+  batch_size: 512
+  train_data_dir: "./data"
+
+model:
+  img_channels: 3
+  model_channels: 128
+  num_blocks: [3]               # per resolution stage: [3] for 32x32, [3,3,4,5] for 64x64
+  channel_mult: [1, 2, 2]
+  attn_resolutions: []
+  dropout: 0.0                  # GC models perform better without dropout
+  sigma_data: 0.5               # standard EDM value
+
+training:
+  total_steps: 100000           # 100k for CIFAR-10, 150k for others
+  learning_rate: 1e-4           # tuned {1e-4, 3e-5} for CIFAR-10
+  optimizer: "lion"             # Lion optimizer (betas=(0.9, 0.99), weight_decay=0)
+  ema_decay: 0.9999
+  loss_type: "pseudo_huber"
+  pseudo_huber_c: 0.03          # 0.00054 * sqrt(3072) ≈ 0.03 for 32x32x3
+  gradient_clip_norm: null      # not used in the paper
+
+schedules:
+  sigma_min: 0.002
+  sigma_max: 80
+  rho: 7
+  s0: 10                        # initial number of discrete timesteps
+  s1: 1280                      # final number of discrete timesteps
+  p_mean: -1.1                  # mean of log-normal timestep distribution
+  p_std: 2.0                    # std of log-normal timestep distribution
+
+evaluation:
+  num_samples: 50000
+  metrics: ["fid", "kid", "is"]
+  eval_every_steps: 10000
+  save_checkpoint_every: 10000
+  checkpoint_dir: "./checkpoints"

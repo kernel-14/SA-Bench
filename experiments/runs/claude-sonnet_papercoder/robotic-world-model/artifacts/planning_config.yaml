@@ -1,0 +1,282 @@
+## config.yaml
+# Robotic World Model (RWM) - Master Configuration
+# All hyperparameters sourced directly from the paper (Tables S7-S11, Sections A.2-A.3)
+
+defaults:
+  - _self_
+
+## ---------------------------------------------------------------------------
+## Experiment control
+## ---------------------------------------------------------------------------
+experiment: "all"          # Options: pretrain_wm | benchmark | ablation | policy | all
+seed: 0                    # Base seed; multirun sweeps seeds 0-4 (5 seeds total per paper)
+num_seeds: 5
+device: "cuda"             # cuda | cpu
+log_dir: "logs"
+checkpoint_dir: "checkpoints"
+use_wandb: false
+
+## ---------------------------------------------------------------------------
+## Robot / environment selection
+## ---------------------------------------------------------------------------
+robot: "anymal_d"          # anymal_d | unitree_g1
+# Set to "mock" to run without Isaac Lab (unit-testing mode)
+env_backend: "isaac_lab"   # isaac_lab | mock
+
+## ---------------------------------------------------------------------------
+## ANYmal D environment
+## ---------------------------------------------------------------------------
+anymal_d:
+  env_name: "anymal_d"
+  # Observation space (Table S2) — world model input, 45-dim
+  obs_dim: 45
+  # Action space (Table S4) — joint position targets, 12-dim
+  action_dim: 12
+  # Privileged information space (Table S3) — knee+foot contacts, 8-dim
+  priv_dim: 8
+  # Policy observation space (Table S5) — 48-dim (no torques, adds cmd+last_action)
+  policy_obs_dim: 48
+  # Observation index slices (Table S2)
+  obs_slices:
+    base_lin_vel: [0, 3]
+    base_ang_vel: [3, 6]
+    gravity: [6, 9]
+    joint_pos: [9, 21]
+    joint_vel: [21, 33]
+    joint_torques: [33, 45]
+  # Policy observation index slices (Table S5)
+  policy_obs_slices:
+    base_lin_vel: [0, 3]
+    base_ang_vel: [3, 6]
+    gravity: [6, 9]
+    velocity_command: [9, 12]
+    joint_pos: [12, 24]
+    joint_vel: [24, 36]
+    last_actions: [36, 48]
+  # Privileged info slices (Table S3)
+  priv_slices:
+    knee_contact: [0, 4]
+    foot_contact: [4, 8]
+  # Reward weights (Table S6, ANYmal D column)
+  reward_weights:
+    w_vxy: 1.0
+    w_wz: 0.5
+    w_vz: -2.0
+    w_wxy: -0.05
+    w_qtau: -2.5e-5
+    w_qdd: -2.5e-7
+    w_adot: -0.01
+    w_fa: 0.5
+    w_c: -1.0
+    w_g: -5.0
+    w_fc: 0.0
+    w_qd: 0.0
+  # Reward temperature factors (Section A.1.2)
+  sigma_vxy: 0.25
+  sigma_wz: 0.25
+
+## ---------------------------------------------------------------------------
+## Unitree G1 environment
+## ---------------------------------------------------------------------------
+unitree_g1:
+  env_name: "unitree_g1"
+  # Observation space (Table S2) — world model input, 96-dim
+  obs_dim: 96
+  # Action space (Table S4) — joint position targets, 29-dim
+  action_dim: 29
+  # Privileged information space (Table S3) — body contacts + foot height/vel, 30-dim
+  priv_dim: 30
+  # Policy observation space (Table S5) — 99-dim
+  policy_obs_dim: 99
+  # Observation index slices (Table S2)
+  obs_slices:
+    base_lin_vel: [0, 3]
+    base_ang_vel: [3, 6]
+    gravity: [6, 9]
+    joint_pos: [9, 38]
+    joint_vel: [38, 67]
+    joint_torques: [67, 96]
+  # Policy observation index slices (Table S5)
+  policy_obs_slices:
+    base_lin_vel: [0, 3]
+    base_ang_vel: [3, 6]
+    gravity: [6, 9]
+    velocity_command: [9, 12]
+    joint_pos: [12, 41]
+    joint_vel: [41, 70]
+    last_actions: [70, 99]
+  # Privileged info slices (Table S3)
+  priv_slices:
+    body_contact: [0, 26]
+    foot_height: [26, 28]
+    foot_velocity: [28, 30]
+  # Reward weights (Table S6, Unitree G1 column)
+  reward_weights:
+    w_vxy: 1.0
+    w_wz: 0.5
+    w_vz: -2.0
+    w_wxy: -0.05
+    w_qtau: -2.5e-5
+    w_qdd: -2.5e-7
+    w_adot: -0.05
+    w_fa: 0.0
+    w_c: -1.0
+    w_g: -5.0
+    w_fc: 1.0
+    w_qd: -1.0
+  # Reward temperature factors (Section A.1.2)
+  sigma_vxy: 0.25
+  sigma_wz: 0.25
+
+## ---------------------------------------------------------------------------
+## Simulation / control parameters (Section A.3.1, Table S10)
+## ---------------------------------------------------------------------------
+simulation:
+  control_freq_hz: 50          # 50 Hz control frequency (Section 4.1)
+  dt: 0.02                     # step time in seconds = 1/50 (Table S10: step time 0.02s)
+  num_envs_real: 1             # single real env for online fine-tuning (Section A.4.3)
+  num_envs_pretrain: 4096      # parallel envs for pretraining data collection
+
+## ---------------------------------------------------------------------------
+## RWM world model architecture (Table S7, Section 3.2)
+## ---------------------------------------------------------------------------
+rwm:
+  # GRU base (Table S7)
+  gru_hidden_size: 256
+  gru_num_layers: 2            # hidden shape: [256, 256] per Table S7
+  # MLP heads (Table S7)
+  mlp_head_hidden: 128
+  mlp_head_activation: "relu"
+  # Dual-autoregressive horizons (Table S10, Section A.4.1)
+  history_horizon: 32          # M = 32 (Table S10)
+  forecast_horizon: 8          # N = 8  (Table S10)
+  forecast_decay: 1.0          # alpha = 1.0 (Table S10, no decay)
+  # Output: Gaussian distribution (mean + log_std) over next observation
+
+## ---------------------------------------------------------------------------
+## RWM training parameters (Table S10, Section A.3.1)
+## ---------------------------------------------------------------------------
+rwm_training:
+  max_iterations: 2500         # Table S10
+  learning_rate: 1.0e-4        # Table S10
+  weight_decay: 1.0e-5         # Table S10
+  batch_size: 1024             # Table S10
+  optimizer: "adam"
+  # Approximate training time: ~1 hour (Table S10)
+  approx_training_hours: 1
+  # Pretraining data size (Table 1)
+  pretrain_transitions: 6_000_000   # 6M state transitions
+
+## ---------------------------------------------------------------------------
+## Baseline model architectures (Table S8, Section 4.3)
+## ---------------------------------------------------------------------------
+baselines:
+  # MLP baseline (Table S8)
+  mlp:
+    hidden_sizes: [256, 256]
+    activation: "relu"
+    # Trained autoregressively for fair noise-robustness comparison (Section 4.2)
+    use_autoregressive_training: true
+
+  # RSSM baseline (Table S8)
+  rssm:
+    type: "gru"
+    hidden_size: 256
+    num_layers: 2
+    latent_dim: 64
+    prior_type: "categorical"
+    num_categories: 32
+    # Default: teacher-forcing as traditionally implemented (Section 4.3)
+    use_autoregressive_training: false
+
+  # Transformer baseline (Table S8)
+  transformer:
+    type: "decoder"
+    d_model: 64
+    nhead: 8
+    num_layers: 2
+    context_length: 32
+    positional_encoding: "sinusoidal"
+    dim_feedforward: 256       # standard 4x d_model
+    # AR training does not scale for transformer due to GPU memory (Section 4.3)
+    use_autoregressive_training: false
+
+## ---------------------------------------------------------------------------
+## Policy and value function architecture (Table S9, Section A.2.3)
+## ---------------------------------------------------------------------------
+policy:
+  type: "mlp"
+  hidden_sizes: [128, 128, 128]   # Table S9
+  activation: "elu"               # Table S9
+  # Output: Gaussian action distribution (mean + learned log_std)
+
+value_function:
+  type: "mlp"
+  hidden_sizes: [128, 128, 128]   # Table S9
+  activation: "elu"               # Table S9
+
+## ---------------------------------------------------------------------------
+## MBPO-PPO training parameters (Table S11, Section A.3.2)
+## ---------------------------------------------------------------------------
+mbpo_ppo:
+  # Imagination rollout settings (Table S11)
+  imagination_envs: 4096          # Table S11
+  imagination_steps: 100          # T = 100 steps per iteration (Table S11)
+  # Replay buffer (Table S11)
+  buffer_size: 1000               # |D| = 1000 (Table S11)
+  # Optimization (Table S11)
+  max_iterations: 2500            # Table S11
+  learning_rate: 1.0e-3           # Table S11 (0.001)
+  weight_decay: 0.0               # Table S11
+  optimizer: "adam"
+  # PPO hyperparameters (Table S11)
+  learning_epochs: 5              # Table S11
+  num_mini_batches: 4             # Table S11
+  kl_divergence_target: 0.01     # Table S11
+  discount_factor: 0.99           # gamma = 0.99 (Table S11)
+  clip_range: 0.2                 # epsilon = 0.2 (Table S11)
+  entropy_coefficient: 0.005      # Table S11
+  # GAE lambda — standard PPO value, not specified in paper
+  gae_lambda: 0.95
+  # Approximate training time (Table 1)
+  approx_training_minutes: 5
+
+## ---------------------------------------------------------------------------
+## Ablation study grid (Section A.4.1, Fig. S8)
+## ---------------------------------------------------------------------------
+ablation:
+  # Grid of history horizons M and forecast horizons N to sweep
+  m_values: [8, 16, 32, 64]
+  n_values: [1, 2, 4, 8, 16]
+  # Optimal settings identified in paper (Section A.4.1)
+  optimal_m: 32
+  optimal_n: 8
+
+## ---------------------------------------------------------------------------
+## Noise robustness evaluation (Section 4.2)
+## ---------------------------------------------------------------------------
+noise_robustness:
+  # Gaussian noise standard deviations applied to obs and actions
+  noise_levels: [0.01, 0.05, 0.1, 0.2]
+
+## ---------------------------------------------------------------------------
+## Collision handling and pretraining (Section A.4.3)
+## ---------------------------------------------------------------------------
+collision_handling:
+  # Terminate episode when base ground contact detected
+  terminate_on_base_contact: true
+  # Threshold on predicted base-contact probability for imagination termination
+  termination_threshold: 0.5
+  # Pretraining required for locomotion tasks (Section A.4.3)
+  use_pretraining: true
+  # Manipulation tasks do not require pretraining (Section A.4.3)
+  manipulation_requires_pretraining: false
+
+## ---------------------------------------------------------------------------
+## Logging and evaluation
+## ---------------------------------------------------------------------------
+logging:
+  log_interval: 10           # log every N iterations
+  eval_interval: 100         # evaluate policy every N iterations
+  eval_episodes: 10          # number of episodes for policy evaluation
+  save_interval: 500         # save checkpoint every N iterations

@@ -1,0 +1,9 @@
+{
+  "paper_id": "score",
+  "run_id": "score-20260506-183935",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 409.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 35
+}

@@ -1,0 +1,9 @@
+{
+  "paper_id": "nfig",
+  "run_id": "nfig-20260506-224338",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1052.4,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 42
+}

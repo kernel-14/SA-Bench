@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Replicated the core mathematical definitions for Flow Matching and DDPM models, including kappa_t, eta_t, and the memoryless noise schedule. Implemented the Adjoint Matching algorithm for fine-tuning, encompassing forward SDE simulation, backward lean adjoint ODE simulation, and the objective function calculation. Provided placeholder network architectures and documented assumptions and missing details in README.md.",
+  "steps": 18,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/adjoint-matching/adjoint-matching-20260505-131421/workspace/repo"
+}

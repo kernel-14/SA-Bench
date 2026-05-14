@@ -1,0 +1,48 @@
+## config.yaml
+training:
+  learning_rate: 0.001
+  batch_size: 128
+  epochs: 300
+  optimizer: "AdamW"
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+
+dataset:
+  slim_pajama_path: "path/to/slim_pajama"
+  sudoku_train_path: "path/to/sudoku_train"
+  sudoku_test_path: "path/to/sudoku_test"
+  zebra_train_path: "path/to/zebra_train"
+  zebra_test_path: "path/to/zebra_test"
+  sequence_length: 2048
+  masking_schedule:
+    alpha_start: 1.0
+    alpha_end: 0.0
+
+model:
+  transformer_layers: 12
+  hidden_dim: 768
+  num_attention_heads: 12
+  dropout_rate: 0.1
+  max_sequence_length: 2048
+  positional_encoding: "learnable"
+
+inference:
+  sampling_steps: 50
+  strategy:
+    - "vanilla"
+    - "adaptive_top_probability"
+    - "adaptive_top_probability_margin"
+  gumbel_noise_coefficient: 0.5
+  oracle_temperature: 0.1
+
+evaluation:
+  metrics:
+    - "accuracy"
+    - "entropy"
+    - "perplexity"
+
+hardware:
+  use_gpu: true
+  num_gpus: 1
+  memory_limit_gb: 16

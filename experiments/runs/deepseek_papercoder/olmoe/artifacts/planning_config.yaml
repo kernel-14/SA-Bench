@@ -1,0 +1,132 @@
+## config.yaml
+# All values taken from "OLMoE: Open Mixture-of-Experts Language Models" (2024)
+# Links to sections: hyperparameters in Appendix B, experiments in §4.
+
+model:
+  hidden_size: 2048
+  num_layers: 16
+  num_attention_heads: 16
+  vocab_size: 50304
+  max_sequence_length: 4096
+  use_rope: true
+  rope_theta: 10000
+  rms_norm_eps: 1.0e-5
+  qk_norm: true
+  use_bias: false
+  # MoE settings
+  moe:
+    enabled: true
+    num_experts: 64
+    top_k: 8
+    expert_ffn_size: 1024   # hidden size of each expert's intermediate layer
+    activation: "swiglu"
+    shared_experts: false
+    routing: "dropless_token_choice"
+    # auxiliary loss weights
+    load_balancing_weight: 0.01
+    router_z_loss_weight: 0.001
+
+pretraining:
+  # data
+  data_mix: "olmoe-mix"      # exactly DCLM + Dolma subsets as described
+  tokenizer: "allenai/OLMo-1B-0724-hf"  # GPT-NeoX tokenizer
+  seq_length: 4096
+  global_batch_size_samples: 1024  # ~4M tokens per batch
+  # training length
+  total_tokens: 5133000000000      # 5.133T
+  annealing_tokens: 100000000000   # 100B
+  annealing_schedule: "linear"     # LR decays to 0
+  # optimizer
+  optimizer: "adamw"
+  peak_learning_rate: 4.0e-4
+  minimum_learning_rate: 4.0e-5
+  warmup_steps: 2500
+  lr_schedule: "cosine"            # cosine decay with warmup
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  weight_decay: 0.1                # applied to all params (incl embeddings, RMSNorm)
+  adam_epsilon: 1.0e-8
+  gradient_clipping: 1.0           # global norm
+  # mixed precision
+  precision: "bf16"
+  # initialization (model/__init__.py)
+  init_std: 0.02
+  init_truncation: 3               # truncate at 3*std
+  # data processing
+  shuffle_buffer_size: 10000       # approximate, resampled at epochs
+  ngram_filter_min_repeats: 32
+  ngram_filter_max_n: 13
+  starcoder_min_github_stars: 2
+  starcoder_max_word_freq_ratio: 0.3
+  starcoder_max_top2_word_freq_ratio: 0.5
+
+adaptation:
+  sft:
+    global_batch_size: 128
+    learning_rate: 2.0e-5
+    epochs: 2
+    max_seq_length: 4096
+    precision: "bf16"
+    load_balancing_loss: false
+    use_token_level_loss: true
+  dpo:
+    global_batch_size: 32
+    learning_rate: 5.0e-7
+    epochs: 3
+    dpo_beta: 0.1
+    precision: "bf16"
+    load_balancing_loss: false
+    optimizer: "adamw"
+  datasets:
+    sft_mix: ["Tulu2SFTMix", "NoRobots", "CodeFeedbackFiltered", "MetaMathQA", "DaringAnteater"]
+    dpo_dataset: "UltraFeedbackCleaned"
+
+evaluation:
+  # OLMES standard (post-pretraining)
+  olmes_tasks:
+    - "mmlu"
+    - "hellaswag"
+    - "arc_challenge"
+    - "arc_easy"
+    - "piqa"
+    - "winogrande"
+    - "commonsenseqa"
+    - "boolq"
+    - "openbookqa"
+    - "sciq"
+    - "socialiqa"
+    - "copa"
+  fewshot: 5
+  normalization: "max(mcf,cf)"   # choose best between multiple-choice and completion
+  # in-loop evaluation during pretraining
+  in_loop_tasks:
+    - "hellaswag"
+    - "mmlu_var"   # 0-5 shot variants
+    - "piqa"
+    # ... can add others
+    frequency_steps: 5000
+  # post-adaptation benchmarks
+  instruct_benchmarks:
+    - "mmlu_0shot"
+    - "gsm8k_8shot_cot"
+    - "bbh_3shot"
+    - "humaneval_0shot"
+    - "alpacaeval1_0shot"
+    - "xstest_0shot"
+    - "ifeval_0shot"
+
+logging:
+  project: "OLMoE"
+  entity: "your-wandb-entity"
+  log_interval: 10
+
+fsdp:
+  sharding_strategy: "SHARD_GRAD_OP"
+  bf16: true
+  auto_wrap_policy: "transformer_layer"
+  backward_prefetch: "BACKWARD_PRE"
+  forward_prefetch: true
+
+hardware:
+  train_nodes: 8
+  gpus_per_node: 8

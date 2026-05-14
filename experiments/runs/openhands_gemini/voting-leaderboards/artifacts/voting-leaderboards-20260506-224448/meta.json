@@ -1,0 +1,9 @@
+{
+  "paper_id": "voting-leaderboards",
+  "run_id": "voting-leaderboards-20260506-224448",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 397.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 10
+}

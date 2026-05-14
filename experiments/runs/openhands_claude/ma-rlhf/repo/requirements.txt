@@ -1,0 +1,17 @@
+torch==2.2.0
+transformers==4.40.0
+datasets==2.19.0
+accelerate==0.29.3
+deepspeed==0.14.0
+peft==0.10.0
+trl==0.8.6
+nltk==3.8.1
+benepar==0.2.0
+openai==1.25.0
+numpy==1.26.4
+scipy==1.13.0
+tqdm==4.66.2
+wandb==0.16.6
+sentencepiece==0.2.0
+protobuf==4.25.3
+einops==0.7.0

@@ -1,0 +1,173 @@
+## config.yaml
+# Common configuration parameters applicable to all model variants or stages
+common:
+  llm_max_sequence_length: 16384 # LLM max sequence length for both visual and textual tokens
+  warmup_steps: 200 # Warm-up steps for learning rate scheduler
+  optimizer:
+    name: AdamW
+    beta1: 0.9
+    beta2: 0.95
+    eps: 1.0e-8
+  numerical_precision: bfloat16 # Numerical precision for training
+  # Gradient accumulation steps. Paper specifies '1', which implies no accumulation
+  # if 'global_batch_size' is the total effective batch size, distributed across GPUs.
+  gradient_accumulation_steps: 1
+  visual_multi_scale_packing_tau: 0.707106781 # Downsampling rate (sqrt(2)/2) for Visual Multi-scale Packing
+
+# Special tokens used for multimodal input formatting
+special_tokens:
+  begin_of_image: "<begin_of_image>"
+  end_of_image: "<end_of_image>"
+  end_of_line: "<end_of_line>" # Indicates end of image token row for spatial info
+  end_of_scale: "<end_of_scale>" # Indicates end of different scales in VMP
+
+# Configuration for different NaViL model variants
+model_variants:
+  navil_2b:
+    llm_name_or_path: "InternLM2-1.8B" # Base LLM used for initialization
+    model_architecture:
+      visual_encoder:
+        num_params: 600000000 # ~0.6B parameters
+        depth: 24 # Number of transformer layers
+        width: 1472 # Hidden dimension (w)
+        mlp_width: 5888
+        num_attention_heads: 23
+        patch_embedding_stride: 16 # Stride for initial patch embedding
+        attention_type: bidirectional # Visual encoder uses bidirectional attention
+        rope_type: 2D-RoPE # Positional encoding for visual encoder
+      llm_moe: # LLM with Modality-specific Mixture-of-Experts
+        num_experts: 2 # Number of experts for both MHA and FFN
+        activated_params: 1800000000 # ~1.8B activated parameters for LLM
+        depth: 24 # Number of transformer layers in LLM
+        width: 2048 # Hidden dimension (w) of LLM
+        mlp_width: 8192
+        num_attention_heads: 16
+        attention_type: causal # LLM uses causal attention
+        rope_type: 1D-RoPE # Positional encoding for LLM
+    training_stages:
+      stage_1_1: # Multi-modal Generative Pre-training (Initial)
+        max_image_patches: 4096 # Corresponds to approximate input resolution
+        training_steps: 70000
+        global_batch_size: 7000
+        weight_decay: 0.05
+        lr_schedule: constant_with_warmup
+        peak_learning_rate: 5.0e-5
+        visual_multi_scale_packing: True # Enabled for NaViL-2B S1.1
+      stage_1_2: # Multi-modal Generative Pre-training (Refined)
+        max_image_patches: 12188
+        training_steps: 40000
+        global_batch_size: 4614
+        weight_decay: 0.1
+        lr_schedule: cosine_decay
+        peak_learning_rate: 5.0e-5
+        visual_multi_scale_packing: True
+      stage_2: # Supervised Fine-tuning
+        max_image_patches: 24576
+        training_steps: 30000
+        global_batch_size: 2234
+        weight_decay: 0.01
+        lr_schedule: cosine_decay
+        peak_learning_rate: 2.0e-5
+        visual_multi_scale_packing: True
+    data_paths: # Placeholder paths for datasets
+      stage_1_1:
+        - "data/laion-2b"
+        - "data/coyo-700m"
+        - "data/wukong"
+        - "data/sa-1b"
+        - "data/internvl-8b_synthesized_captions" # ~200M image-text pairs
+      stage_1_2:
+        - "data/internvl-2.5_high_quality_multimodal" # ~185M combined data
+        - "data/internlm2.5_pure_language"
+      stage_2:
+        - "data/internvl-2.5_sft_data" # ~68M high-quality multimodal data
+
+  navil_9b:
+    llm_name_or_path: "Qwen3-8B" # Base LLM used for initialization
+    model_architecture:
+      visual_encoder:
+        num_params: 1200000000 # ~1.2B parameters
+        depth: 32
+        width: 1792
+        mlp_width: 7168
+        num_attention_heads: 28
+        patch_embedding_stride: 16
+        attention_type: bidirectional
+        rope_type: 2D-RoPE
+      llm_moe:
+        num_experts: 2
+        activated_params: 8000000000 # ~8.0B activated parameters for LLM
+        depth: 36
+        width: 4096
+        mlp_width: 12288
+        num_attention_heads: 32
+        attention_type: causal
+        rope_type: 1D-RoPE
+    training_stages:
+      stage_1_1: # Multi-modal Generative Pre-training (Initial)
+        max_image_patches: 4096
+        training_steps: 50000
+        global_batch_size: 1792
+        weight_decay: 0.05
+        lr_schedule: constant_with_warmup
+        peak_learning_rate: 5.0e-5
+        visual_multi_scale_packing: False # Explicitly disabled in Appendix A text
+      stage_1_2: # Multi-modal Generative Pre-training (Refined)
+        max_image_patches: 12188
+        training_steps: 33000
+        global_batch_size: 3520
+        weight_decay: 0.1
+        lr_schedule: cosine_decay
+        peak_learning_rate: 5.0e-5
+        visual_multi_scale_packing: True
+      stage_2: # Supervised Fine-tuning
+        max_image_patches: 24576
+        training_steps: 6000
+        global_batch_size: null # UNSPECIFIED in paper
+        weight_decay: 0.01
+        lr_schedule: cosine_decay
+        peak_learning_rate: 2.0e-5
+        visual_multi_scale_packing: True
+    data_paths: # Placeholder paths for datasets
+      stage_1_1:
+        - "data/laion-2b"
+        - "data/coyo-700m"
+        - "data/wukong"
+        - "data/sa-1b"
+        - "data/internvl-8b_synthesized_captions"
+      stage_1_2:
+        - "data/internvl-2.5_high_quality_multimodal"
+        - "data/internlm2.5_pure_language"
+      stage_2:
+        - "data/internvl-2.5_sft_data"
+
+# Evaluation settings
+evaluation:
+  benchmarks: # List of benchmarks to evaluate on
+    - MMVet
+    - MMMU
+    - MMBench
+    - MME
+    - MathVista
+    - OCRBench
+    - CCBench
+    - TextVQA
+    - ScienceQA-IMG
+    - GQA
+    - DocVQA
+    - AI2D
+    - ChartQA
+    - InfographicVQA
+    - MMLU # For NLP capability assessment
+    - CMMLU # For NLP capability assessment
+    - MATH # For NLP capability assessment
+  output_dir: "evaluation_results" # Directory to save evaluation results
+  # Threshold for Visual Multi-scale Packing (VMP) during inference/evaluation.
+  # The paper states 'until its area is smaller than a given threshold', but does not
+  # specify the threshold value. A plausible default might be 1024 (e.g., for a 32x32 image).
+  vmp_area_threshold: 1024 # Example value, needs empirical tuning or clarification
+  # Visual encoder pre-extraction optimization for evaluation.
+  # For evaluation, a sufficiently large visual encoder might pre-extract global info
+  # allowing for earlier cross-modal interaction.
+  # This might influence how VMP is handled during generation/evaluation.
+  # Not a direct hyperparameter, but a consideration for evaluation logic.

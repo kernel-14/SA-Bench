@@ -1,0 +1,9 @@
+{
+  "paper_id": "avg-reward-pg",
+  "run_id": "avg-reward-pg-20260506-160747",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 798.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 26
+}

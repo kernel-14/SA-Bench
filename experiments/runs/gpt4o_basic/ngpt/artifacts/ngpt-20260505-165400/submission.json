@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced the Normalized Transformer (nGPT) with core implementations:\n- `Attention Block`: Normalized projections, query/key scaling, and hyperspherical constraints.\n- `MLP Block`: Incorporating SwiGLU activations, matrix normalization, and scaling.\n- `Normalized Transformer`: Integrated embeddings, multi-layer attention, and MLP blocks alongside eigen learning rates.\n- Utility functions for scaling factors and normalization operations.\n\nThe submission provides modular and extensible code for the architecture, utilities, and supporting structure based on paper guidelines.",
+  "steps": 19,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/ngpt/ngpt-20260505-165400/workspace/repo"
+}

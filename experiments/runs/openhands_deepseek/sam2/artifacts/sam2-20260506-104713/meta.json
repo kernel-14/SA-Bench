@@ -1,0 +1,9 @@
+{
+  "paper_id": "sam2",
+  "run_id": "sam2-20260506-104713",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1773.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 52
+}

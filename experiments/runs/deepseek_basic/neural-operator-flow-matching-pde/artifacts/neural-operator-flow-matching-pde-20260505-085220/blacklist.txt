@@ -1,0 +1,3 @@
+# Official repository (NeurIPS 2025, anonymous)
+https://anonymous.4open.science/r/multiphysics_neurop-F385/
+# Authors: Mikhail Masliaev, Dmitry A. Gusarov, Ilya Markov, Alexander Hvatov (ITMO University)

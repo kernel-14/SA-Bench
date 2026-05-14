@@ -1,0 +1,9 @@
+{
+  "paper_id": "generator-augmented-flows",
+  "run_id": "generator-augmented-flows-20260506-033447",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 955.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 23
+}

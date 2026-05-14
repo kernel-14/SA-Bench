@@ -1,0 +1,9 @@
+{
+  "paper_id": "universal-neural-operators",
+  "run_id": "universal-neural-operators-20260506-223744",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 424.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 17
+}

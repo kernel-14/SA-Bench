@@ -1,0 +1,4 @@
+# Official repository (NVIDIA)
+https://github.com/NVIDIA/ngpt
+# Community reproduction (Nous Research sponsored)
+https://github.com/JoeLi12345/nGPT

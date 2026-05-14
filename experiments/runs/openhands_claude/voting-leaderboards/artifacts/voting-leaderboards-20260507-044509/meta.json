@@ -1,0 +1,9 @@
+{
+  "paper_id": "voting-leaderboards",
+  "run_id": "voting-leaderboards-20260507-044509",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1054.4,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 46
+}

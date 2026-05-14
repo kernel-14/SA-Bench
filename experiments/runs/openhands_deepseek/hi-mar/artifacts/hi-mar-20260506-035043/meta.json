@@ -1,0 +1,9 @@
+{
+  "paper_id": "hi-mar",
+  "run_id": "hi-mar-20260506-035043",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1913.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 51
+}

@@ -1,0 +1,79 @@
+## config.yaml
+# Global Configuration
+experiment_name: moe-pot-reproduction
+seed: 42 # For reproducibility
+
+# Model Configuration (MoE-POT-Small defaults)
+model:
+  size: Small
+  attention_dim: 1024 # d_z
+  mlp_dim: 1024 # Hidden dim for FFN-like layers within Experts
+  num_layers: 6 # N blocks
+  num_heads: 8 # h
+  num_routed_experts: 16 # N_r
+  num_shared_experts: 2 # N_s
+  top_k: 4 # K selected routed experts
+  patch_size: 8 # P
+  input_spatial_resolution: 128 # HxW, standardized resolution
+  input_channels: 0 # To be determined dynamically by data
+  output_channels: 0 # To be determined dynamically by data
+  T_in: 10 # Number of previous frames to input
+  activation: 'GELU' # Assumed, not specified in paper
+  router_cnn_layers: 2 # Assumed, not specified in paper
+  router_cnn_kernel_size: 3 # Assumed, not specified in paper
+  expert_cnn_layers: 2 # Assumed, not specified in paper (effectively FFN using 1x1 convs)
+  expert_cnn_kernel_size: 1 # Assumed, not specified in paper
+
+# Data Configuration
+data:
+  data_root: './data/raw' # Root directory for raw PDE datasets
+  interpolation_method: 'bicubic' # Assumed for spatial resolution standardization
+  padding_value: 1.0 # Constant value for channel padding
+  pretrain_data_info: # Datasets for pre-training, weights default to 1 as per paper
+    FNO_1e-5: {train_samples: 1000, test_samples: 200, weight: 1.0}
+    FNO_1e-3: {train_samples: 1000, test_samples: 200, weight: 1.0}
+    CNS_0.1_0.01: {train_samples: 9000, test_samples: 200, weight: 1.0}
+    SWE: {train_samples: 900, test_samples: 60, weight: 1.0}
+    DR: {train_samples: 900, test_samples: 60, weight: 1.0}
+    CFDBench: {train_samples: 9000, test_samples: 1000, weight: 1.0}
+  finetune_data_info: # Dataset splits for fine-tuning
+    FNO_1e-5: {train_samples: 1000, test_samples: 200}
+    FNO_1e-3: {train_samples: 1000, test_samples: 200}
+    CNS_0.1_0.01: {train_samples: 9000, test_samples: 200}
+    SWE: {train_samples: 900, test_samples: 60}
+    DR: {train_samples: 900, test_samples: 60}
+    CFDBench: {train_samples: 9000, test_samples: 1000}
+  downstream_data_info: # Dataset splits for downstream tasks
+    NS_1e-4: {train_samples: 2000, test_samples: 200}
+    CNS_1_0.01: {train_samples: 2000, test_samples: 200}
+    PDEArena: {train_samples: 2000, test_samples: 200}
+
+# Training Configuration
+training:
+  optimizer: 'Adam' # Adam optimizer
+  learning_rate: 0.001 # 1e-3
+  weight_decay: 0.000001 # 1e-6
+  beta1: 0.9 # For Adam
+  beta2: 0.9 # For Adam
+  batch_size: 20 # Total batch size
+  noise_epsilon: 0.01 # Noise std dev scaling factor, assumed as not specified
+  load_balance_weight: 0.1 # w_bal
+  pretrain_epochs: 1000
+  pretrain_warmup_epochs: 200
+  finetune_epochs: 200
+  finetune_warmup_epochs: 40
+  downstream_epochs: 500
+  downstream_warmup_epochs: 100
+  log_interval: 10 # Log every N batches
+  eval_interval: 50 # Evaluate every N epochs
+  save_interval: 50 # Save checkpoint every N epochs
+
+# Distributed Training Configuration
+distributed:
+  world_size: 8 # Number of GPUs, based on paper's 8 RTX 4090s
+  backend: 'nccl' # For NVIDIA GPUs
+
+# Output and Logging
+output_dir: './experiments'
+checkpoint_dir: 'checkpoints'
+log_dir: 'logs'

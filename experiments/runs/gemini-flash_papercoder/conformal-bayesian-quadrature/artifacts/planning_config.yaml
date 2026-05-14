@@ -1,0 +1,40 @@
+## config.yaml
+# Global experiment parameters
+experiment:
+  random_seed: 42 # For reproducibility across all experiments and trials
+  num_trials: 10000 # M in the paper
+  num_calibration_samples: 10 # n in the paper, for synthetic binomial
+  num_dirichlet_samples: 1000 # N_MC for computing lambda_hpd^beta (decision rule)
+  num_dirichlet_samples_plot: 100000 # N_MC for plotting L+ distribution (Figure 4)
+  alpha: 0.4 # Target risk threshold for synthetic binomial (Table 1, Figure 3)
+  beta: 0.95 # Confidence level for our method (1-beta = 0.05 failure rate)
+  B: 1.0 # Maximum possible loss (e.g., for 0-1 loss, FNR)
+
+# Common parameters for methods (lambda search range)
+method_params:
+  lambda_search_range: [0.0, 1.0] # General range for lambda, adjusted per experiment/loss if needed
+
+# Synthetic Binomial Experiment specific parameters (Section 5.1)
+synthetic_binomial:
+  K: 4 # Number of Bernoulli trials for binomial loss
+  alpha: 0.4 # Target risk (1 - lambda_chosen > 0.4 => lambda_chosen < 0.6)
+  num_calibration_samples: 10 # n for this experiment
+  num_test_samples: 0 # Not explicitly used for risk calculation in this experiment, only lambda chosen is assessed against true risk.
+
+# Synthetic Heteroskedastic Experiment specific parameters (Section 5.2)
+synthetic_heteroskedastic:
+  alpha: 0.1 # Target loss (90% coverage)
+  beta: 0.95 # Max allowable risk failure rate is 5% (1-beta)
+  num_calibration_samples: 200 # n for this experiment
+  num_test_samples: 1000 # For evaluating true risk on test set to compute exceedance frequency and interval length
+
+# MS-COCO Experiment specific parameters (Section 5.3)
+ms_coco:
+  alpha: null # NOT SPECIFIED IN PAPER. Placeholder. Must be clarified from Angelopoulos & Bates (2023, Section 5.1)
+  beta: 0.95 # Max allowable risk failure rate is 5% (1-beta)
+  num_calibration_samples: 1000 # n for this experiment
+  num_test_samples: 3952 # For evaluating FNR and prediction set size
+  model_name: null # NOT SPECIFIED IN PAPER. Placeholder for the black-box model (e.g., 'resnet50'). Must be clarified.
+  model_weights_path: null # Path to pre-trained weights for the black-box model.
+  dataset_path: './data/mscoco' # Base path for MS-COCO dataset
+  # Further details for MS-COCO would come from Angelopoulos & Bates (2023, Section 5.1)

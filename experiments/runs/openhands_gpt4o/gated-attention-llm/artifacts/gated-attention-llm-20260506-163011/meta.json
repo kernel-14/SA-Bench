@@ -1,0 +1,9 @@
+{
+  "paper_id": "gated-attention-llm",
+  "run_id": "gated-attention-llm-20260506-163011",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 279.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 23
+}

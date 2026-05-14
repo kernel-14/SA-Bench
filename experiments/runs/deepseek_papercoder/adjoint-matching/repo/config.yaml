@@ -1,0 +1,53 @@
+## config.yaml
+
+model:
+  # Paths to pre‑trained components (placeholders)
+  flow_model_checkpoint: "/path/to/pretrained_flow_matching_unet.pt"
+  vae_model_name: "stabilityai/sd-vae-ft-mse"   # example – use a VAE compatible with 512x512 latents
+  clip_model_name: "openai/clip-vit-large-patch14"   # from transformers
+  reward_model_name: "ImageReward"   # from ImageReward package
+  # Additional required for unconditional guidance
+  unconditional_embedding: null   # will be derived from empty prompt tokenization
+
+training:
+  learning_rate: 2.0e-5
+  adam_beta1: 0.95
+  adam_beta2: 0.999
+  adam_eps: 1.0e-8
+  weight_decay: 1.0e-2
+  grad_clip_norm: 1.0
+  batch_size_effective: 40
+  num_gpus: 2
+  batch_size_per_gpu: 20   # derived from batch_size_effective / num_gpus
+  precision: "bfloat16"   # used with PyTorch AMP
+
+fine_tuning:
+  lambda_values: [1000, 2500, 12500]   # list of reward scaling coefficients to run
+  num_timesteps: 40                    # K (sampling steps during fine‑tuning)
+  timestep_subset_size: 20             # total timesteps used in loss (10 random + last 10)
+  loss_clipping_threshold_coeff: 1.6   # LCT = coeff * lambda^2
+  noise_schedule:
+    type: "memoryless"
+    offset_h: 0.025                    # h = 1 / num_timesteps
+  num_iterations: 1000                 # one epoch over 40k prompts with batch_size_effective=40
+  selected_timesteps:                  # implementation detail: we sample 10 random from first 75% + last 10
+    random_from: 0.0
+    random_to: 0.75
+    last_steps_count: 10
+  checkpoint_save_every: 200           # iterations
+
+evaluation:
+  test_prompts_file: "/path/to/test_prompts.txt"
+  num_test_samples: 40                 # images generated per prompt for diversity metrics
+  diversity_prompts_count: 25          # number of prompts used for diversity calculation
+  sampling_steps: 40                   # can differ from fine‑tuning steps; paper uses 40
+  sampling_sde: false                  # false means ODE (σ=0), true would use memoryless SDE
+  classifier_free_guidance_weight: 1.0 # default
+  # Optional override for ablation
+  guidance_weights_to_test: [1.0, 4.0]   # paper also tests w=4
+  output_dir: "./evaluation_results"
+
+logging:
+  log_dir: "./logs"
+  use_tensorboard: true
+  checkpoint_dir: "./checkpoints"

@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced core contributions: implemented Dirichlet sampling, L+ calculation, b_beta^*, lambda_hpd^beta, Conformal Risk Control, and Split Conformal Prediction. Replicated synthetic binomial and heteroskedastic experiments as described in the paper.",
+  "steps": 28,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/conformal-bayesian-quadrature/conformal-bayesian-quadrature-20260505-131421/workspace/repo"
+}

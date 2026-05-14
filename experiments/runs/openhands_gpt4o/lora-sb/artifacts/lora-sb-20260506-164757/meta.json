@@ -1,0 +1,9 @@
+{
+  "paper_id": "lora-sb",
+  "run_id": "lora-sb-20260506-164757",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 335.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 34
+}

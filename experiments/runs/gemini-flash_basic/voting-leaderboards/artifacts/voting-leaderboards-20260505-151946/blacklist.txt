@@ -1,0 +1,3 @@
+# No public official repository found (ICML 2025 Oral/Spotlight)
+# Authors: Yangsibo Huang, Milad Nasr, et al.
+# Related work with code: https://github.com/sail-sg/Rigging-ChatbotArena

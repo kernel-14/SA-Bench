@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced the core nGPT architecture including normalization utilities, embeddings with s_z scaling, normalized attention with s_qk scaling, normalized MLP with s_u and s_nu scaling, and the nGPT specific update equations with eigen learning rates (alpha_A, alpha_M). Removed RMSNorm/LayerNorm and weight decay/warmup as per the paper. The code structure reflects the paper's modularity.",
+  "steps": 13,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/ngpt/ngpt-20260505-142142/workspace/repo"
+}

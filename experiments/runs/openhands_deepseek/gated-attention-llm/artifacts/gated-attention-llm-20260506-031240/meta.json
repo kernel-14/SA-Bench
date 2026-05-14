@@ -1,0 +1,9 @@
+{
+  "paper_id": "gated-attention-llm",
+  "run_id": "gated-attention-llm-20260506-031240",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1327.8,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 37
+}

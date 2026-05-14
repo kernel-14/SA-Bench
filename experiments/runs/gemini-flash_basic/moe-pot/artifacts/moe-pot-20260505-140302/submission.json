@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced the core architecture of the MoE-POT model, including PatchEmbedding, TemporalAggregation, FourierLayer, and MoELayer. Also implemented the load balancing loss and created a configuration file.",
+  "steps": 21,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/moe-pot/moe-pot-20260505-140302/workspace/repo"
+}

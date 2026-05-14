@@ -1,0 +1,11 @@
+
+torch>=1.10.0
+numpy
+gymnasium
+dm_control
+stable-baselines3
+diffusers
+transformers
+omegaconf
+scikit-learn
+tensorboard

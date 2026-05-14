@@ -1,0 +1,205 @@
+# Configuration for "Exploring and Mitigating Adversarial Manipulation of Voting-Based Leaderboards"
+# Reproduces experiments from the paper
+
+# Section 2: De-anonymization of Model Responses
+detector:
+  # Identity-probing prompts
+  identity_prompts:
+    - "Who are you?"
+    - "Which model are you?"
+    - "What is your model name?"
+    - "How should I refer to you as an AI?"
+    - "How would you define your role or identity as an AI?"
+  
+  # Training-based detector settings
+  training_based:
+    num_prompts_per_category: 200
+    num_responses_per_model: 50
+    train_test_split: 0.8
+    random_state: 42
+    output_tokens: 512
+    classifier: "logistic_regression"  # Logistic regression from scikit-learn with defaults
+    
+  # Prompt categories and sources (Table 1)
+  prompt_categories:
+    english:
+      source: "LMSYS-Chat-1M"
+      type: "normal_chat"
+    chinese:
+      source: "LMSYS-Chat-1M"
+      type: "normal_chat"
+    spanish:
+      source: "LMSYS-Chat-1M"
+      type: "normal_chat"
+    indonesian:
+      source: "LMSYS-Chat-1M"
+      type: "normal_chat"
+    persian:
+      source: "LMSYS-Chat-1M"
+      type: "normal_chat"
+    coding:
+      source: "Alpaca Code"
+      type: "specialty"
+    math:
+      source: "MATH"
+      type: "specialty"
+    safety_violating:
+      source: "AdvBench"
+      type: "specialty"
+
+  # Features for training-based detector
+  features:
+    - "length_word"
+    - "length_character"
+    - "bow"
+    - "tfidf"
+
+# Models evaluated (Table 6, Appendix A.1)
+models:
+  - name: "claude-3-5-sonnet-20240620"
+    provider: "Anthropic"
+    api_type: "anthropic"
+  - name: "claude-3-haiku-20240307"
+    provider: "Anthropic"
+    api_type: "anthropic"
+  - name: "gemini-1.5-flash"
+    provider: "Google"
+    api_type: "google"
+  - name: "gemini-1.5-pro"
+    provider: "Google"
+    api_type: "google"
+  - name: "gemma-2-2b-it"
+    provider: "Google"
+    api_type: "together"
+  - name: "gemma-2-9b-it"
+    provider: "Google"
+    api_type: "together"
+  - name: "gemma-2-27b-it"
+    provider: "Google"
+    api_type: "together"
+  - name: "gpt-3.5-turbo"
+    provider: "OpenAI"
+    api_type: "openai"
+  - name: "gpt-4-0125-preview"
+    provider: "OpenAI"
+    api_type: "openai"
+  - name: "gpt-4-1106-preview"
+    provider: "OpenAI"
+    api_type: "openai"
+  - name: "gpt-4-turbo-2024-04-09"
+    provider: "OpenAI"
+    api_type: "openai"
+  - name: "gpt-4o-2024-05-13"
+    provider: "OpenAI"
+    api_type: "openai"
+  - name: "gpt-4o-2024-08-06"
+    provider: "OpenAI"
+    api_type: "openai"
+  - name: "gpt-4o-mini-2024-07-18"
+    provider: "OpenAI"
+    api_type: "openai"
+  - name: "llama-3-8b-instruct"
+    provider: "Meta"
+    api_type: "together"
+  - name: "llama-3-70b-instruct"
+    provider: "Meta"
+    api_type: "together"
+  - name: "llama-3.1-8b-instruct"
+    provider: "Meta"
+    api_type: "together"
+  - name: "llama-3.1-70b-instruct"
+    provider: "Meta"
+    api_type: "together"
+  - name: "llama-3.1-405b-instruct"
+    provider: "Meta"
+    api_type: "together"
+  - name: "mixtral-8x7b-instruct-v0.1"
+    provider: "Mistral AI"
+    api_type: "together"
+  - name: "mixtral-8x22b-instruct-v0.1"
+    provider: "Mistral AI"
+    api_type: "together"
+  - name: "qwen2-72b-instruct"
+    provider: "Alibaba"
+    api_type: "together"
+
+# Section 3: Voting Simulation
+simulation:
+  # Chatbot Arena data (anonymized and deduplicated)
+  # Dataset: 1,670,250 votes from 477,322 unique users
+  # 1,093,875 wins, 576,375 ties
+  # 6,895 unique model pair combinations
+  total_votes: 1670250
+  total_users: 477322
+  total_wins: 1093875
+  total_ties: 576375
+  unique_pairs: 6895
+  
+  # Simulation parameters
+  detector_accuracy: 0.95  # Default: >95% accuracy
+  # Symmetric false positive and false negative rates of 5%
+  false_positive_rate: 0.05
+  false_negative_rate: 0.05
+  steps_per_check: 1000  # Check ranking every 1000 interactions
+  
+  # Bradley-Terry model parameters
+  bradley_terry_scale: 1.0  # Scaling factor s in the logistic function
+  
+  # Attack objectives
+  attack_types:
+    - "up"   # Up(M, x): rise x positions
+    - "down" # Down(M, x): fall x positions
+  
+  # Non-detection strategies
+  non_detection_strategies:
+    - "do_nothing"      # Passive: abstain
+    - "random_upvote"   # Randomly upvote one model
+    - "vote_tie"        # Vote for a tie
+    - "vote_both_bad"   # Vote both as bad
+
+# Section 4: Mitigations
+mitigations:
+  # Cost model
+  cost_model:
+    # One-time cost of building training-based detector (Section 4.1, Appendix B.1)
+    detector_cost: 440  # USD
+    # Cost per action (without mitigations, minimal)
+    action_cost: 0.01  # USD per interaction
+    
+  # Authentication (Section 4.2.1)
+  authentication:
+    enabled: false
+    # Cost to obtain one user account (email, social media, phone)
+    account_cost: 1.0  # USD per account
+    
+  # Rate limiting (Section 4.2.2)
+  rate_limiting:
+    enabled: false
+    max_actions_per_account: 100  # m: actions per account cap
+    quantile: 0.5  # Median of benign user query distribution
+    
+  # Malicious user detection (Section 4.2.3)
+  malicious_detection:
+    # Scenario 1: Known benign distribution (likelihood ratio test)
+    scenario1:
+      significance_level: 0.01  # alpha
+      num_simulations: 1000  # m: number of simulated sequences
+      
+    # Scenario 2: Known benign + malicious distributions (Neyman-Pearson)
+    scenario2:
+      noise_scale: 0.0  # Gaussian noise scale for perturbing Bradley-Terry ratings
+      noise_scales_to_test: [0.0, 0.1, 0.5, 1.0, 2.0]
+      
+  # Increasing action cost (Section 4.2.4)
+  captcha:
+    enabled: false
+    captcha_cost: 0.001  # USD per CAPTCHA (automated solving service)
+    
+  prompt_uniqueness:
+    enabled: false
+    cost_per_prompt: 20.0  # USD per new prompt (Appendix A.3)
+
+# API Pricing (Appendix A.3)
+api_pricing:
+  proprietary_per_million_tokens: 5.00  # USD
+  open_source_per_million_tokens: 1.80  # USD

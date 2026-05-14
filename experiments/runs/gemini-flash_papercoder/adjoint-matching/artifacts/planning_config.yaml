@@ -1,0 +1,93 @@
+## config.yaml
+# Main configuration for Adjoint Matching fine-tuning and evaluation
+general:
+  project_name: "adjoint_matching_reproduction"
+  run_name: "adjoint_matching_lambda_12500"
+  device: "cuda" # or "cpu"
+  seed: 42 # For reproducibility across runs
+  output_dir: "outputs"
+
+model:
+  # Base Flow Matching UNet model configuration (assuming it's a latent diffusion model U-Net)
+  # NOTE: Specific UNet architecture details (e.g., layers, channels, attention) are not in the paper.
+  # This is a placeholder and should be informed by the chosen pre-trained base model.
+  # Assuming latent space matches that of Stable Diffusion's VAE for 512x512 images.
+  unet_config:
+    sample_size: 64 # Latent image size (e.g., 512 / 8)
+    in_channels: 4 # Latent channels
+    out_channels: 4 # Velocity prediction (same as in_channels)
+    down_block_types: ["CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "DownBlock2D"]
+    up_block_types: ["UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D"]
+    block_out_channels: [320, 640, 1280, 1280]
+    layers_per_block: 2
+    cross_attention_dim: 768 # For CLIP text embeddings (e.g., OpenCLIP ViT-bigG/14)
+    attention_head_dim: 8
+  
+  # Path to the pre-trained base Flow Matching UNet weights (v_base)
+  # This is a crucial missing piece; will likely be a converted latent diffusion U-Net or a publicly available FM model.
+  pretrained_base_model_path: "path/to/your/pretrained_flow_matching_unet.pt"
+  
+  # Text encoder configuration (e.g., for CLIP)
+  text_encoder:
+    model_name: "openai/clip-vit-large-patch14" # Example CLIP model
+    max_length: 77 # Standard for CLIP
+
+reward_model:
+  # ImageReward (Xu et al., 2023) configuration
+  # Specific model name/path for ImageReward if not directly integrated as a library.
+  name: "ImageReward"
+  # This path might point to a checkpoint or indicate a model to be loaded from a library.
+  model_path: "path/to/your/ImageReward_model.pt"
+
+data:
+  # Paths to text prompt datasets
+  fine_tuning_prompts_path: "data/fine_tuning_prompts_40k.txt" # A list of prompts, one per line
+  eval_prompts_path: "data/eval_prompts_1k.txt" # A list of prompts, one per line
+
+fine_tuning:
+  method: "AdjointMatching" # Or "DRaFT-1", "DPO", "ReFL", "ContinuousAdjoint", "DiscreteAdjoint"
+  num_timesteps: 40 # K from the paper (h = 1/K = 0.025)
+  num_fine_tune_iterations: 1000 # N from the paper (for main results)
+  lambda_reward: 12500 # λ parameter for reward scaling. Other values: 1000, 2500
+  lct_value_scale: 1.6 # LCT = lct_value_scale * lambda_reward^2. For Adjoint Matching: 1.6
+  lct_value_scale_cont_adjoint: 1600 # For Continuous Adjoint: 1600
+  
+  optimizer:
+    name: "Adam"
+    learning_rate: 2e-5 # For Adjoint Matching. Discrete Adjoint might need 1e-5.
+    betas: [0.95, 0.999]
+    eps: 1e-8
+    weight_decay: 1e-2
+    gradient_norm_clip: 1.0
+  
+  batch_size: 20 # Per GPU, leading to effective batch size of 40 on 2 GPUs
+  precision: "bfloat16" # "bfloat16" or "float32"
+
+evaluation:
+  sampling_sigma_types: ["memoryless", "ode"] # "memoryless" means sqrt(2*eta_t), "ode" means sigma(t)=0
+  cfg_weights: [0.0, 1.0, 4.0] # Classifier-Free Guidance weights
+  num_inference_timesteps: 40 # Number of steps during sampling for main eval. Also 10, 20, 100, 200 for ablation.
+  num_samples_per_prompt: 40 # For diversity metrics
+  num_eval_prompts: 25 # Number of prompts to use for diversity calculation
+  eval_frequency: 100 # Evaluate every N iterations
+  save_samples: True
+  save_metrics: True
+
+# Parameters specific to baselines (if different from general fine-tuning params)
+baselines:
+  DRaFT-1:
+    num_fine_tune_iterations: 4000 # Example for lambda=12500 (from Table 5)
+    sampling_sigma_types: ["memoryless", "ode"]
+  DPO:
+    num_fine_tune_iterations: 1500
+    sampling_sigma_types: ["memoryless", "ode"]
+  ReFL:
+    num_fine_tune_iterations: 6000
+    sampling_sigma_types: ["ode", "memoryless"] # Table 3 order
+  ContinuousAdjoint:
+    num_fine_tune_iterations: 1000 # From table 3
+    sampling_sigma_types: ["ode", "memoryless"]
+  DiscreteAdjoint:
+    num_fine_tune_iterations: 1000 # From table 3
+    learning_rate: 1e-5 # Adjusted LR for stability (from Appendix G)
+    sampling_sigma_types: ["memoryless", "ode"]

@@ -1,0 +1,52 @@
+## config.yaml
+
+# Configuration file for training and fine-tuning the Adjoint Matching method.
+
+training:
+  # Standard training settings
+  learning_rate: 2e-5  # Based on paper's recommended learning rate for fine-tuning
+  batch_size: 40       # Effective batch size across GPUs
+  epochs: 50           # Number of fine-tuning epochs
+  
+  # Optimizer settings
+  optimizer: "adam"
+  adam_betas: [0.95, 0.999]
+  weight_decay: 1e-2
+  gradient_clipping: 1.0
+  
+  # Noise schedule settings (critical for memoryless property)
+  timesteps: 40                      # Number of discrete timesteps (K)
+  noise_schedule_offset: 0.025       # Offset added to numerically stabilize σ(t)
+
+fine_tuning:
+  scaling_factor: 1000               # λ scaling for the reward model
+  adjust_reward_bias: True           # Fix initial value bias during fine-tuning
+
+dataset:
+  dataset_name: "licensed_dataset"   # Placeholder for dataset name (e.g., LAION-like data)
+  input_size: 512
+  split_ratio: [0.8, 0.1, 0.1]        # Training, validation, test split as ratios
+  augmentation: True
+  num_workers: 4
+  shuffle: True
+
+logging:
+  log_dir: "./logs"
+  save_model_every: 1                # Save model after every epoch
+  print_frequency: 100               # Log frequency for metrics (steps)
+
+evaluation:
+  metrics:
+    - ClipScore
+    - PickScore
+    - DreamSimDiversity
+  num_test_samples: 1000             # Evaluation sample size
+  num_diversity_samples: 40          # Diversity samples per evaluation check
+  
+checkpoint:
+  resume_from_checkpoint: False      # Whether to resume training from checkpoint
+  checkpoint_path: "./checkpoints"
+
+general:
+  seed: 42                           # Reproducibility seed
+  device: "cuda"                     # Hardware specification (e.g., "cuda" or "cpu")

@@ -1,0 +1,9 @@
+{
+  "paper_id": "mrq",
+  "run_id": "mrq-20260506-211020",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 2829.7,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 35
+}

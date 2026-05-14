@@ -1,0 +1,27 @@
+## config.yaml
+# Configuration for reproducing the paper's experiments.
+# The step size η is not given in the paper; it must satisfy η < 1/L_2^Π
+# and is tuned empirically per experiment.
+
+common:
+  random_seed: 42
+  initial_policy: "uniform"
+
+experiment1:
+  state_action_sizes: [[3, 3], [9, 9], [81, 81]]
+  num_iterations: 2000
+  step_size: 0.1   # tuned for small (3,3); may need 0.01 for (81,81)
+
+experiment2:
+  state_size: 16
+  action_size: 16
+  num_iterations: 2000
+  reward_variants: ["no_var", "low_var", "high_var", "max_var"]
+  step_size: 0.05
+
+experiment3:
+  state_size: 16
+  action_size: 16
+  num_iterations: 3000
+  kernel_types: ["uniform", "non_uniform", "deterministic"]
+  step_size: 0.05

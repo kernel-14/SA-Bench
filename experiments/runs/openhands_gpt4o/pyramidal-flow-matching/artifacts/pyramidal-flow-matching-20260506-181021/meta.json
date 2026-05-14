@@ -1,0 +1,9 @@
+{
+  "paper_id": "pyramidal-flow-matching",
+  "run_id": "pyramidal-flow-matching-20260506-181021",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 428.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 40
+}

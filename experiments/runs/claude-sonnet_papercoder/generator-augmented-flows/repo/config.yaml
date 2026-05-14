@@ -1,0 +1,300 @@
+## config.yaml
+# Master configuration for iCT-GC (Generator-Augmented Flows for Consistency Models)
+# All values are taken directly from the paper (Tables 4, 5, 6 and Appendix D).
+# Dataset-specific configs in configs/ directory override these defaults.
+
+defaults:
+  ## Diffusion process parameters (EDM formulation, Karras et al. 2022)
+  sigma_min: 0.002       # sigma_0: small enough so p_0 ≈ p_star
+  sigma_max: 80.0        # sigma_T: large enough so p_T ≈ N(0, sigma_T^2 * I)
+  sigma_data: 0.5        # std of data distribution, used in c_skip / c_out
+  rho: 7.0               # exponent for noise schedule sigma_i computation
+
+  ## Timestep sampling distribution (Song & Dhariwal 2024)
+  P_mean: -1.1           # mean of log-normal timestep distribution
+  P_std: 2.0             # std of log-normal timestep distribution
+
+  ## Progressive discretization schedule (Song & Dhariwal 2024)
+  s0: 10                 # initial number of discretization timesteps
+  s1: 1280               # final number of discretization timesteps
+
+  ## Optimizer (Lion, Chen et al. 2023)
+  optimizer: lion
+  weight_decay: 0.0
+
+  ## EMA
+  ema_decay: 0.9999
+
+  ## Loss
+  distance_fn: pseudo_huber   # distance function D(x, y) in consistency loss
+  pseudo_huber_c: 0.00054     # pseudo-Huber parameter c
+
+  ## Evaluation protocol (paper Section 5 and Appendix D)
+  num_eval_samples: 50000     # number of generated images for FID/KID/IS
+  num_eval_runs: 5            # number of evaluation runs for confidence intervals
+  eval_every: 10000           # evaluate every N training steps
+
+  ## Architecture (NCSNpp / SongUNet, Song et al. 2021 / Karras et al. 2022)
+  architecture: song_unet
+  embedding_type: positional  # time conditioning embedding type
+
+  ## Data preprocessing
+  # Images are resized (smaller side), center-cropped, then scaled to [-1, 1]
+  normalize_mean: [0.5, 0.5, 0.5]
+  normalize_std: [0.5, 0.5, 0.5]
+
+  ## Paths
+  data_root: ./data
+  save_dir: ./checkpoints
+  log_dir: ./logs
+
+  ## Device
+  device: cuda
+  num_workers: 4
+  seed: 42
+
+
+## ---------------------------------------------------------------------------
+## CIFAR-10  (Table 4, Appendix D)
+## ---------------------------------------------------------------------------
+cifar10:
+  dataset: cifar10
+  image_size: 32
+  in_channels: 3
+  out_channels: 3
+  batch_size: 512
+  training_steps: 100000
+
+  ## Learning rate: paper performs grid search over {0.0001, 0.00003}
+  ## Best value reported implicitly; 0.0001 is the primary candidate for iCT-GC
+  learning_rate: 0.0001
+
+  ## Architecture (Table 4)
+  model_channels: 128
+  num_blocks: 3                  # uniform across all resolutions
+  channel_mult: [1, 2, 2]
+  attn_resolutions: []           # no attention blocks for 32x32
+
+  ## Dropout: paper searches {0.0, 0.3}; ablation (Table 3) shows dropout=0
+  ## hurts iCT-GC, so best value is 0.0 for iCT-GC
+  dropout: 0.0
+
+  ## GC joint learning parameter mu (Figure 5, Section 5.2)
+  ## Grid search on CIFAR-10 shows mu=0.5 is optimal
+  mu: 0.5
+
+  ## Coupling strategy: 'ic' | 'ot' | 'gc'
+  coupling: gc
+
+  ## Minibatch OT batch size (for iCT-OT baseline)
+  ot_batch_size: 512
+
+  save_dir: ./checkpoints/cifar10
+  log_dir: ./logs/cifar10
+
+
+## ---------------------------------------------------------------------------
+## CelebA 64x64  (Table 5, Appendix D)
+## ---------------------------------------------------------------------------
+celeba:
+  dataset: celeba
+  image_size: 64
+  in_channels: 3
+  out_channels: 3
+  batch_size: 128
+  training_steps: 150000
+  learning_rate: 0.00008         # fixed value from Table 5
+
+  ## Architecture (Table 5)
+  model_channels: 128
+  num_blocks: [3, 3, 4, 5]      # per-resolution block counts
+  channel_mult: [1, 2, 2, 2]
+  attn_resolutions: []           # no attention blocks
+
+  ## Dropout: paper searches {0.0, [0., 0., 0.2, 0.2]}
+  ## Per-block dropout list matches num_blocks depth
+  dropout: 0.0
+
+  ## mu=0.5 used for all datasets beyond CIFAR-10 (Section 5.2)
+  mu: 0.5
+  coupling: gc
+  ot_batch_size: 128
+
+  save_dir: ./checkpoints/celeba
+  log_dir: ./logs/celeba
+
+
+## ---------------------------------------------------------------------------
+## LSUN Church 64x64  (Table 5, Appendix D)
+## ---------------------------------------------------------------------------
+lsun_church:
+  dataset: lsun_church
+  image_size: 64
+  in_channels: 3
+  out_channels: 3
+  batch_size: 128
+  training_steps: 150000
+  learning_rate: 0.00008         # fixed value from Table 5
+
+  ## Architecture (Table 5) — identical to CelebA
+  model_channels: 128
+  num_blocks: [3, 3, 4, 5]
+  channel_mult: [1, 2, 2, 2]
+  attn_resolutions: []
+
+  dropout: 0.0
+  mu: 0.5
+  coupling: gc
+  ot_batch_size: 128
+
+  save_dir: ./checkpoints/lsun_church
+  log_dir: ./logs/lsun_church
+
+
+## ---------------------------------------------------------------------------
+## ImageNet-1k 32x32  (Table 6, Appendix D)
+## ---------------------------------------------------------------------------
+imagenet32:
+  dataset: imagenet32
+  image_size: 32
+  in_channels: 3
+  out_channels: 3
+  batch_size: 512
+  training_steps: 150000
+  learning_rate: 0.00008         # fixed value from Table 6
+
+  ## Architecture (Table 6)
+  model_channels: 128
+  num_blocks: [3, 5, 7]          # per-resolution block counts
+  channel_mult: [1, 1, 2]
+  attn_resolutions: [16]         # attention at 16x16 resolution
+
+  ## Dropout: paper searches {0.0, [0., 0., 0.2, 0.2]}
+  dropout: 0.0
+
+  mu: 0.5
+  coupling: gc
+  ot_batch_size: 512
+
+  save_dir: ./checkpoints/imagenet32
+  log_dir: ./logs/imagenet32
+
+
+## ---------------------------------------------------------------------------
+## ECT setting  (Table 2, Section 5.3, Geng et al. 2024)
+## Applied to CIFAR-10, FFHQ 64x64, ImageNet 64x64 (conditional)
+## ---------------------------------------------------------------------------
+ect_cifar10:
+  dataset: cifar10
+  image_size: 32
+  in_channels: 3
+  out_channels: 3
+  batch_size: 512
+
+  ## Short training: ~4k iterations (~1 GPU-hour)
+  ## Long training: 100k iterations (~1 GPU-day)
+  training_steps: 4000           # set to 100000 for long training
+
+  learning_rate: 0.0001
+
+  ## Architecture same as cifar10
+  model_channels: 128
+  num_blocks: 3
+  channel_mult: [1, 2, 2]
+  attn_resolutions: []
+  dropout: 0.0
+
+  ## mu=0.3 found optimal in ECT setting (Section 5.3)
+  mu: 0.3
+  coupling: gc
+  ot_batch_size: 512
+
+  ## ECT requires a pre-trained diffusion model checkpoint
+  pretrained_diffusion_ckpt: null   # user must supply path
+
+  save_dir: ./checkpoints/ect_cifar10
+  log_dir: ./logs/ect_cifar10
+
+
+ect_ffhq64:
+  dataset: ffhq
+  image_size: 64
+  in_channels: 3
+  out_channels: 3
+  batch_size: 128
+  training_steps: 4000           # set to 100000 for long training
+  learning_rate: 0.00008
+
+  model_channels: 128
+  num_blocks: [3, 3, 4, 5]
+  channel_mult: [1, 2, 2, 2]
+  attn_resolutions: []
+  dropout: 0.0
+
+  mu: 0.3
+  coupling: gc
+  ot_batch_size: 128
+
+  pretrained_diffusion_ckpt: null
+
+  save_dir: ./checkpoints/ect_ffhq64
+  log_dir: ./logs/ect_ffhq64
+
+
+ect_imagenet64_cond:
+  dataset: imagenet64_cond
+  image_size: 64
+  in_channels: 3
+  out_channels: 3
+  batch_size: 256
+  training_steps: 4000           # set to 100000 for long training
+  learning_rate: 0.00008
+  num_classes: 1000              # conditional generation
+
+  model_channels: 192
+  num_blocks: [3, 3, 4, 5]
+  channel_mult: [1, 2, 3, 4]
+  attn_resolutions: [32, 16, 8]
+  dropout: 0.0
+
+  mu: 0.3
+  coupling: gc
+  ot_batch_size: 256
+
+  pretrained_diffusion_ckpt: null
+
+  save_dir: ./checkpoints/ect_imagenet64_cond
+  log_dir: ./logs/ect_imagenet64_cond
+
+
+## ---------------------------------------------------------------------------
+## Ablation configurations  (Appendix C.1, Figure 5)
+## ---------------------------------------------------------------------------
+ablation_mu:
+  ## mu grid search values from Figure 5 (CIFAR-10)
+  mu_values: [0.0, 0.1, 0.3, 0.5, 0.7, 1.0]
+  base_config: cifar10           # run ablation on top of cifar10 config
+  eval_every: 5000               # more frequent eval for convergence curves
+
+ablation_hyperparams:
+  ## Table 3: hyperparameter sensitivity on CIFAR-10
+  ## iCT-GC (mu=0.5) iso-time: same wall-clock as iCT-IC (~20% overhead => ~83k steps)
+  iso_time_steps: 83000
+  ## dropout ablation
+  dropout_values: [0.0, 0.3]
+  ## EMA ablation: whether to use EMA model for endpoint prediction
+  use_ema_for_prediction: true   # set false to reproduce "iCT-GC - EMA" row
+
+
+## ---------------------------------------------------------------------------
+## Proxy regularizer and transport cost analysis  (Figures 2, 3, 6)
+## ---------------------------------------------------------------------------
+analysis:
+  ## Couplings to compare for R_tilde and transport cost plots
+  couplings_to_compare: [ic, ot, gc]
+  ## Denoiser training steps for R_tilde estimation
+  denoiser_training_steps: 50000
+  denoiser_lr: 0.0001
+  ## Toy dataset for transport cost (Figure 6 left)
+  toy_dataset: two_diracs_2d
+  toy_n_samples: 10000

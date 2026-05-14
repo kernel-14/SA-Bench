@@ -1,0 +1,150 @@
+{
+  "case_id": "ca2-vdm",
+  "run_id": "ca2-vdm-20260505-131421",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 547522,
+    "total_output_tokens": 39398,
+    "total_tokens": 586920,
+    "estimated_cost_usd": 2.2335,
+    "elapsed_seconds": 2814.2,
+    "steps": 22,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 8.17,
+        "input_tokens": 1200,
+        "output_tokens": 135
+      },
+      {
+        "step": 2,
+        "elapsed_s": 6.44,
+        "input_tokens": 1320,
+        "output_tokens": 51
+      },
+      {
+        "step": 3,
+        "elapsed_s": 9.04,
+        "input_tokens": 10546,
+        "output_tokens": 302
+      },
+      {
+        "step": 4,
+        "elapsed_s": 9.74,
+        "input_tokens": 17736,
+        "output_tokens": 266
+      },
+      {
+        "step": 5,
+        "elapsed_s": 11.61,
+        "input_tokens": 17848,
+        "output_tokens": 373
+      },
+      {
+        "step": 6,
+        "elapsed_s": 16.96,
+        "input_tokens": 17987,
+        "output_tokens": 821
+      },
+      {
+        "step": 7,
+        "elapsed_s": 17.64,
+        "input_tokens": 19223,
+        "output_tokens": 239
+      },
+      {
+        "step": 8,
+        "elapsed_s": 171.55,
+        "input_tokens": 19353,
+        "output_tokens": 6666
+      },
+      {
+        "step": 9,
+        "elapsed_s": 87.29,
+        "input_tokens": 21787,
+        "output_tokens": 0
+      },
+      {
+        "step": 10,
+        "elapsed_s": 153.97,
+        "input_tokens": 21820,
+        "output_tokens": 4271
+      },
+      {
+        "step": 11,
+        "elapsed_s": 140.11,
+        "input_tokens": 24634,
+        "output_tokens": 3929
+      },
+      {
+        "step": 12,
+        "elapsed_s": 440.6,
+        "input_tokens": 28591,
+        "output_tokens": 5141
+      },
+      {
+        "step": 13,
+        "elapsed_s": 174.27,
+        "input_tokens": 32582,
+        "output_tokens": 0
+      },
+      {
+        "step": 14,
+        "elapsed_s": 81.44,
+        "input_tokens": 32615,
+        "output_tokens": 0
+      },
+      {
+        "step": 15,
+        "elapsed_s": 191.76,
+        "input_tokens": 32648,
+        "output_tokens": 0
+      },
+      {
+        "step": 16,
+        "elapsed_s": 267.62,
+        "input_tokens": 33985,
+        "output_tokens": 0
+      },
+      {
+        "step": 17,
+        "elapsed_s": 192.04,
+        "input_tokens": 32714,
+        "output_tokens": 0
+      },
+      {
+        "step": 18,
+        "elapsed_s": 218.33,
+        "input_tokens": 32747,
+        "output_tokens": 0
+      },
+      {
+        "step": 19,
+        "elapsed_s": 34.0,
+        "input_tokens": 32780,
+        "output_tokens": 2
+      },
+      {
+        "step": 20,
+        "elapsed_s": 264.81,
+        "input_tokens": 34125,
+        "output_tokens": 16500
+      },
+      {
+        "step": 21,
+        "elapsed_s": 49.96,
+        "input_tokens": 40526,
+        "output_tokens": 702
+      },
+      {
+        "step": 22,
+        "elapsed_s": 266.66,
+        "input_tokens": 40755,
+        "output_tokens": 0
+      }
+    ]
+  }
+}

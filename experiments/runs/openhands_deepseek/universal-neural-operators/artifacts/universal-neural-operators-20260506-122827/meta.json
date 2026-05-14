@@ -1,0 +1,9 @@
+{
+  "paper_id": "universal-neural-operators",
+  "run_id": "universal-neural-operators-20260506-122827",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1712.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 33
+}

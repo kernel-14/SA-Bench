@@ -1,0 +1,9 @@
+{
+  "paper_id": "robotic-world-model",
+  "run_id": "robotic-world-model-20260507-005234",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1583.8,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 48
+}

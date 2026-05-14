@@ -1,0 +1,279 @@
+## config.yaml
+## Configuration for reproducing nGPT (Normalized Transformer) experiments.
+## All values are taken directly from the paper. Fields marked with
+## "paper-default" are explicitly stated; fields marked "standard" are
+## conventional values not contradicted by the paper.
+
+# ---------------------------------------------------------------------------
+# Experiment control
+# ---------------------------------------------------------------------------
+experiment:
+  seed: 42                        # standard reproducibility seed
+  output_dir: "outputs"
+  checkpoint_dir: "outputs/checkpoints"
+  log_dir: "outputs/logs"
+  mode: "train"                   # train | eval | ablation | analysis | all
+
+# ---------------------------------------------------------------------------
+# Dataset
+# ---------------------------------------------------------------------------
+data:
+  dataset_name: "Skylion007/openwebtext"   # paper-default: OpenWebText
+  tokenizer: "meta-llama/Llama-2-7b-hf"   # paper-default: LLaMA-2 tokenizer
+  tokenizer_fallback: "gpt2"               # fallback if LLaMA-2 unavailable
+  vocab_size: 32000                        # paper-default: 32k tokens
+  train_val_split: 0.9                     # 90/10 split (nanoGPT convention)
+  cache_dir: "data/cache"
+  train_bin: "data/cache/train.bin"
+  val_bin: "data/cache/val.bin"
+
+# ---------------------------------------------------------------------------
+# Model sizes — paper Table 2
+# ---------------------------------------------------------------------------
+models:
+  gpt_500m:
+    model_type: "gpt"
+    n_layers: 24                  # paper-default
+    d_model: 1024                 # paper-default
+    n_heads: 16                   # paper-default
+    d_mlp: 4096                   # paper-default: 4 * d_model
+    d_k: 64                       # paper-default: d_model / n_heads
+    n_params_target: 468.2e6      # paper-default: 468.2M
+
+  ngpt_500m:
+    model_type: "ngpt"
+    n_layers: 24                  # paper-default
+    d_model: 1024                 # paper-default
+    n_heads: 16                   # paper-default
+    d_mlp: 4096                   # paper-default: 4 * d_model
+    d_k: 64                       # paper-default: d_model / n_heads
+    n_params_target: 468.4e6      # paper-default: 468.4M
+
+  gpt_1b:
+    model_type: "gpt"
+    n_layers: 36                  # paper-default
+    d_model: 1280                 # paper-default
+    n_heads: 20                   # paper-default
+    d_mlp: 5120                   # paper-default: 4 * d_model
+    d_k: 64                       # paper-default: d_model / n_heads
+    n_params_target: 1025.7e6     # paper-default: 1025.7M
+
+  ngpt_1b:
+    model_type: "ngpt"
+    n_layers: 36                  # paper-default
+    d_model: 1280                 # paper-default
+    n_heads: 20                   # paper-default
+    d_mlp: 5120                   # paper-default: 4 * d_model
+    d_k: 64                       # paper-default: d_model / n_heads
+    n_params_target: 1026.1e6     # paper-default: 1026.1M
+
+# ---------------------------------------------------------------------------
+# Architecture shared settings
+# ---------------------------------------------------------------------------
+architecture:
+  rope_base: 10000                # paper-default: base of RoPE
+  activation: "swiglu"           # paper-default: SwiGLU
+  bias: false                    # paper-default: no bias terms (omitted)
+  dtype: "bfloat16"              # paper-default: bfloat16 storage
+
+# ---------------------------------------------------------------------------
+# Training — paper Table 3 and Appendix A.6
+# ---------------------------------------------------------------------------
+training:
+  # --- Shared ---
+  global_batch_size: 512          # paper-default: 512
+  max_steps: 200000               # paper-default: up to 200k iterations
+  eval_interval: 500              # evaluation frequency (standard)
+  eval_steps: 100                 # number of val batches per eval (standard)
+  grad_clip: 1.0                  # standard; not contradicted by paper
+  log_interval: 10                # standard logging frequency
+
+  # Context lengths tested in the paper (Section 3.1)
+  context_lengths:
+    - 1024    # 1k  — paper-default
+    - 4096    # 4k  — paper-default
+    - 8192    # 8k  — paper-default
+
+  # Default context length for most experiments
+  default_context_length: 4096
+
+  # --- GPT-specific (Table 3) ---
+  gpt:
+    optimizer: "adamw"            # paper-default: AdamW
+    weight_decay: 0.1             # paper-default
+    warmup_steps: 2000            # paper-default
+    lr_schedule: "cosine"         # paper-default: cosine annealing
+    final_lr: 0.0                 # paper-default: decay to 0
+    betas: [0.9, 0.95]            # standard for LLM training
+    # Initial LR is tuned per experiment (paper-default: problem-specific).
+    # Representative values from Figure 7 sweep:
+    learning_rate_500m_1k: 3.0e-3
+    learning_rate_500m_4k: 2.0e-3
+    learning_rate_500m_8k: 1.0e-3
+    learning_rate_1b_1k: 2.0e-3
+    learning_rate_1b_4k: 1.0e-3
+    learning_rate_1b_8k: 5.0e-4
+
+  # --- nGPT-specific (Table 3) ---
+  ngpt:
+    optimizer: "adam"             # paper-default: Adam (AdamW with wd=0)
+    weight_decay: 0.0             # paper-default
+    warmup_steps: 0               # paper-default: no warmup
+    lr_schedule: "cosine"         # paper-default: cosine annealing
+    final_lr: 0.0                 # paper-default: decay to 0
+    betas: [0.9, 0.95]            # standard for LLM training
+    # Initial LR is tuned per experiment (paper-default: problem-specific).
+    # Representative values from Figure 7 sweep:
+    learning_rate_500m_1k: 2.0e-3
+    learning_rate_500m_4k: 1.0e-3
+    learning_rate_500m_8k: 5.0e-4
+    learning_rate_1b_1k: 2.0e-3
+    learning_rate_1b_4k: 1.0e-3
+    learning_rate_1b_8k: 5.0e-4
+
+# ---------------------------------------------------------------------------
+# Weight initialization — Appendix A.6
+# ---------------------------------------------------------------------------
+initialization:
+  gpt:
+    std: 0.02                     # paper-default
+    # Output projection matrices (Wo, WoMLP) scaled by 1/sqrt(2*n_layers)
+    # paper-default: following Radford et al. (2018)
+    output_proj_scale_factor: true  # std *= 1/sqrt(2*n_layers)
+
+  ngpt:
+    # paper-default: 1/sqrt(d_model); exact value doesn't matter
+    # because weights are normalized immediately after init
+    std_factor: "inv_sqrt_d_model"  # std = 1/sqrt(d_model)
+    output_proj_scale_factor: true  # std *= 1/sqrt(2*n_layers)
+    normalize_after_init: true      # paper-default: normalize immediately
+
+# ---------------------------------------------------------------------------
+# nGPT scaling parameters — Section 2.6 and Table 4 defaults
+# ---------------------------------------------------------------------------
+ngpt_scaling:
+  # Eigen learning rates for Attention block (per layer, shape: d_model)
+  alpha_a:
+    s_init: 0.05                  # paper-default: order of 1/n_layers
+    s_scale: "inv_sqrt_d_model"   # paper-default: 1/sqrt(d_model)
+    # Special case for 1B model on 8k context (Appendix A.7):
+    s_init_1b_8k: 0.1             # paper-default override
+
+  # Eigen learning rates for MLP block (per layer, shape: d_model)
+  alpha_m:
+    s_init: 0.05                  # paper-default: order of 1/n_layers
+    s_scale: "inv_sqrt_d_model"   # paper-default: 1/sqrt(d_model)
+    s_init_1b_8k: 0.1             # paper-default override
+
+  # QK scaling factors (per layer per head, shape: d_k)
+  sqk:
+    s_init: 1.0                   # paper-default
+    s_scale: "inv_sqrt_d_model"   # paper-default: 1/sqrt(d_model)
+
+  # MLP u-gate scaling (per layer, shape: d_mlp)
+  su:
+    s_init: 1.0                   # paper-default
+    s_scale: 1.0                  # paper-default
+
+  # MLP v-gate scaling (per layer, shape: d_mlp)
+  sv:
+    s_init: 1.0                   # paper-default
+    s_scale: 1.0                  # paper-default
+
+  # Logit scaling (global, shape: vocab_size)
+  sz:
+    s_init: 1.0                   # paper-default
+    s_scale: "inv_sqrt_d_model"   # paper-default: 1/sqrt(d_model)
+
+# ---------------------------------------------------------------------------
+# nGPT attention specifics — Section 2.3
+# ---------------------------------------------------------------------------
+ngpt_attention:
+  # Softmax scale = sqrt(dk) instead of 1/sqrt(dk) — paper-default
+  softmax_scale: "sqrt_dk"
+  # Normalize q and k after RoPE — paper-default (equations 15, 16)
+  normalize_qk: true
+  # Use LERP (not SLERP) for hidden state update — paper-default (Section 2.2)
+  use_lerp: true                  # SLERP available as ablation (Table 6)
+
+# ---------------------------------------------------------------------------
+# Ablation study settings — Appendix A.9
+# All ablations use: 0.5B model, 1k context, lr=1e-3, 100k steps (~52B tokens)
+# ---------------------------------------------------------------------------
+ablation:
+  model_size: "500m"
+  context_length: 1024            # paper-default for ablations
+  learning_rate: 1.0e-3           # paper-default for ablations
+  max_steps: 100000               # paper-default: 100k iterations
+  # Approximate token count: 512 * 1024 * 100000 = ~52B tokens
+
+  # Table 4: s_init / s_scale combinations to test
+  scaling_factor_ablations:
+    sqk_variants:
+      - {s_init: 1.0,    s_scale: "inv_sqrt_d_model"}   # default
+      - {s_init: 0.33,   s_scale: "inv_sqrt_d_model"}
+      - {s_init: 0.05,   s_scale: "inv_sqrt_d_model"}
+      - {s_init: 1.0,    s_scale: 1.0}
+      - {s_init: 0.33,   s_scale: 1.0}
+      - {s_init: 0.05,   s_scale: 1.0}
+    su_sv_variants:
+      - {s_init: 1.0,              s_scale: 1.0}              # default
+      - {s_init: "inv_sqrt_d_model", s_scale: 1.0}
+      - {s_init: 1.0,              s_scale: "inv_sqrt_d_model"}
+      - {s_init: "inv_sqrt_d_model", s_scale: "inv_sqrt_d_model"}
+    sz_variants:
+      - {s_init: 1.0,              s_scale: "inv_sqrt_d_model"}  # default
+      - {s_init: "sqrt_d_model",   s_scale: "inv_sqrt_d_model"}
+      - {s_init: 1.0,              s_scale: 1.0}
+      - {s_init: "sqrt_d_model",   s_scale: 1.0}
+
+  # Table 5: scalar vs vector vs fixed value ablations
+  parameterization_ablations:
+    sqk_modes:   ["vector", "scalar", "fixed_1.0"]   # paper-default: vector
+    su_sv_modes: ["vector", "scalar", "fixed_1.0"]   # paper-default: vector
+    sz_modes:    ["vector", "scalar"]                 # paper-default: vector
+    alpha_modes: ["vector", "scalar"]                 # paper-default: vector
+
+  # Table 6: design choice ablations
+  design_ablations:
+    remove_qk_norm: false         # default: QK norm enabled
+    use_slerp: false              # default: LERP (SLERP as ablation)
+
+# ---------------------------------------------------------------------------
+# Evaluation — Section 3 and Appendix A.8
+# ---------------------------------------------------------------------------
+evaluation:
+  # Downstream tasks (Section 3, Figure 3)
+  # WMT14 FR-EN confirmed in paper (Figure 10); others inferred from GPT-2 suite
+  downstream_tasks:
+    - "hellaswag"
+    - "piqa"
+    - "winogrande"
+    - "arc_easy"
+    - "wmt14-fr-en"               # paper-default: 5-shot BLEU (Figure 10)
+  num_fewshot_wmt: 5              # paper-default: five (French, English) pairs
+
+  # Length extrapolation (Appendix A.8)
+  length_extrapolation:
+    dataset: "pg19"               # paper-default: PG19 dataset
+    eval_lengths: [1024, 2048, 4096, 8192, 16384, 32768]  # 1K to 32K
+
+  # Analysis checkpoints (Section 3.2, Figures 4-6)
+  analysis_checkpoint_steps: 100000  # paper-default: 100k iterations
+
+# ---------------------------------------------------------------------------
+# Hardware / distributed training — Appendix A.6
+# ---------------------------------------------------------------------------
+hardware:
+  # Paper used 64 A100 GPUs across 8 nodes (8 GPUs/node)
+  # This config targets single-node multi-GPU via DDP
+  n_gpus: 8                       # adjust to available hardware
+  backend: "nccl"                 # standard DDP backend
+  # Mixed precision
+  use_amp: true
+  amp_dtype: "bfloat16"           # paper-default
+  # Gradient accumulation to match global batch size on fewer GPUs
+  # effective_batch = micro_batch * grad_accum * n_gpus
+  # Example: 512 = 8 * 8 * 8
+  micro_batch_size: 8             # adjust per GPU memory
+  gradient_accumulation_steps: 8  # adjust to match global_batch_size=512

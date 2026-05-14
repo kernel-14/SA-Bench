@@ -1,0 +1,9 @@
+{
+  "paper_id": "navil",
+  "run_id": "navil-20260506-063626",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1350.6,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 30
+}

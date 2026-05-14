@@ -1,0 +1,86 @@
+# config.yaml - Master configuration for reproducing Gated Attention LLM experiments.
+# All values are derived from the paper (Tables 1-2, Sections 3-4) or reasonable defaults.
+
+# ------------------------------------------------------------------
+# Model architecture (dense 1.7B, 28-layer example; adjust for 48-layer)
+# ------------------------------------------------------------------
+model:
+  num_layers: 28
+  hidden_size: 2048
+  num_attention_heads: 16          # query heads (q)
+  num_key_value_heads: 4           # key/value heads (k) for GQA
+  head_dim: 128                    # d_k
+  intermediate_size: 7168          # baseline SwiGLU hidden size
+  vocab_size: 32000                # typical multilingual tokenizer
+  max_position_embeddings: 4096    # training sequence length
+  rope_theta: 10000.0              # RoPE base frequency
+  rms_norm_eps: 1.0e-5
+  use_sandwich_norm: false         # additional LayerNorm after FFN/Attention (Table 2 row 7)
+
+  # Gating settings
+  use_gated_attention: true        # set to false for baseline experiments
+  gate_position: "SDPA_output"     # one of: "SDPA_output", "value", "key", "query", "dense_output"
+  gate_granularity: "elementwise"  # "elementwise" or "headwise"
+  gate_head_specific: true         # true = head-specific gating, false = head-shared
+  gate_activation: "sigmoid"       # "sigmoid" or "silu"
+  gate_operation: "multiply"      # "multiply" or "add"
+
+# ------------------------------------------------------------------
+# Training hyperparameters (for dense 28-layer 1.7B, 400B tokens)
+# ------------------------------------------------------------------
+training:
+  max_lr: 4.0e-3                   # (Table 2 row 1) for 48-layer experiments use 8.0e-3
+  min_lr: 3.0e-5
+  warmup_steps: 1000
+  max_steps: 100000                 # ~400B tokens with bsz=1024, seq_len=4096
+  global_batch_size: 1024           # 2048/4096 for larger runs (Table 2 rows 3,10)
+  seq_length: 4096                  # same as model.max_position_embeddings
+  gradient_clip_val: 1.0
+  weight_decay: 0.1
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_eps: 1.0e-8
+  mixed_precision: "bf16"
+  seed: 42
+
+# ------------------------------------------------------------------
+# Data configuration
+# ------------------------------------------------------------------
+data:
+  tokenizer_name_or_path: "path/to/your/multilingual/tokenizer"
+  cache_dir: "./data_cache"
+  num_proc: 16
+  train_datasets:                  # list of HuggingFace dataset identifiers or local paths
+    - { name: "c4", split: "en", weight: 0.3 }
+    - { name: "c4", split: "zh", weight: 0.3 }
+    - { name: "the_stack", config: "python", weight: 0.2 }
+    - { name: "pile_of_law", weight: 0.1 }
+    - { name: "mathpile", weight: 0.1 }
+  eval_datasets:                   # held-out test domains for perplexity
+    - c4_en_test
+    - c4_zh_test
+    - code_test
+    - math_test
+
+# ------------------------------------------------------------------
+# Evaluation settings
+# ------------------------------------------------------------------
+evaluation:
+  tasks: ["hellaswag", "mmlu", "gsm8k", "humaneval", "ceval", "cmmlu"]
+  fewshot_settings:
+    hellaswag: 10
+    mmlu: 5
+    gsm8k: 5
+    ceval: 5
+    cmmlu: 5
+    humaneval: 0
+  output_dir: "./eval_results"
+
+# ------------------------------------------------------------------
+# Optional: MoE specific (only for 15A2B variant)
+# ------------------------------------------------------------------
+moe:
+  enabled: false
+  num_experts: 128
+  top_k: 8
+  # ... additional MoE parameters

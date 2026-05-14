@@ -1,0 +1,44 @@
+## config.yaml
+training:
+  learning_rate: 0.0001  # Defined learning rate for WDNO (from Appendix F and G)
+  batch_size: 16         # Training batch size (from Appendix F and G)
+  epochs: 190000         # Total number of training steps (from Appendix F and G)
+  scheduler: cosine      # Learning rate scheduler (specified as cosine annealing in the paper)
+  model_checkpoint_path: "checkpoints/wdno_model.pt"
+  ddim_steps: 50         # DDIM sampling iterations (from Appendix F)
+  ddim_eta: 1            # Sampling hyperparameter η (from Appendix F)
+  control_guidance_intensity: 120000  # Guidance weight for control (from Appendix F)
+  
+wavelet:
+  basis_1d: bior2.4      # Basis for 1D wavelet transforms (from Appendix F)
+  mode_1d: periodization # Mode used for 1D wavelet transforms (from Appendix A)
+  basis_2d: bior1.3      # Basis for 2D wavelet transforms (from Appendix H)
+  mode_2d: zero          # Mode used for 2D wavelet transforms (from Appendix A)
+
+data:
+  burgers_equation:
+    resolution: 
+      - time_steps: 80
+      - spatial_points: 120
+    train_size: 40000    # Number of training samples for the 1D Burgers' equation (from Appendix F)
+    test_size: 50        # Number of test samples for control tasks (from Appendix F)
+    super_resolution_test_size: 100  # Number of test samples for super-resolution tasks (from Appendix F)
+  navier_stokes:
+    resolution:
+      - time_steps: 80
+      - spatial_points: 120
+    source: PDEBench     # 1D Navier-Stokes dataset source (from Appendix G)
+  fluid_2D:
+    resolution: 
+      - time_steps: 32
+      - grid_size: 64
+    train_size: 8039     # Training samples for 2D incompressible Navier-Stokes fluid (from Appendix H)
+    
+evaluation:
+  metrics:
+    - mse  # Mean Squared Error is the primary metric for simulation and control methods
+    - control_objective  # Control-specific metric for WDNO tasks
+
+hardware:
+  gpu_memory_requirements: "16GB"  # Tentative—clarification needed on requirements for ERA5 datasets
+  inference_batch_size: 5          # Batch size for high-resolution inference

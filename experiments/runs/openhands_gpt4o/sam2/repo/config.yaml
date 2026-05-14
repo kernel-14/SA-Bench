@@ -1,0 +1,16 @@
+model:
+  hiera_config: "path/to/hiera/config"
+  num_layers: 4
+  embed_dim: 256
+
+training:
+  batch_size: 8
+  lr: 0.0004
+  weight_decay: 0.1
+  epochs: 50
+  iou_loss_weight: 1.0
+  device: "cuda"  # Use "cpu" if GPU is not available
+  save_path: "checkpoints/sam2_model.pth"
+
+data:
+  path: "path/to/sa-v/dataset"

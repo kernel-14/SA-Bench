@@ -1,0 +1,109 @@
+## config.yaml
+# Global settings for hardware and data types
+global:
+  device: "cuda" # Use 'cuda' for GPU, 'cpu' for CPU
+  dtype: "float16" # Data precision (float16 for efficiency, float32 for higher precision if needed)
+  num_gpus: 4 # Number of GPUs to use for distributed training
+
+# Dataset configuration
+dataset:
+  name: "heterogeneous_pde_foundation"
+  root_dir: "./data/raw_datasets" # Root directory where original downloaded datasets reside
+  processed_dir: "./data/processed_datasets" # Directory to store unified c3p128 float16 dataset
+  trajectory_length: 4 # Number of consecutive states (x0, x1, x2, x3) for training samples
+  target_resolution: [128, 128] # Spatial resolution for all processed data (p128)
+  target_channels: 3 # Number of physics channels for all processed data (c3)
+  # Preprocessing rules - Specific to each sub-dataset, these would be handled by data_processor.py
+  # Examples (not exhaustive, need detailed implementation in code):
+  # fno_v: { type: "upsample_zero_fill", from_res: [64, 64], fill_channels: 2 }
+  # well_gs: { type: "zero_fill_channels", fill_channels: 2 }
+  # well_am: { type: "downsample", from_res: [256, 256] }
+  # pdebench_cns: { type: "filter_channels", keep_indices: [0, 1, 2] } # Placeholder: specific indices would need confirmation
+  # pdebench_swe: { type: "upsample_zero_fill", from_res: [6.2GB original], fill_channels: 2 } # Spatial resolution not clear from text for PB-SWE original
+  split_ratio: [0.8, 0.1, 0.1] # Train/Validation/Test split ratio for datasets without original splits
+
+# P2VAE model architecture configuration
+p2vae_model:
+  architecture: "SD_VAE" # Based on standard SD-VAE
+  base_channels: 64 # Corresponds to P2VAE-16M. Use 128 for P2VAE-87M.
+  latent_channels: 16 # Output channels of the latent representation (c16)
+  latent_resolution: [16, 16] # Spatial resolution of the latent grid (p16)
+  kl_weight: 0.001 # Beta term for KL divergence loss
+
+# P2VAE training configuration
+p2vae_training:
+  optimizer:
+    name: "AdamW"
+    lr: 0.0001 # Base learning rate, adjusted based on batch size and model size
+    betas: [0.9, 0.995]
+    weight_decay: 0.0001
+  scheduler:
+    name: "CosineAnnealingLR"
+    warmup_steps_ratio: 0.1 # 10% of total training steps for linear warm-up
+  num_training_steps: 100000 # Total 100k training steps
+  batch_size: 256 # Base batch size for LR scaling
+  gradient_accumulation_steps: 1 # Number of steps to accumulate gradients before updating weights
+  save_interval_steps: 10000 # Save checkpoint every X steps
+  validate_interval_steps: 5000 # Run validation every X steps
+  log_interval_steps: 100 # Log training metrics every X steps
+
+# FMT model architecture configuration
+fmt_model:
+  architecture: "SiT" # Scalable Interpolant Transformer
+  embedding_dim: 512 # Corresponds to FMT-B (42M). Use 256 for FMT-S (6M), 768 for FMT-L (138M).
+  num_heads: 8 # embedding_dim / head_dim = 512 / 64 = 8
+  head_dim: 64 # Dimension per attention head
+  num_layers: 12 # Number of transformer layers (not specified, common default)
+  # Latent temporal pyramid configuration
+  temporal_pyramid:
+    x0_downsample_factor: 8 # Latent for x_0 is downsampled by 8 (16/8 = 2x2 tokens)
+    x1_downsample_factor: 4 # Latent for x_1 is downsampled by 4 (16/4 = 4x4 tokens)
+    x2_downsample_factor: 2 # Latent for x_2 is downsampled by 2 (16/2 = 8x8 tokens)
+    x3_downsample_factor: 1 # Latent for x_3 is at full resolution (16x16 tokens)
+  # GRU for Diffusion Forcing
+  gru:
+    hidden_size: 512 # Same as embedding_dim
+    input_size: 1024 # Typically (embedding_dim for compressed x_tk token) + (embedding_dim for t_embedding) = 2 * embedding_dim
+
+# FMT training configuration
+fmt_training:
+  optimizer:
+    name: "AdamW"
+    lr: 0.0001 # Base learning rate, adjusted based on batch size and model size
+    betas: [0.9, 0.95]
+    weight_decay: 0.01
+  scheduler:
+    name: "CosineAnnealingLR"
+    warmup_steps_ratio: 0.1 # 10% of total training steps for linear warm-up
+  num_training_steps: 100000 # Total 100k training steps
+  batch_size: 256 # Base batch size for LR scaling
+  gradient_accumulation_steps: 1
+  save_interval_steps: 10000
+  validate_interval_steps: 5000
+  log_interval_steps: 100
+
+# Evaluation settings
+evaluation:
+  ode_sampler:
+    name: "Euler"
+    num_discretization_steps: 100 # N in paper
+    dt: 0.01 # dt in paper
+  deterministic_k: 1.0 # Value of k for deterministic prediction (k=1)
+  ensemble_generation:
+    num_samples_per_scenario: 32 # For generating an ensemble of 32 predictions
+    k_values_to_test: [0.0, 0.3, 0.6, 0.9] # Example k3 values for ensemble generation
+
+# Fine-tuning settings for downstream tasks (e.g., Kolmogorov turbulence)
+finetuning:
+  enabled: False # Set to True to enable fine-tuning
+  lambda_vae: 1.0 # Weight for P2VAE loss during fine-tuning
+  num_training_trajectories: 200 # Number of training trajectories for the target system
+  num_finetune_steps: 5000 # Total 5k fine-tuning steps
+  num_test_trajectories: 500 # Number of test trajectories for evaluation after fine-tuning
+  finetune_dataset_name: "Kolmogorov_turbulence" # Name of the specific dataset for fine-tuning
+
+# Logging and checkpointing paths
+logging:
+  log_dir: "./logs"
+  checkpoint_dir: "./checkpoints"
+  project_name: "GenerativePDEFoundationModel"

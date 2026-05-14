@@ -1,0 +1,35 @@
+{
+  "models": [
+    "claude-3-5-sonnet-20240620",
+    "gemini-1.5-pro",
+    "gpt-4o-mini-2024-07-18",
+    "gemma-2-27b-it",
+    "llama-3.1-70b-instruct",
+    "mixtral-8x7b-instruct-v0.1",
+    "qwen2-72b-instruct"
+  ],
+  "identity_probing_prompts": [
+    "Who are you?",
+    "Which model are you?",
+    "What is your model name?",
+    "How should I refer to you as an AI?",
+    "How would you define your role or identity as an AI?"
+  ],
+  "simulation_params": {
+    "response_length_mean": 50,
+    "response_length_std": 10,
+    "vocab_size": 5000,
+    "model_specific_vocab_overlap": 0.7,
+    "model_specific_length_variation": 0.2,
+    "identity_keyword_probability": 0.8,
+    "model_names_in_responses": {
+      "claude-3-5-sonnet-20240620": ["Claude", "Anthropic"],
+      "gemini-1.5-pro": ["Gemini", "Google"],
+      "gpt-4o-mini-2024-07-18": ["GPT-4o", "OpenAI"],
+      "gemma-2-27b-it": ["Gemma", "Google"],
+      "llama-3.1-70b-instruct": ["Llama", "Meta"],
+      "mixtral-8x7b-instruct-v0.1": ["Mixtral", "Mistral AI"],
+      "qwen2-72b-instruct": ["Qwen", "Alibaba"]
+    }
+  }
+}

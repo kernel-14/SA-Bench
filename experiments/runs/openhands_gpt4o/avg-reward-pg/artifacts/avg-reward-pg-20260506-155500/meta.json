@@ -1,0 +1,9 @@
+{
+  "paper_id": "avg-reward-pg",
+  "run_id": "avg-reward-pg-20260506-155500",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 407.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 23
+}

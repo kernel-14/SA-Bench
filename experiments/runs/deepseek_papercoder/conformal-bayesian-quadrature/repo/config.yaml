@@ -1,0 +1,35 @@
+# Experiment configuration for reproducing "Conformal Prediction as Bayesian Quadrature"
+
+experiment:
+  random_seed: 42
+  num_trials: 10000
+
+risk_control:
+  target_risk_alpha: 0.4          # α for binomial; override per experiment if needed
+  upper_bound_B: 1.0
+  confidence_beta: 0.95           # β for HPD interval
+  rcps_delta: 0.05                # failure probability for Hoeffding bound in RCPS
+
+bayesian_quadrature:
+  num_dirichlet_samples: 1000     # Monte Carlo samples for L^+ distribution
+
+lambda_grid:
+  min: 0.0
+  max: 1.0
+  size: 1001                      # grid points (step ~0.001)
+
+binomial_synthetic:
+  n_calibration: 10
+  K: 4
+
+heteroskedastic_synthetic:
+  n_calibration: 200
+  n_test: 50000                   # large test set for risk estimation
+
+coco_multilabel:
+  target_alpha: 0.1               # target false negative rate (assumed; check paper)
+  n_calibration: 1000
+  n_test: 3952
+  model_path: "path/to/tresnet_m_coco.pth"  # update with actual path
+  data_root: "path/to/coco2014/val2014"     # validation images
+  annotation_file: "path/to/coco2014/annotations/instances_val2014.json"

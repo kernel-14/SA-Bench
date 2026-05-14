@@ -1,0 +1,133 @@
+# OLMoE-1B-7B Configuration (Table 10, Appendix B)
+model:
+  d_model: 2048
+  n_layers: 16
+  n_heads: 16
+  vocab_size: 50304
+  max_seq_len: 4096
+  activation: "swiglu"
+  layer_norm_type: "rmsnorm"
+  layer_norm_eps: 1.0e-5
+  qk_norm: true
+  weight_tying: false
+  biases: false
+  pos_emb: "rope"
+  rope_theta: 10000.0
+  attention_variant: "full"  # full multi-head attention
+
+  # MoE configuration
+  moe:
+    num_experts: 64
+    num_activated_experts: 8
+    ffn_dim: 1024  # per-expert FFN hidden dim
+    expert_sharing: false  # no shared experts
+    routing_type: "token_choice"  # dropless token choice
+    dropless: true
+    load_balancing_loss_weight: 0.01
+    router_z_loss_weight: 0.001
+    moe_layers: "every"  # MoE in every layer
+
+  # Initialization
+  init:
+    type: "truncated_normal"
+    std: 0.02
+    truncation: 3.0  # truncate at 3*std, i.e. [-0.06, 0.06]
+
+pretraining:
+  total_tokens: 5133000000000  # 5.133T
+  annealing_tokens: 100000000000  # 100B
+  batch_size_samples: 1024
+  batch_size_tokens: 4194304  # ~4M tokens per batch
+  max_seq_len: 4096
+  warmup_steps: 2500
+
+  optimizer:
+    type: "adamw"
+    peak_lr: 4.0e-4
+    min_lr: 4.0e-5
+    weight_decay: 0.1
+    beta1: 0.9
+    beta2: 0.95
+    eps: 1.0e-8
+
+  lr_schedule: "cosine"
+  gradient_clipping: 1.0
+  gradient_reduce_dtype: "fp32"
+  optimizer_state_dtype: "fp32"
+  mixed_precision: "bf16"
+
+  # Annealing
+  annealing:
+    schedule: "linear"
+    min_lr: 0.0
+
+  # Dropout (typically 0.0 for pretraining)
+  dropout: 0.0
+
+adaptation:
+  sft:
+    seq_len: 4096
+    global_batch_size: 128
+    per_device_batch_size: 2
+    gradient_accumulation_steps: 2
+    epochs: 2
+    learning_rate: 2.0e-5
+    lr_schedule: "constant"
+    load_balancing_loss: false
+    mixed_precision: "bf16"
+  dpo:
+    global_batch_size: 32
+    per_device_batch_size: 1
+    gradient_accumulation_steps: 1
+    epochs: 3
+    learning_rate: 5.0e-7
+    beta: 0.1
+    load_balancing_loss: false
+    mixed_precision: "bf16"
+  kto:
+    global_batch_size: 32
+    per_device_batch_size: 1
+    gradient_accumulation_steps: 1
+    epochs: 1  # 5000 steps
+    learning_rate: 5.0e-7
+    optimizer: "rmsprop"
+
+data:
+  # OLMoE-Mix composition (Table 2)
+  sources:
+    - name: "DCLM-Baseline"
+      tokens_billions: 3860
+      type: "web_pages"
+    - name: "StarCoder"
+      tokens_billions: 101
+      type: "code"
+    - name: "peS2o"
+      tokens_billions: 57.2
+      type: "stem_papers"
+    - name: "arXiv"
+      tokens_billions: 21.1
+      type: "stem_papers"
+    - name: "OpenWebMath"
+      tokens_billions: 12.7
+      type: "math_web"
+    - name: "AlgebraicStack"
+      tokens_billions: 12.6
+      type: "math_proofs_code"
+    - name: "Wikipedia"
+      tokens_billions: 3.69
+      type: "encyclopedic"
+
+  ngram_filter:
+    min_repeat: 32
+    ngram_sizes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+
+  starcoder_filter:
+    min_github_stars: 2
+    max_word_freq_pct: 30.0
+    max_top2_word_freq_pct: 50.0
+
+hardware:
+  num_gpus: 256
+  gpu_type: "H100"
+  interconnect: "NVLink"
+  cross_node: "InfiniBand"

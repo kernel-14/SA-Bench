@@ -1,0 +1,127 @@
+## config.yaml
+# Global settings
+global:
+  seed: 42
+  output_dir: "./output"
+  image_res_high: 256
+  image_res_low: 128
+  latent_dim: 16          # VAE latent channels
+  vae_downsample: 16      # KL-16 VAE
+  vae_path: "./pretrained/kl16_vae.pt"   # Path to pre-trained MAR VAE
+
+# Model architecture (choose base/large/huge)
+model:
+  variant: "base"         # base | large | huge
+  # Hi-MAR Transformer
+  base:
+    num_layers: 24
+    hidden_size: 768
+    mlp_ratio: 4          # not given, typical
+  large:
+    num_layers: 32
+    hidden_size: 1024
+    mlp_ratio: 4
+  huge:
+    num_layers: 40
+    hidden_size: 1280
+    mlp_ratio: 4
+
+  # Diffusion head 1 (MLP-based, Phase 1)
+  diffusion_head_1:
+    base:
+      num_layers: 6
+      hidden_size: 1024
+    large:
+      num_layers: 8
+      hidden_size: 1280
+    huge:
+      num_layers: 12
+      hidden_size: 1536
+
+  # Diffusion head 2 (Diffusion Transformer, Phase 2)
+  diffusion_head_2:
+    base:
+      num_layers: 6
+      hidden_size: 512
+      num_heads: 8        # typical (hidden/64)
+    large:
+      num_layers: 8
+      hidden_size: 512
+      num_heads: 8
+    huge:
+      num_layers: 12
+      hidden_size: 768
+      num_heads: 12
+
+# Training hyperparameters
+training:
+  # ImageNet class-conditional
+  imagenet:
+    optimizer: "AdamW"
+    weight_decay: 0.02
+    beta1: 0.9
+    beta2: 0.95
+    learning_rate: 1e-4
+    lr_schedule: "constant"
+    warmup_epochs: 100
+    epochs: 800
+    batch_size: null           # not explicitly given; set based on GPU memory
+    ema_momentum: 0.9999       # applied as mentioned for COCO; not explicitly for ImageNet, but we use it
+    mixed_precision: "bf16"
+    gradient_clip: null
+
+  # MS-COCO text-to-image
+  coco:
+    optimizer: "AdamW"
+    weight_decay: 0.03
+    beta1: 0.9
+    beta2: 0.95               # not given, assume same
+    learning_rate: 8e-4
+    lr_schedule: "constant"
+    warmup_steps: 8000
+    total_steps: null           # depends on batch size; we can omit
+    batch_size: null
+    ema_momentum: 0.9999
+    mixed_precision: "bf16"
+
+# Masking configuration
+masking:
+  phase1:
+    ratio_distribution: "uniform"   # U[0.7, 1.0]
+    ratio_min: 0.7
+    ratio_max: 1.0
+    schedule: "cosine"              # training uses random ratio only
+  phase2:
+    ratio_distribution: "beta"      # for MS-COCO (coco uses Beta(4,1))
+    beta_alpha: 4.0
+    beta_beta: 1.0
+    schedule: "cosine"              # training schedule
+  # For imagenet, phase2 uses cosine schedule (MaskGIT style) instead of beta? Paper says "second phase uses the cosine masking strategy following MaskGIT" for imagenet, "while" for coco they use Beta. We'll incorporate per-dataset.
+  imagenet_phase2:
+    schedule: "cosine"              # training uses cosine schedule for ratio
+  coco_phase2:
+    ratio_distribution: "beta"
+    beta_alpha: 4.0
+    beta_beta: 1.0
+
+# Inference configuration
+inference:
+  imagenet:
+    phase1_steps: 32
+    phase2_steps: 4
+    inner_diffusion_steps: 5        # DDIM steps per AR step (assumed, not given)
+    cfg_scale: 2.0                  # classifier-free guidance scale (assumed)
+    confidence_metric: "reconstruction_error"
+  coco:
+    phase1_steps: 32
+    phase2_steps: 4
+    inner_diffusion_steps: 5
+    cfg_scale: 2.0
+    confidence_metric: "reconstruction_error"
+
+# Data paths
+data:
+  imagenet_root: "./data/imagenet"
+  coco_root: "./data/coco"
+  coco_ann_file: "./data/coco/annotations/captions_train2017.json"
+  clip_model: "openai/clip-vit-large-patch14"

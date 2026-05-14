@@ -1,0 +1,9 @@
+{
+  "paper_id": "petl-visual-recognition",
+  "run_id": "petl-visual-recognition-20260506-213037",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 551.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 23
+}

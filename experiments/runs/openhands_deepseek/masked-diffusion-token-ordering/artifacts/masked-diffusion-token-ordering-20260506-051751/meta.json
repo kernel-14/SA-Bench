@@ -1,0 +1,9 @@
+{
+  "paper_id": "masked-diffusion-token-ordering",
+  "run_id": "masked-diffusion-token-ordering-20260506-051751",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1089.4,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 31
+}

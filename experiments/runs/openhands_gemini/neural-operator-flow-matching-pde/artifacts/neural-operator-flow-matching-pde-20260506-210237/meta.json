@@ -1,0 +1,9 @@
+{
+  "paper_id": "neural-operator-flow-matching-pde",
+  "run_id": "neural-operator-flow-matching-pde-20260506-210237",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 319.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 15
+}

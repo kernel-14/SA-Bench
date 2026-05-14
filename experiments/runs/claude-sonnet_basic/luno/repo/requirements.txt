@@ -1,0 +1,16 @@
+# Core dependencies for LUNO reproduction
+# JAX ecosystem
+jax
+jaxlib
+flax
+optax
+
+# Scientific computing
+numpy
+scipy
+
+# Data generation (optional, for APEBench-based data)
+# apebench  # Install separately if needed: pip install apebench
+
+# Utilities
+pyyaml

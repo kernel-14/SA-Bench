@@ -1,0 +1,9 @@
+{
+  "paper_id": "generator-augmented-flows",
+  "run_id": "generator-augmented-flows-20260506-190201",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1119.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 49
+}

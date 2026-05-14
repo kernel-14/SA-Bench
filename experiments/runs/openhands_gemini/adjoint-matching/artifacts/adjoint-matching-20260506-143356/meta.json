@@ -1,0 +1,9 @@
+{
+  "paper_id": "adjoint-matching",
+  "run_id": "adjoint-matching-20260506-143356",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 433.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 19
+}

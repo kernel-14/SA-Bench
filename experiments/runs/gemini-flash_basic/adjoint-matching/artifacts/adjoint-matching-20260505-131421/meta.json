@@ -1,0 +1,126 @@
+{
+  "case_id": "adjoint-matching",
+  "run_id": "adjoint-matching-20260505-131421",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 394877,
+    "total_output_tokens": 31518,
+    "total_tokens": 426395,
+    "estimated_cost_usd": 1.6574,
+    "elapsed_seconds": 677.8,
+    "steps": 18,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 8.0,
+        "input_tokens": 1189,
+        "output_tokens": 149
+      },
+      {
+        "step": 2,
+        "elapsed_s": 6.68,
+        "input_tokens": 1305,
+        "output_tokens": 56
+      },
+      {
+        "step": 3,
+        "elapsed_s": 9.71,
+        "input_tokens": 7219,
+        "output_tokens": 365
+      },
+      {
+        "step": 4,
+        "elapsed_s": 5.2,
+        "input_tokens": 12565,
+        "output_tokens": 379
+      },
+      {
+        "step": 5,
+        "elapsed_s": 11.22,
+        "input_tokens": 12676,
+        "output_tokens": 291
+      },
+      {
+        "step": 6,
+        "elapsed_s": 12.69,
+        "input_tokens": 18455,
+        "output_tokens": 619
+      },
+      {
+        "step": 7,
+        "elapsed_s": 17.8,
+        "input_tokens": 18649,
+        "output_tokens": 0
+      },
+      {
+        "step": 8,
+        "elapsed_s": 19.29,
+        "input_tokens": 18682,
+        "output_tokens": 0
+      },
+      {
+        "step": 9,
+        "elapsed_s": 84.57,
+        "input_tokens": 18715,
+        "output_tokens": 0
+      },
+      {
+        "step": 10,
+        "elapsed_s": 197.96,
+        "input_tokens": 18748,
+        "output_tokens": 8865
+      },
+      {
+        "step": 11,
+        "elapsed_s": 10.65,
+        "input_tokens": 25806,
+        "output_tokens": 1509
+      },
+      {
+        "step": 12,
+        "elapsed_s": 8.74,
+        "input_tokens": 26193,
+        "output_tokens": 703
+      },
+      {
+        "step": 13,
+        "elapsed_s": 30.02,
+        "input_tokens": 27945,
+        "output_tokens": 332
+      },
+      {
+        "step": 14,
+        "elapsed_s": 63.88,
+        "input_tokens": 28137,
+        "output_tokens": 0
+      },
+      {
+        "step": 15,
+        "elapsed_s": 109.0,
+        "input_tokens": 28170,
+        "output_tokens": 15600
+      },
+      {
+        "step": 16,
+        "elapsed_s": 12.44,
+        "input_tokens": 41841,
+        "output_tokens": 961
+      },
+      {
+        "step": 17,
+        "elapsed_s": 23.57,
+        "input_tokens": 42124,
+        "output_tokens": 1569
+      },
+      {
+        "step": 18,
+        "elapsed_s": 46.29,
+        "input_tokens": 46458,
+        "output_tokens": 120
+      }
+    ]
+  }
+}

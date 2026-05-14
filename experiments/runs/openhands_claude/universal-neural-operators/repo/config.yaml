@@ -1,0 +1,343 @@
+# =============================================================================
+# Universal Neural Operators — Configuration
+# Paper: "Towards Universal Neural Operators through Multiphysics Pretraining"
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Global settings
+# ---------------------------------------------------------------------------
+seed: 42
+device: "cuda"
+save_dir: "checkpoints"
+log_interval: 10
+
+# ---------------------------------------------------------------------------
+# Model hyperparameters
+# Each model targets the parameter counts reported in the paper:
+#   FNO:          ~10^6
+#   MambaFNO:     ~10^7
+#   PerceiverNO:  ~10^8
+#   CodaNO:       ~10^8
+#   SwinNO:       ~10^9
+# ---------------------------------------------------------------------------
+
+models:
+  fno:
+    type: "fno"
+    kwargs:
+      hidden_dim: 64
+      n_layers: 4
+      modes1: 16       # 1-D modes (used for 1-D problems)
+      modes2: 16       # 2-D modes (used for 2-D problems)
+
+  mamba_fno:
+    type: "mamba_fno"
+    kwargs:
+      hidden_dim: 128
+      n_layers: 4
+      modes1: 16
+      modes2: 12
+      d_state: 16      # SSM state dimension
+      d_conv: 4        # depthwise conv kernel size
+      expand: 2        # inner expansion factor
+
+  local_attn_fno:
+    type: "local_attn_fno"
+    kwargs:
+      hidden_dim: 128
+      n_layers: 4
+      modes1: 16
+      modes2: 12
+      num_heads: 4
+      window_size: 16  # local attention window (1-D); 8 for 2-D
+
+  perceiver_no:
+    type: "perceiver_no"
+    kwargs:
+      hidden_dim: 256
+      latent_dim: 256
+      n_latents: 128
+      n_self_attn_layers: 6
+      modes1: 12
+      modes2: 12
+      num_heads: 8
+
+  coda_no:
+    type: "coda_no"
+    kwargs:
+      hidden_dim: 256
+      n_layers: 4
+      modes1: 12
+      modes2: 12
+      num_heads: 8
+
+  swin_no:
+    type: "swin_no"
+    kwargs:
+      hidden_dim: 512
+      n_layers: 8
+      window_size: 8
+      num_heads: 16
+
+# ---------------------------------------------------------------------------
+# Dataset configurations (PDEBench)
+# Update file_path entries to point to your local PDEBench data.
+# ---------------------------------------------------------------------------
+
+datasets:
+  burgers_1d:
+    type: "burgers_1d"
+    spatial_dim: 1
+    file_path: "data/pdebench/1D/Burgers/Train/1D_Burgers_Sols_Nu0.001.hdf5"
+    t_in: 10
+    t_out: 40
+    n_samples: 1000
+    normalize: true
+
+  burgers_1d_oos:
+    # Out-of-sample: different viscosity parameter
+    type: "burgers_1d"
+    spatial_dim: 1
+    file_path: "data/pdebench/1D/Burgers/Train/1D_Burgers_Sols_Nu0.01.hdf5"
+    t_in: 10
+    t_out: 40
+    n_samples: 200
+    normalize: true
+
+  gray_scott_2d:
+    type: "gray_scott_2d"
+    spatial_dim: 2
+    file_path: "data/pdebench/2D/Gray_Scott/Train/2D_Gray_Scott_Sols_GS_type0.hdf5"
+    t_in: 1
+    t_out: -1
+    n_samples: 1000
+    normalize: true
+
+  gray_scott_2d_oos:
+    type: "gray_scott_2d"
+    spatial_dim: 2
+    file_path: "data/pdebench/2D/Gray_Scott/Train/2D_Gray_Scott_Sols_GS_type1.hdf5"
+    t_in: 1
+    t_out: -1
+    n_samples: 200
+    normalize: true
+
+  navier_stokes_2d:
+    type: "navier_stokes_2d"
+    spatial_dim: 2
+    file_path: "data/pdebench/2D/NS_Incom/Train/NS_Re100_N1000_T20.hdf5"
+    t_in: 10
+    t_out: 20
+    n_samples: 1000
+    normalize: true
+    include_pressure: true
+
+  navier_stokes_2d_oos:
+    type: "navier_stokes_2d"
+    spatial_dim: 2
+    file_path: "data/pdebench/2D/NS_Incom/Train/NS_Re1000_N1000_T20.hdf5"
+    t_in: 10
+    t_out: 20
+    n_samples: 200
+    normalize: true
+    include_pressure: true
+
+  heat_2d:
+    type: "heat_2d"
+    spatial_dim: 2
+    file_path: "data/pdebench/2D/Heat/Train/2D_Heat_Sols_alpha0.4.hdf5"
+    t_in: 1
+    t_out: -1
+    n_samples: 1000
+    normalize: true
+
+  advection_1d:
+    type: "advection_1d"
+    spatial_dim: 1
+    file_path: "data/pdebench/1D/Advection/Train/1D_Advection_Sols_beta0.1.hdf5"
+    t_in: 1
+    t_out: -1
+    n_samples: 1000
+    normalize: true
+
+  advection_1d_fast:
+    type: "advection_1d"
+    spatial_dim: 1
+    file_path: "data/pdebench/1D/Advection/Train/1D_Advection_Sols_beta1.0.hdf5"
+    t_in: 1
+    t_out: -1
+    n_samples: 1000
+    normalize: true
+
+  heat_convection_2d:
+    type: "heat_convection_2d"
+    spatial_dim: 2
+    file_path: "data/pdebench/2D/Heat/Train/2D_Heat_Sols_alpha0.4.hdf5"
+    velocity_file_path: "data/pdebench/2D/NS_Incom/Train/NS_Re100_N1000_T20.hdf5"
+    t_in: 1
+    t_out: -1
+    n_samples: 1000
+    normalize: true
+
+  rd_advection_2d:
+    type: "rd_advection_2d"
+    spatial_dim: 2
+    file_path: "data/pdebench/2D/Gray_Scott/Train/2D_Gray_Scott_Sols_GS_type0.hdf5"
+    adv_file_path: "data/pdebench/1D/Advection/Train/1D_Advection_Sols_beta0.1.hdf5"
+    t_in: 1
+    t_out: -1
+    n_samples: 1000
+    normalize: true
+
+# ---------------------------------------------------------------------------
+# Training hyperparameters
+# ---------------------------------------------------------------------------
+
+training:
+  # Default training settings
+  default:
+    n_epochs: 100
+    batch_size: 16
+    lr: 1.0e-3
+    weight_decay: 1.0e-4
+    optimizer: "adam"
+    scheduler: "cosine"
+    min_lr: 1.0e-6
+    warmup_epochs: 5
+    grad_clip: 1.0
+
+  # Fine-tuning settings (adapter-only training)
+  finetune:
+    n_epochs: 50
+    batch_size: 16
+    lr: 5.0e-4
+    weight_decay: 1.0e-4
+    optimizer: "adam"
+    scheduler: "cosine"
+    freeze_backbone: true
+
+  # Pre-training settings (multi-physics)
+  pretrain:
+    n_epochs: 100
+    batch_size: 16
+    lr: 1.0e-3
+    weight_decay: 1.0e-4
+    optimizer: "adam"
+    scheduler: "cosine"
+
+# ---------------------------------------------------------------------------
+# Experiment configurations
+# ---------------------------------------------------------------------------
+
+experiments:
+
+  # Experiment 1: Out-of-sample parameter values (Table 1)
+  # Pre-train on one parameter regime, fine-tune on different parameters
+
+  burgers_oos:
+    description: "Burgers equation out-of-sample viscosity"
+    pretrain:
+      dataset: "burgers_1d"
+      model: "mamba_fno"
+      save_dir: "checkpoints/burgers_pretrain"
+      training: "default"
+    finetune:
+      dataset: "burgers_1d_oos"
+      model: "mamba_fno"
+      save_dir: "checkpoints/burgers_finetune"
+      training: "finetune"
+    scratch:
+      dataset: "burgers_1d_oos"
+      model: "fno"
+      save_dir: "checkpoints/burgers_scratch"
+      training: "default"
+
+  gray_scott_oos:
+    description: "Gray-Scott reaction-diffusion out-of-sample parameters"
+    pretrain:
+      dataset: "gray_scott_2d"
+      model: "mamba_fno"
+      save_dir: "checkpoints/gray_scott_pretrain"
+      training: "default"
+    finetune:
+      dataset: "gray_scott_2d_oos"
+      model: "mamba_fno"
+      save_dir: "checkpoints/gray_scott_finetune"
+      training: "finetune"
+    scratch:
+      dataset: "gray_scott_2d_oos"
+      model: "fno"
+      save_dir: "checkpoints/gray_scott_scratch"
+      training: "default"
+
+  navier_stokes_oos:
+    description: "Navier-Stokes out-of-sample Reynolds number"
+    pretrain:
+      dataset: "navier_stokes_2d"
+      model: "mamba_fno"
+      save_dir: "checkpoints/ns_pretrain"
+      training: "default"
+    finetune:
+      dataset: "navier_stokes_2d_oos"
+      model: "mamba_fno"
+      save_dir: "checkpoints/ns_finetune"
+      training: "finetune"
+    scratch:
+      dataset: "navier_stokes_2d_oos"
+      model: "fno"
+      save_dir: "checkpoints/ns_scratch"
+      training: "default"
+
+  # Experiment 2: Input function set extension (Table 2)
+  # Add convection to heat equation / advection to reaction-diffusion
+
+  heat_convection:
+    description: "Heat equation extended with convection term"
+    pretrain:
+      dataset: "heat_2d"
+      model: "mamba_fno"
+      save_dir: "checkpoints/heat_pretrain"
+      training: "default"
+    finetune:
+      dataset: "heat_convection_2d"
+      model: "mamba_fno"
+      save_dir: "checkpoints/heat_convection_finetune"
+      training: "finetune"
+    scratch:
+      dataset: "heat_convection_2d"
+      model: "fno"
+      save_dir: "checkpoints/heat_convection_scratch"
+      training: "default"
+
+  rd_advection:
+    description: "Reaction-diffusion extended with advection"
+    pretrain:
+      dataset: "gray_scott_2d"
+      model: "mamba_fno"
+      save_dir: "checkpoints/rd_pretrain"
+      training: "default"
+    finetune:
+      dataset: "rd_advection_2d"
+      model: "mamba_fno"
+      save_dir: "checkpoints/rd_advection_finetune"
+      training: "finetune"
+    scratch:
+      dataset: "rd_advection_2d"
+      model: "fno"
+      save_dir: "checkpoints/rd_advection_scratch"
+      training: "default"
+
+  # Experiment 3: Multi-physics pre-training (Table 2)
+  # Pre-train on advection + Burgers, fine-tune on reaction-diffusion
+
+  multiphysics_to_rd:
+    description: "Multi-physics (advection + Burgers) → reaction-diffusion"
+    pretrain_datasets:
+      - "advection_1d"
+      - "burgers_1d"
+    finetune_dataset: "gray_scott_2d"
+    model: "mamba_fno"
+    pretrain_save_dir: "checkpoints/multiphysics_pretrain"
+    finetune_save_dir: "checkpoints/multiphysics_finetune"
+    pretrain_training: "pretrain"
+    finetune_training: "finetune"

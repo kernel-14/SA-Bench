@@ -1,0 +1,106 @@
+## config.yaml
+# Reproduction configuration for "Interpreting Emergent Planning in Model-Free RL"
+
+# Paths and global settings
+seed: 42
+output_dir: "./outputs"
+checkpoint_dir: "./checkpoints"
+
+# Sokoban environment settings
+environment:
+  max_steps: 115          # episode terminates randomly between 115 and 120
+  step_penalty: -0.01
+  box_on_target_reward: 1.0
+  box_off_target_reward: -1.0
+  level_solve_reward: 10.0
+  num_boxes: 4
+  num_targets: 4
+
+# Boxoban dataset
+dataset:
+  training_levels_path: "../boxoban-levels/boxoban/unfiltered/train"
+  validation_levels_path: "../boxoban-levels/boxoban/unfiltered/valid"
+  test_levels_path: "../boxoban-levels/boxoban/unfiltered/test"
+  medium_levels_path: "../boxoban-levels/boxoban/medium"      # for dynamics analysis
+  hard_levels_path: "../boxoban-levels/boxoban/hard"          # for dynamics analysis
+
+# DRC agent architecture
+agent:
+  layers: 3                 # D = 3 ConvLSTM layers
+  internal_ticks: 3         # N = 3 internal ticks per environment step
+  channels: 32              # hidden dimension for encoder and all ConvLSTM cells
+  kernel_size: 3
+  padding: 1                # zero-padding to keep 8x8 spatial dimensions
+  pool_inject: true         # Pool-and-Inject connections
+  bottom_up_skip: true      # bottom-up skip connections
+  top_down_skip: true       # top-down skip connections
+
+# IMPALA training
+training:
+  total_steps: 250000000    # 250 million environment transitions
+  learning_rate: 4.0e-4     # linearly decays to 0
+  min_learning_rate: 0.0
+  optimizer: "adam"
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  discount: 0.97
+  vtrace_lambda: 0.97
+  unroll_length: 20         # T for backpropagation through time (BPTT)
+  batch_size: 16            # per-learner batch size (adjustable for distributed)
+  entropy_cost: 0.01        # entropy bonus coefficient
+  policy_logit_l2: 0.001    # L2 penalty on action logits
+  head_l2: 0.00001          # L2 regularization on policy and value heads
+  checkpoint_interval: 1000000  # save checkpoint every 1M transitions
+  use_impala_actor_learner: false  # set true for multi-process, false for single-process
+
+# Linear probing
+probing:
+  epochs: 10
+  learning_rate: 0.001
+  weight_decay: 0.001
+  batch_size: 16
+  optimizer: "adamw"
+  probe_kernel_sizes: [1, 3]    # 1x1 and 3x3 probes
+  in_channels: 32
+  num_classes: 5
+  seeds: 5                      # train 5 probes with different initializations
+  train_episodes: 3000          # data collection from 3000 episodes for training
+  test_episodes: 1000           # 1000 episodes for evaluation
+  dataset_cache_dir: "./probe_datasets"
+
+# Plan formation and thinking steps
+plan_formation:
+  thinking_steps: 5             # forced stationary steps before acting
+  num_thinking_episodes: 1000   # for plan refinement quantification
+  visualization_episodes: 10    # save qualitative plots for these many episodes
+
+# Causal interventions
+interventions:
+  agent_shortcut:
+    num_base_levels: 25
+    augmentations: ["rot90", "rot180", "rot270", "vflip"]   # generate 8 variants → 200 levels
+    directional_squares: 1       # p = 1 (default)
+    intervention_alpha: 1.0      # scaling factor for concept vectors
+    seeds: 5                     # 5 independently trained probes for intervention
+  box_shortcut:
+    num_base_levels: 25
+    augmentations: ["rot90", "rot180", "rot270", "vflip"]
+    directional_squares: 1
+    intervention_alpha: 1.0
+    seeds: 5
+  cutoff:
+    num_base_levels: 25
+    augmentations: ["rot90", "rot180", "rot270", "vflip"]
+    directional_squares: 1
+    intervention_alpha_range: [0.5, 1.0, 2.0, 4.0]   # explore different scaling
+    seeds: 5
+
+# Training dynamics analysis
+dynamics:
+  num_checkpoints: 50               # first 50M transitions, one per 1M
+  thinking_steps: 5
+  medium_eval_levels: 1000          # number of medium levels for extra-solve metric
+  hard_eval_levels: 1000
+  probe_train_episodes: 1000        # per checkpoint
+  probe_test_episodes: 500

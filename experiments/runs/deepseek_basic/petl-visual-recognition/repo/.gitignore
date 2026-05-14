@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.so
+*.egg-info/
+dist/
+build/
+results/
+checkpoints/
+*.pt
+*.pth
+data/
+.DS_Store
+*.log

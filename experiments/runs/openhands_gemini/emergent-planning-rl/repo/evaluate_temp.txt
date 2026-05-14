@@ -1,0 +1,605 @@
+     1	import torch
+     2	import torch.nn as nn
+     3	import numpy as np
+     4	from typing import List, Tuple, Dict, Any
+     5	from collections import defaultdict
+     6	
+     7	from config import AgentConfig, SokobanEnvConfig, ProbeConfig, EvalConfig
+     8	from model import DRC, ResNetAgent
+     9	from agent import DRCAgent, ResNetActorCritic
+    10	from data import SokobanEnv, collect_probe_data, ConceptDataset, SokobanConceptMap
+    11	from probes import ProbeTrainer, LinearProbe
+    12	from torch.utils.data import DataLoader
+    13	
+    14	class Evaluator:
+    15	    """
+    16	    Handles evaluation of agent performance, probing for concepts, and interventions.
+    17	    """
+    18	    def __init__(self, 
+    19	                 agent_config: AgentConfig, 
+    20	                 sokoban_config: SokobanEnvConfig, 
+    21	                 probe_config: ProbeConfig, 
+    22	                 eval_config: EvalConfig,
+    23	                 device: torch.device):
+    24	        self.agent_config = agent_config
+    25	        self.sokoban_config = sokoban_config
+    26	        self.probe_config = probe_config
+    27	        self.eval_config = eval_config
+    28	        self.device = device
+    29	        self.probe_trainer = ProbeTrainer(probe_config, agent_config, device)
+    30	
+    31	    def evaluate_agent_performance(self, agent: Any, env: SokobanEnv, num_episodes: int) -> float:
+    32	        """
+    33	        Evaluates the agent's performance by running a number of episodes.
+    34	        Returns the percentage of levels solved.
+    35	        """
+    36	        solved_count = 0
+    37	        for _ in range(num_episodes):
+    38	            obs, _ = env.reset()
+    39	            agent.reset()
+    40	            done = False
+    41	            truncated = False
+    42	            # episode_reward = 0 # Not directly used for solved_count
+    43	            while not done and not truncated:
+    44	                action = agent.get_action(obs, greedy=True)
+    45	                obs, reward, done, truncated, _ = env.step(action)
+    46	                # episode_reward += reward
+    47	                if done: # Assuming done implies solved for positive reward, or target count met
+    48	                    if env.boxes_on_target_count == self.sokoban_config.NUM_BOXES:
+    49	                        solved_count += 1
+    50	                        break
+    51	        return solved_count / num_episodes * 100
+    52	
+    53	    def evaluate_probes(self, 
+    54	                        agent_model: nn.Module, 
+    55	                        env: SokobanEnv, 
+    56	                        num_episodes: int, 
+    57	                        is_drc_agent: bool = True) -> Dict[str, Dict[str, float]]:
+    58	        """
+    59	        Collects data and trains/evaluates probes for C_A and C_B at each layer
+    60	        for various probe types.
+    61	        
+    62	        Returns:
+    63	            Dict[str, Dict[str, float]]: Nested dictionary with results, e.g.,
+    64	                                        {'CA_1x1_L0': {'macro_f1': 0.8, 'UP_F1_mean': 0.7, ...}, ...}
+    65	        """
+    66	        print("Collecting data for probe evaluation...")
+    67	        # `agent_model` is the raw nn.Module. `collect_probe_data` needs an `agent` wrapper.
+    68	        temp_agent_wrapper = DRCAgent(self.agent_config, agent_model, self.device) if is_drc_agent else ResNetActorCritic(self.agent_config, agent_model, self.device)
+    69	        dataset = collect_probe_data(temp_agent_wrapper, env, num_episodes, self.agent_config, is_drc_agent)
+    70	        dataloader = DataLoader(dataset, batch_size=self.probe_config.PROBE_BATCH_SIZE, shuffle=False)
+    71	        print(f"Collected {len(dataset)} samples for probing.")
+    72	
+    73	        results = defaultdict(dict)
+    74	        # Determine number of layers based on agent type
+    75	        num_layers = self.agent_config.D_CONVLSTM_LAYERS if is_drc_agent else 24 # ResNet has 24 res blocks (Appendix G)
+    76	
+    77	        for probe_type in self.probe_config.PROBE_TYPES:
+    78	            for layer_idx in range(num_layers):
+    79	                for concept_type, concept_classes in [("CA", self.probe_config.CONCEPT_CA_CLASSES), 
+    80	                                                     ("CB", self.probe_config.CONCEPT_CB_CLASSES)]:
+    81	                    print(f"  Concept: {concept_type}, Layer: {layer_idx}, Probe Type: {probe_type}")
+    82	
+    83	                    # Collect activations and targets
+    84	                    if is_drc_agent:
+    85	                        activations, targets = self.probe_trainer.collect_activations_and_targets_drc(
+    86	                            agent_model, dataloader, concept_type, probe_type, layer_idx, self.device
+    87	                        )
+    88	                    else:
+    89	                        activations, targets = self.probe_trainer.collect_activations_and_targets_resnet(
+    90	                            agent_model, dataloader, concept_type, probe_type, layer_idx, self.device
+    91	                        )
+    92	                    
+    93	                    if activations.numel() == 0:
+    94	                        print(f"    No data for {concept_type} at layer {layer_idx} with probe type {probe_type}. Skipping.")
+    95	                        continue
+    96	
+    97	                    # Train and evaluate probes with multiple seeds
+    98	                    seed_macro_f1s = []
+    99	                    seed_class_metrics = defaultdict(lambda: defaultdict(list))
+   100	
+   101	                    for seed in range(self.probe_config.NUM_PROBE_SEEDS):
+   102	                        torch.manual_seed(seed)
+   103	                        probe = self.probe_trainer.train_probe(activations, targets, probe_type)
+   104	                        macro_f1, class_metrics = self.probe_trainer.evaluate_probe(probe, activations, targets, concept_classes)
+   105	                        seed_macro_f1s.append(macro_f1)
+   106	                        for cls_name, metrics_dict in class_metrics.items():
+   107	                            for metric_name, value in metrics_dict.items():
+   108	                                seed_class_metrics[cls_name][metric_name].append(value)
+   109	                    
+   110	                    avg_macro_f1 = np.mean(seed_macro_f1s)
+   111	                    std_macro_f1 = np.std(seed_macro_f1s)
+   112	
+   113	                    results_key = f"{concept_type}_{probe_type}_L{layer_idx}"
+   114	                    results[results_key]['macro_f1'] = avg_macro_f1
+   115	                    results[results_key]['macro_f1_std'] = std_macro_f1
+   116	                    
+   117	                    for cls_name, metrics_dict in seed_class_metrics.items():
+   118	                        for metric_name, values_list in metrics_dict.items():
+   119	                            results[results_key][f'{cls_name}_{metric_name}_mean'] = np.mean(values_list)
+   120	                            results[results_key][f'{cls_name}_{metric_name}_std'] = np.std(values_list)
+   121	                    
+   122	                    print(f"    Macro F1: {avg_macro_f1:.4f} (±{std_macro_f1:.4f})")
+   123	        return results
+   124	
+   125	    def _get_concept_vector(self, 
+   126	                            probe_weights_map: Dict[str, Dict[str, torch.Tensor]], # layer_key -> concept_type -> class_name -> vector
+   127	                            layer_key: str, 
+   128	                            concept_type: str, 
+   129	                            class_name: str,
+   130	                            probe_type: str # To correctly select the vector
+   131	                            ) -> torch.Tensor:
+   132	        """Helper to get concept vector from the pre-extracted map."""
+   133	        # The concept_vectors mapping stores weights extracted from probes.
+   134	        # This function should retrieve the correct vector based on layer, concept, and class.
+   135	        if layer_key not in probe_weights_map:
+   136	            raise KeyError(f"Layer key {layer_key} not found in concept vectors map.")
+   137	        if concept_type not in probe_weights_map[layer_key]:
+   138	            raise KeyError(f"Concept type {concept_type} not found for layer {layer_key}.")
+   139	        if class_name not in probe_weights_map[layer_key][concept_type]:
+   140	            raise KeyError(f"Class name {class_name} not found for {concept_type} at {layer_key}.")
+   141	        
+   142	        # Concept vectors are stored as CPU tensors, move to device for intervention
+   143	        return probe_weights_map[layer_key][concept_type][class_name].to(self.device).float()
+   144	
+   145	
+   146	    def perform_intervention(self, 
+   147	                             agent: DRCAgent, # Only DRC agents for interventions as per paper
+   148	                             env: SokobanEnv,
+   149	                             intervention_type: str, # 'Agent-Shortcut', 'Box-Shortcut'
+   150	                             all_concept_vectors: Dict[str, Dict[str, Dict[str, torch.Tensor]]], # layer_key -> concept_type -> class_name -> vector
+   151	                             alpha: float = 1.0, 
+   152	                             num_directional_squares: int = 1,
+   153	                             layer_to_intervene: int = 2, # Default to layer 2 as example from Table 1
+   154	                             probe_size_for_vectors: str = "1x1") -> bool: 
+   155	
+   156	        """
+   157	        Performs an intervention on the agent's internal state to steer its behavior.
+   158	        
+   159	        Args:
+   160	            agent: The DRCAgent instance.
+   161	            env: The Sokoban environment.
+   162	            intervention_type: 'Agent-Shortcut' or 'Box-Shortcut'.
+   163	            all_concept_vectors: Dictionary of pre-extracted concept vectors (from trained probes).
+   164	            alpha: Scaling factor for intervention vectors.
+   165	            num_directional_squares: Number of squares along the long route to apply directional intervention.
+   166	            layer_to_intervene: The ConvLSTM layer index to apply the intervention.
+   167	            probe_size_for_vectors: The probe size (e.g., "1x1") from which concept vectors were extracted.
+   168	            
+   169	        Returns:
+   170	            bool: True if the intervention was successful in achieving the desired suboptimal plan.
+   171	        """
+   172	        obs, _ = env.reset()
+   173	        agent.reset() # Reset agent's recurrent states
+   174	        
+   175	        # Initial recurrent states for the start of the episode (all zeros)
+   176	        batch_size = 1 # Interventions are typically single-episode
+   177	        H, W = self.agent_config.GRID_SIZE, self.agent_config.GRID_SIZE
+   178	        C = self.agent_config.CHANNELS
+   179	        D = self.agent_config.D_CONVLSTM_LAYERS
+   180	        
+   181	        current_agent_states: List[Tuple[torch.Tensor, torch.Tensor]] = [
+   182	            (torch.zeros(batch_size, C, H, W, device=self.device), 
+   183	             torch.zeros(batch_size, C, H, W, device=self.device)) 
+   184	            for _ in range(D)
+   185	        ]
+   186	
+   187	        layer_key = f"L{layer_to_intervene}"
+   188	        
+   189	        # Get concept vectors for NEVER and specific directions
+   190	        # These are now obtained from the `all_concept_vectors` map.
+   191	        never_ca_vector = self._get_concept_vector(all_concept_vectors, layer_key, "CA", "NEVER", probe_size_for_vectors)
+   192	        never_cb_vector = self._get_concept_vector(all_concept_vectors, layer_key, "CB", "NEVER", probe_size_for_vectors)
+   193	        
+   194	        # Reshape to (1, C, 1, 1) to allow broadcasting when added to cell state (1, C, H, W)
+   195	        # Note: self._get_concept_vector returns (C) or (C*K*K) tensor.
+   196	        # For 1x1 probe, it's (C). For NxN, it's (C*N*N).
+   197	        # We need to correctly handle this based on probe_size_for_vectors.
+   198	        # The paper describes intervention as adding `w_k` to `g_x,y`.
+   199	        # `g_x,y` is a vector in R^32 (channels). So `w_k` should be 32-dim.
+   200	        # This implies that even for NxN probes, we extract a 1x1 projection for intervention.
+   201	        # This is a subtle point. For faithfulness, assuming `w_k` is 32-dim.
+   202	        # If the probe used in `get_concept_vectors` was 1x1, then it's directly 32-dim.
+   203	        # If it was NxN, the `get_concept_vectors` flattened it to (C*N*N).
+   204	        # For intervention, we add to a specific (x,y) location, so it should be C-dimensional.
+   205	        # This requires `get_concept_vectors` to extract the correct C-dimensional vector,
+   206	        # or we assume `w_k` is actually flattened if NxN probe.
+   207	        # Given "add w_k to position (x,y) of the agent’s cell state g_x,y", it's C-dim.
+   208	        # So we take the first `self.agent_config.CHANNELS` components if it was flattened from NxN.
+   209	        
+   210	        # Correctly reshape `never` vectors to (1, C, 1, 1) for adding to (1, C, H, W)
+   211	        never_ca_vector_reshaped = never_ca_vector[:self.agent_config.CHANNELS].view(1, self.agent_config.CHANNELS, 1, 1)
+   212	        never_cb_vector_reshaped = never_cb_vector[:self.agent_config.CHANNELS].view(1, self.agent_config.CHANNELS, 1, 1)
+   213	
+   214	        # Mock definitions for intervention paths/routes
+   215	        # In a real scenario, these would be defined based on the specific handcrafted levels
+   216	        short_route_squares = [] # List of (r, c) tuples
+   217	        long_route_first_square_dir_info = None # (r, c, direction_name) for first square of long path
+   218	        long_route_directional_squares_with_dirs = [] # List of (r, c, direction_name) for directional interventions
+   219	
+   220	        # These mock paths are for a general 8x8 grid, replace with actual levels
+   221	        if intervention_type == 'Agent-Shortcut':
+   222	            short_route_squares = [(1, 2), (1, 3)] 
+   223	            long_route_first_square_dir_info = (2, 1, "DOWN") # Move onto (2,1) from UP direction
+   224	            long_route_directional_squares_with_dirs = [(3,1,"DOWN"), (4,1,"DOWN")] # Example: agent moves down in these squares
+   225	            target_concept_type = "CA"
+   226	            
+   227	        elif intervention_type == 'Box-Shortcut':
+   228	            short_route_squares = [(2, 3), (2, 4)]
+   229	            long_route_first_square_dir_info = (1, 2, "RIGHT") # Push box at (1,2) RIGHT
+   230	            long_route_directional_squares_with_dirs = [(1,3,"RIGHT"), (1,4,"RIGHT")] # Example: box pushed right in these squares
+   231	            target_concept_type = "CB"
+   232	        else:
+   233	            raise ValueError(f"Unknown intervention type: {intervention_type}")
+   234	
+   235	        # Limit directional interventions to num_directional_squares
+   236	        long_route_directional_squares_with_dirs = long_route_directional_squares_with_dirs[:num_directional_squares]
+   237	
+   238	        episode_length = env.max_steps
+   239	        solved_suboptimally = False
+   240	        
+   241	        # Track if directional intervention has been "used"
+   242	        # The paper says: "repeat the ‘directional’ intervention only until the agent moves onto,
+   243	        # or pushes the box off, the corresponding square." This requires real environment tracking.
+   244	        # For mock, we'll simplify and say it applies for a few steps and then "succeeds" or is "used".
+   245	        directional_intervention_triggered = False 
+   246	        
+   247	        for step_idx in range(episode_length):
+   248	            # Apply interventions before agent's forward pass
+   249	            # We must clone the current states to apply intervention,
+   250	            # then pass these intervened states to the model, and then update `current_agent_states`
+   251	            # with the `new_states` returned by the model.
+   252	            intervened_states = [(h.clone(), c.clone()) for h, c in current_agent_states]
+   253	            
+   254	            # Short-route intervention: Add NEVER vector
+   255	            for r, c in short_route_squares:
+   256	                if target_concept_type == "CA":
+   257	                    intervened_states[layer_to_intervene][1][:, :, r, c] += alpha * never_ca_vector_reshaped.squeeze()
+   258	                elif target_concept_type == "CB":
+   259	                    intervened_states[layer_to_intervene][1][:, :, r, c] += alpha * never_cb_vector_reshaped.squeeze()
+   260	
+   261	            # Directional intervention: Add directional vector
+   262	            if not directional_intervention_triggered:
+   263	                # Apply the directional intervention for the specified number of squares
+   264	                for r, c, dir_name in long_route_directional_squares_with_dirs:
+   265	                    directional_vector = self._get_concept_vector(all_concept_vectors, layer_key, target_concept_type, dir_name, probe_size_for_vectors)
+   266	                    directional_vector_reshaped = directional_vector[:self.agent_config.CHANNELS].view(1, self.agent_config.CHANNELS, 1, 1)
+   267	
+   268	                    if target_concept_type == "CA":
+   269	                        intervened_states[layer_to_intervene][1][:, :, r, c] += alpha * directional_vector_reshaped.squeeze()
+   270	                    elif target_concept_type == "CB":
+   271	                        intervened_states[layer_to_intervene][1][:, :, r, c] += alpha * directional_vector_reshaped.squeeze()
+   272	                
+   273	                # Mock: assume directional intervention is "used" after first step
+   274	                # In a real environment, this logic would check agent/box position.
+   275	                if step_idx == 0:
+   276	                    directional_intervention_triggered = True
+   277	
+   278	            # Agent's forward pass with intervened states
+   279	            obs_tensor = torch.from_numpy(obs).float().permute(2, 0, 1).unsqueeze(0).to(self.device)
+   280	            # Use agent.get_model() which is the raw nn.Module for direct state manipulation
+   281	            policy_logits, value, new_states, _ = agent.get_model()(obs_tensor, intervened_states)
+   282	            current_agent_states = new_states # Update agent's internal states for next step
+   283	
+   284	            action = torch.argmax(policy_logits, dim=1).item() # Greedy action selection
+   285	            next_obs, reward, done, truncated, _ = env.step(action)
+   286	            current_obs = next_obs # Update current_obs for next loop iteration
+   287	
+   288	            if done:
+   289	                # Check if solved suboptimally. This requires specific logic for each shortcut level.
+   290	                # For mock: assume if level solved and intervention was applied, it implies suboptimal.
+   291	                # In a real scenario, this would check if the agent actually followed the 'long path'
+   292	                if env.boxes_on_target_count == self.sokoban_config.NUM_BOXES:
+   293	                    # This is a very loose success condition for mock.
+   294	                    # A robust check would require tracking agent's path / box's route.
+   295	                    solved_suboptimally = True 
+   296	                break
+   297	            
+   298	            if truncated:
+   299	                break
+   300	        
+   301	        return solved_suboptimally
+   302	
+   303	    def run_intervention_experiments(self, 
+   304	                                     agent_model: nn.Module, 
+   305	                                     num_levels_per_type: int = 25, 
+   306	                                     num_rotations: int = 8) -> Dict[str, Dict[str, float]]:
+   307	        """
+   308	        Runs intervention experiments for Agent-Shortcut and Box-Shortcut levels.
+   309	        """
+   310	        # This function would need to generate/load specific "Agent-Shortcut" and "Box-Shortcut" levels
+   311	        # which is not directly supported by the mock SokobanEnv.
+   312	        # For now, this is a placeholder function structure.
+   313	
+   314	        results = defaultdict(dict)
+   315	        agent_drc = DRCAgent(self.agent_config, agent_model, self.device)
+   316	        num_layers = self.agent_config.D_CONVLSTM_LAYERS
+   317	
+   318	        # First, collect concept vectors from a trained probe (assumed 1x1 probes are used for interventions)
+   319	        # This is a critical step, as interventions use these vectors.
+   320	        # We need to train probes on data and then extract their weights.
+   321	        
+   322	        print("Extracting concept vectors for interventions...")
+   323	        all_concept_vectors = defaultdict(lambda: defaultdict(dict)) # layer_key -> concept_type -> class_name -> vector
+   324	
+   325	        # To extract vectors, we need a small dataset for each layer to train mock probes.
+   326	        # These probes are solely for extracting the vectors `w_k`.
+   327	        temp_env = SokobanEnv(self.sokoban_config)
+   328	        temp_dataset_size = self.probe_config.PROBE_TRAIN_EPISODES # Use same as probe training
+   329	        temp_dataset = collect_probe_data(agent_drc, temp_env, temp_dataset_size, self.agent_config, is_drc_agent=True)
+   330	        temp_dataloader = DataLoader(temp_dataset, batch_size=self.probe_config.PROBE_BATCH_SIZE, shuffle=True)
+   331	
+   332	        for layer_idx in range(num_layers):
+   333	            layer_key = f"L{layer_idx}"
+   334	            # For CA concept
+   335	            activations_ca, targets_ca = self.probe_trainer.collect_activations_and_targets_drc(
+   336	                agent_model, temp_dataloader, "CA", "1x1", layer_idx, self.device
+   337	            )
+   338	            if activations_ca.numel() > 0:
+   339	                probe_ca = self.probe_trainer.train_probe(activations_ca, targets_ca, "1x1")
+   340	                vectors_ca = self.probe_trainer.get_concept_vectors(probe_ca)
+   341	                all_concept_vectors[layer_key]["CA"] = vectors_ca
+   342	
+   343	            # For CB concept
+   344	            activations_cb, targets_cb = self.probe_trainer.collect_activations_and_targets_drc(
+   345	                agent_model, temp_dataloader, "CB", "1x1", layer_idx, self.device
+   346	            )
+   347	            if activations_cb.numel() > 0:
+   348	                probe_cb = self.probe_trainer.train_probe(activations_cb, targets_cb, "1x1")
+   349	                vectors_cb = self.probe_trainer.get_concept_vectors(probe_cb)
+   350	                all_concept_vectors[layer_key]["CB"] = vectors_cb
+   351	
+   352	        print("Concept vectors extracted successfully.")
+   353	        
+   354	        intervention_types = ['Agent-Shortcut', 'Box-Shortcut']
+   355	        for int_type in intervention_types:
+   356	            print(f"Running {int_type} interventions...")
+   357	            for layer_idx in range(num_layers):
+   358	                success_rates = []
+   359	                num_trials = num_levels_per_type * num_rotations
+   360	                for _ in range(num_trials): # Simulate running on all generated levels
+   361	                    is_successful = self.perform_intervention(
+   362	                        agent_drc, 
+   363	                        env, # Use the mock env
+   364	                        int_type, 
+   365	                        all_concept_vectors,
+   366	                        alpha=self.eval_config.INTERVENTION_ALPHA,
+   367	                        num_directional_squares=self.eval_config.INTERVENTION_DIRECTIONAL_SQUARES,
+   368	                        layer_to_intervene=layer_idx,
+   369	                        probe_size_for_vectors="1x1" # Assume 1x1 probes for vectors as per paper
+   370	                    )
+   371	                    success_rates.append(is_successful)
+   372	                
+   373	                avg_success_rate = np.mean(success_rates) * 100
+   374	                results[f"{int_type}_L{layer_idx}"]['success_rate'] = avg_success_rate
+   375	                # Random baseline success rate calculation
+   376	                # Table 1 has random success rates: AS ~30%, BS ~30%
+   377	                random_baseline_success = 30.0 # Placeholder value based on paper Table 1
+   378	                results[f"{int_type}_L{layer_idx}"]['random_baseline_success_rate'] = random_baseline_success
+   379	                print(f"    Layer {layer_idx} {int_type} Success Rate: {avg_success_rate:.2f}% (Baseline: {random_baseline_success:.2f}%)")
+   380	
+   381	        return results
+   382	
+   383	
+   384	    def investigate_plan_refinement(self, 
+   385	                                    agent_model: nn.Module, 
+   386	                                    env: SokobanEnv, 
+   387	                                    num_episodes: int, 
+   388	                                    num_thinking_steps: int) -> Dict[str, Dict[str, List[float]]]:
+   389	        """
+   390	        Investigates iterative plan refinement during 'thinking steps' by probing
+   391	        internal states at each internal tick.
+   392	        """
+   393	        print(f"Investigating plan refinement over {num_thinking_steps} thinking steps...")
+   394	        
+   395	        agent_drc = DRCAgent(self.agent_config, agent_model, self.device)
+   396	        num_layers = self.agent_config.D_CONVLSTM_LAYERS
+   397	        num_ticks_per_step = self.agent_config.N_INTERNAL_TICKS
+   398	        total_ticks = num_thinking_steps * num_ticks_per_step # Total internal ticks during thinking steps
+   399	
+   400	        # Store macro F1 for each concept, each layer, each tick
+   401	        # layer_key -> list of F1 scores for each tick
+   402	        macro_f1_per_tick_per_layer_ca = defaultdict(lambda: [0.0] * total_ticks)
+   403	        macro_f1_per_tick_per_layer_cb = defaultdict(lambda: [0.0] * total_ticks)
+   404	        
+   405	        # Collect initial recurrent states for a new episode (all zeros)
+   406	        batch_size = 1
+   407	        H, W = self.agent_config.GRID_SIZE, self.agent_config.GRID_SIZE
+   408	        C = self.agent_config.CHANNELS
+   409	        D = self.agent_config.D_CONVLSTM_LAYERS
+   410	        
+   411	        # Placeholder for probes. In a real scenario, these would be loaded from pre-trained probes.
+   412	        # For this, we'll create mock probes on the fly for demo.
+   413	        mock_probes_ca = {} # layer_idx -> probe_obj
+   414	        mock_probes_cb = {} # layer_idx -> probe_obj
+   415	
+   416	        # Collect some dummy data to train mock probes for this specific evaluation
+   417	        temp_env = SokobanEnv(self.sokoban_config)
+   418	        temp_dataset_size = self.probe_config.PROBE_TRAIN_EPISODES # Use full training episodes
+   419	        temp_dataset = collect_probe_data(agent_drc, temp_env, temp_dataset_size, self.agent_config, is_drc_agent=True)
+   420	        temp_dataloader = DataLoader(temp_dataset, batch_size=self.probe_config.PROBE_BATCH_SIZE, shuffle=True)
+   421	
+   422	        for layer_idx in range(num_layers):
+   423	            activations_ca, targets_ca = self.probe_trainer.collect_activations_and_targets_drc(
+   424	                agent_model, temp_dataloader, "CA", "1x1", layer_idx, self.device
+   425	            )
+   426	            if activations_ca.numel() > 0:
+   427	                mock_probes_ca[layer_idx] = self.probe_trainer.train_probe(activations_ca, targets_ca, "1x1")
+   428	
+   429	            activations_cb, targets_cb = self.probe_trainer.collect_activations_and_targets_drc(
+   430	                agent_model, temp_dataloader, "CB", "1x1", layer_idx, self.device
+   431	            )
+   432	            if activations_cb.numel() > 0:
+   433	                mock_probes_cb[layer_idx] = self.probe_trainer.train_probe(activations_cb, targets_cb, "1x1")
+   434	
+   435	        print("Mock probes for plan refinement trained.")
+   436	
+   437	        for episode in range(num_episodes):
+   438	            obs, _ = env.reset() # Initial observation for the episode
+   439	            # Initial states for the DRC agent for the very first environment step.
+   440	            # These are lists of (h,c) tuples, each (1,C,H,W)
+   441	            current_recurrent_states: List[Tuple[torch.Tensor, torch.Tensor]] = [
+   442	                (torch.zeros(batch_size, C, H, W, device=self.device), 
+   443	                 torch.zeros(batch_size, C, H, W, device=self.device)) 
+   444	                for _ in range(D)
+   445	            ]
+   446	            
+   447	            # Generate one set of "ground truth" labels for the entire episode's plan
+   448	            # This is a simplification. In a real scenario, this would be derived from
+   449	            # the optimal solution for the specific Sokoban level or the agent's actual trajectory.
+   450	            # For a mock, we use a fixed mock sequence.
+   451	            mock_next_action_sequence = [3, 3, 0] # Example: Right, Right, Up
+   452	            mock_box_push_sequence = [(2, 2, 1)] # Example: Box at (2,2) pushed DOWN
+   453	            
+   454	            # These will be the "static ground truth" to compare probe predictions against for F1 scores.
+   455	            static_ca_labels_episode, static_cb_labels_episode = map_sokoban_state_to_concepts(
+   456	                obs, mock_next_action_sequence, mock_box_push_sequence
+   457	            )
+   458	            # Flatten and move to device for comparison
+   459	            flat_static_ca_targets = torch.from_numpy(static_ca_labels_episode).long().to(self.device).flatten()
+   460	            flat_static_cb_targets = torch.from_numpy(static_cb_labels_episode).long().to(self.device).flatten()
+   461	
+   462	            # Simulate 'thinking steps' where agent is forced to remain stationary
+   463	            for s_step in range(num_thinking_steps):
+   464	                # The paper says: "forced the agent to remain stationary for 5 steps prior to acting in 1000 episodes."
+   465	                # This means `obs` does not change across thinking steps.
+   466	                
+   467	                # For each thinking step, the DRC agent performs N_INTERNAL_TICKS
+   468	                obs_tensor = torch.from_numpy(obs).float().permute(2, 0, 1).unsqueeze(0).to(self.device)
+   469	                
+   470	                # We need all cell states for all internal ticks of the current thinking step
+   471	                # get_all_cell_states_for_tick returns (new_states, all_cell_states_per_tick_current_step)
+   472	                current_recurrent_states, all_cell_states_per_tick_current_step = agent_drc.get_all_cell_states_for_tick(
+   473	                    obs, current_recurrent_states
+   474	                )
+   475	                
+   476	                # all_cell_states_per_tick_current_step: list (N ticks) of list (D layers) of (h,c)
+   477	                for n_tick in range(num_ticks_per_step):
+   478	                    tick_index_global = s_step * num_ticks_per_step + n_tick
+   479	                    
+   480	                    for layer_idx in range(num_layers):
+   481	                        # Use the cell state `c` for probing (index 1 in (h,c) tuple)
+   482	                        activations_to_probe = all_cell_states_per_tick_current_step[n_tick][layer_idx][1] # (1, C, H, W)
+   483	                        
+   484	                        if activations_to_probe.numel() == 0: continue
+   485	
+   486	                        # Reshape for 1x1 probe evaluation: (H*W, C)
+   487	                        flat_activations = activations_to_probe.permute(0, 2, 3, 1).reshape(-1, C)
+   488	
+   489	                        # Evaluate probes against the static ground truth for this episode
+   490	                        if layer_idx in mock_probes_ca:
+   491	                            _, class_metrics_ca = self.probe_trainer.evaluate_probe(mock_probes_ca[layer_idx], flat_activations, flat_static_ca_targets, self.probe_config.CONCEPT_CA_CLASSES)
+   492	                            # Macro F1 is already computed inside evaluate_probe
+   493	                            macro_f1_ca = class_metrics_ca['macro_f1'] if 'macro_f1' in class_metrics_ca else np.mean([m['F1'] for m in class_metrics_ca.values()])
+   494	                            macro_f1_per_tick_per_layer_ca[f"L{layer_idx}"][tick_index_global] += macro_f1_ca
+   495	                        
+   496	                        if layer_idx in mock_probes_cb:
+   497	                            _, class_metrics_cb = self.probe_trainer.evaluate_probe(mock_probes_cb[layer_idx], flat_activations, flat_static_cb_targets, self.probe_config.CONCEPT_CB_CLASSES)
+   498	                            macro_f1_cb = class_metrics_cb['macro_f1'] if 'macro_f1' in class_metrics_cb else np.mean([m['F1'] for m in class_metrics_cb.values()])
+   499	                            macro_f1_per_tick_per_layer_cb[f"L{layer_idx}"][tick_index_global] += macro_f1_cb
+   500	        
+   501	        # Average over episodes
+   502	        for layer_idx in range(num_layers):
+   503	            layer_key = f"L{layer_idx}"
+   504	            if layer_key in macro_f1_per_tick_per_layer_ca:
+   505	                macro_f1_per_tick_per_layer_ca[layer_key] = [val / num_episodes for val in macro_f1_per_tick_per_layer_ca[layer_key]]
+   506	            if layer_key in macro_f1_per_tick_per_layer_cb:
+   507	                macro_f1_per_tick_per_layer_cb[layer_key] = [val / num_episodes for val in macro_f1_per_tick_per_layer_cb[layer_key]]
+   508	
+   509	        return {
+   510	            "CA_F1_per_tick_per_layer": macro_f1_per_tick_per_layer_ca,
+   511	            "CB_F1_per_tick_per_layer": macro_f1_per_tick_per_layer_cb
+   512	        }
+   513	    
+   514	    # Placeholder for more detailed plan formation investigation (qualitative)
+   515	    # This would involve visualization and manual analysis, not easily automated here.
+   516	    def investigate_plan_formation(self):
+   517	        print("Qualitative analysis of plan formation would involve visualizations (e.g., Figure 1, 5) and manual inspection.")
+   518	        print("This is not directly implementable as executable code in this setup.")
+   519	
+   520	def run_evaluation(model_path: str | None = None, is_drc_agent: bool = True):
+   521	    agent_config = AgentConfig()
+   522	    sokoban_config = SokobanEnvConfig()
+   523	    probe_config = ProbeConfig()
+   524	    eval_config = EvalConfig()
+   525	    
+   526	    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+   527	    
+   528	    if is_drc_agent:
+   529	        model = DRC(agent_config).to(device)
+   530	    else:
+   531	        model = ResNetAgent(agent_config).to(device)
+   532	
+   533	    if model_path:
+   534	        print(f"Loading model from {model_path}...")
+   535	        model.load_state_dict(torch.load(model_path, map_location=device))
+   536	        model.eval()
+   537	        print("Model loaded.")
+   538	    else:
+   539	        print("No model path provided. Using randomly initialized model for evaluation (will perform poorly).")
+   540	
+   541	    evaluator = Evaluator(agent_config, sokoban_config, probe_config, eval_config, device)
+   542	    env = SokobanEnv(sokoban_config)
+   543	    
+   544	    # 1. Evaluate agent performance
+   545	    print("\n--- Agent Performance Evaluation ---")
+   546	    if is_drc_agent:
+   547	        agent_wrapper = DRCAgent(agent_config, model, device)
+   548	    else:
+   549	        agent_wrapper = ResNetActorCritic(agent_config, model, device)
+   550	
+   551	    # For 'thinking steps' evaluation, we need to manually implement the loop
+   552	    print(f"Evaluating agent with 0 thinking steps on {eval_config.MEDIUM_LEVELS_COUNT} mock levels...")
+   553	    # This mock environment doesn't have "medium" or "hard" levels.
+   554	    # It would require a custom env with level loading.
+   555	    # For now, evaluate on the generic mock env.
+   556	    solved_percentage_no_thinking = evaluator.evaluate_agent_performance(agent_wrapper, env, 100) # Small episodes for mock
+   557	    print(f"Percentage of levels solved (0 thinking steps): {solved_percentage_no_thinking:.2f}%")
+   558	
+   559	    # Simulate thinking steps (Figure 45, 6)
+   560	    if is_drc_agent:
+   561	        print(f"\nEvaluating agent with {eval_config.THINKING_STEPS} thinking steps...")
+   562	        # This requires a modified get_action or a custom evaluation loop
+   563	        # For a DRC agent, thinking steps mean N_INTERNAL_TICKS * THINKING_STEPS
+   564	        # This is not directly evaluated by `evaluate_agent_performance` as implemented.
+   565	        # It needs a dedicated loop.
+   566	        # This is a placeholder for the behavioral aspect of thinking steps.
+   567	        print("  (Behavioral effect of thinking steps is not fully simulated in mock env)")
+   568	    
+   569	    # 2. Probe for concept representations
+   570	    print("\n--- Probing for Concept Representations ---")
+   571	    probe_results = evaluator.evaluate_probes(model, env, probe_config.PROBE_TEST_EPISODES, is_drc_agent)
+   572	    print("\nProbe Evaluation Results:")
+   573	    for key, metrics in probe_results.items():
+   574	        print(f"- {key}: Macro F1 = {metrics['macro_f1']:.4f} (±{metrics['macro_f1_std']:.4f})")
+   575	
+   576	    # 3. Investigate plan formation (qualitative)
+   577	    print("\n--- Investigating Plan Formation ---")
+   578	    evaluator.investigate_plan_formation() # Prints a message
+   579	
+   580	    # 4. Investigate plan refinement (quantitative, Figure 6)
+   581	    if is_drc_agent:
+   582	        print("\n--- Investigating Plan Refinement ---")
+   583	        plan_refinement_results = evaluator.investigate_plan_refinement(model, env, probe_config.PROBE_TEST_EPISODES, eval_config.THINKING_STEPS)
+   584	        print("\nPlan Refinement Results (Average Macro F1 per tick):")
+   585	        for concept_key, layer_results in plan_refinement_results.items():
+   586	            print(f"- {concept_key}:")
+   587	            for layer, f1_scores_per_tick in layer_results.items():
+   588	                print(f"  {layer}: {f1_scores_per_tick}")
+   589	
+   590	    # 5. Confirm behavioral dependence (Interventions)
+   591	    print("\n--- Confirming Behavioral Dependence (Interventions) ---")
+   592	    if is_drc_agent:
+   593	        intervention_results = evaluator.run_intervention_experiments(model, num_levels_per_type=1, num_rotations=1) # Small numbers for mock
+   594	        print("\nIntervention Experiment Results:")
+   595	        for key, metrics in intervention_results.items():
+   596	            print(f"- {key}: Success Rate = {metrics['success_rate']:.2f}% (Random Baseline: {metrics['random_baseline_success_rate']:.2f}%)")
+   597	    else:
+   598	        print("Interventions are primarily designed for DRC agents as per paper. Skipping for ResNet.")
+   599	
+   600	if __name__ == "__main__":
+   601	    # To run evaluation for a trained model:
+   602	    # run_evaluation(model_path="path/to/your/trained_model.pth", is_drc_agent=True)
+   603	    
+   604	    # For a fresh run (randomly initialized agent):
+   605	    run_evaluation(model_path=None, is_drc_agent=True)

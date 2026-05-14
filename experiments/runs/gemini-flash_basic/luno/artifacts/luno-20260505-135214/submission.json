@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Implemented the core LUNO framework for uncertainty quantification in neural operators, including uncurrying, and calculation of the mean and covariance of the induced function-valued Gaussian Process. Provided conceptual FNO implementation with last-layer Laplace approximation, mirroring the paper’s structure and mathematical formulations.",
+  "steps": 25,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/luno/luno-20260505-135214/workspace/repo"
+}

@@ -1,0 +1,64 @@
+## config.yaml
+training:
+  p2vae:
+    learning_rate: 1e-4
+    batch_size: 256
+    epochs: 100000  # The paper specifies training P2VAE for 100k steps.
+    weight_decay: 1e-4
+    optimizer: AdamW
+    cosine_annealing: 
+      warm_up: 0.1  # 10% of the steps for linear warm-up
+
+  fmt:
+    learning_rate: 1e-4
+    batch_size: 256
+    epochs: 100000  # The paper specifies training FMT for 100k steps.
+    weight_decay: 0.01
+    optimizer: AdamW
+    cosine_annealing: 
+      warm_up: 0.1
+
+vae:
+  latent_dim: 16
+  encoder:
+    base_dim: 64  # For 16M P2VAE
+  decoder:
+    base_dim: 64  # Same for reconstruction projection
+  
+fmt_model:
+  input_dim: 128  # Example input dimensionality determined by the dataset
+  embed_dim: 256  # For FMT-S as per the smallest model
+  num_heads: 4    # Head dimension = 64
+  num_layers: 6   # Transformer layers
+  rnn_dim: 256    # Matching embedding dimensions
+
+dataset:
+  type: mixed
+  sources:
+    - FNO-v
+    - PDEBench
+    - PDEArena
+    - The Well
+  resolution: 128
+  channels: 3
+  split: 
+    train: 0.8
+    valid: 0.1
+    test: 0.1
+  precision: float16
+
+evaluation:
+  metrics:
+    - L2RE
+    - VRMSE
+  visualization:
+    save_path: ./results/figures
+
+logging:
+  save_dir: ./logs
+  checkpoint_dir: ./checkpoints
+  seed: 42
+
+hardware:
+  devices: "gpu"
+  num_gpus: 4  # Utilize 4 H-100 GPUs as advised in the paper acknowledgment

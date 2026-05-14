@@ -1,0 +1,9 @@
+{
+  "paper_id": "moe-pot",
+  "run_id": "moe-pot-20260506-053600",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1350.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 25
+}

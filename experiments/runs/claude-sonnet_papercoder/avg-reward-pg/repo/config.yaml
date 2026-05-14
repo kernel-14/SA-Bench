@@ -1,0 +1,155 @@
+## config.yaml
+## Configuration for reproducing "Global Convergence of Policy Gradient in Average Reward MDPs"
+## All values are taken directly from the paper. Where the paper does not specify a value,
+## a conservative default is used and clearly annotated.
+
+experiment:
+  ## Random seed for reproducibility (not specified in paper; chosen for reproducibility)
+  random_seed: 42
+  ## Directory to save output figures
+  output_dir: "results/"
+
+## ---------------------------------------------------------------------------
+## Experiment 1: Convergence vs State/Action Space Size (Figure 1a)
+## Paper Section 4, Appendix C.1
+## ---------------------------------------------------------------------------
+experiment1:
+  ## MDP sizes tested — explicitly stated in paper Section 4
+  mdp_sizes:
+    - [3, 3]
+    - [9, 9]
+    - [81, 81]
+  ## Number of PPG iterations — explicitly stated in paper Section 4
+  iterations: 2000
+  ## Transition kernel type — Appendix C.1
+  ## P(i|s,i) = (1 + 1/S) / 2,  P(i|s,j) = 1/(2S) for i != j
+  kernel_type: "nonuniform"
+  ## Reward type — Appendix C.1: half actions get +1, half get -1 (maximal variance)
+  reward_type: "max_variance"
+
+## ---------------------------------------------------------------------------
+## Experiment 2: Convergence vs Reward Variance / C_r (Figure 1b)
+## Paper Section 4, Appendix C.2
+## ---------------------------------------------------------------------------
+experiment2:
+  ## Fixed MDP size — explicitly stated in paper Section 4
+  S: 16
+  A: 16
+  ## Number of PPG iterations — paper Section 4 states 2000 for Figure 1
+  iterations: 2000
+  ## Transition kernel: randomly generated once, shared across reward variants
+  ## Paper Appendix C.2: "randomly generated transition kernel"
+  kernel_type: "random_dirichlet"
+  ## Special state index where reward is non-zero — Appendix C.2: "one state s_0"
+  special_state: 0
+  ## Reward variance levels — explicitly defined in Appendix C.2
+  ## Fraction of actions at s_0 assigned reward -1 (rest get +1); all other states get 0
+  reward_variants:
+    no_variance:
+      ## All actions at s_0 get reward +1
+      fraction_negative: 0.0
+      label: "No Variance"
+    low_variance:
+      ## 1/8 of actions at s_0 get reward -1 — Appendix C.2
+      fraction_negative: 0.125
+      label: "Low Variance"
+    high_variance:
+      ## 1/4 of actions at s_0 get reward -1 — Appendix C.2
+      fraction_negative: 0.25
+      label: "High Variance"
+    max_variance:
+      ## 1/2 of actions at s_0 get reward -1 — Appendix C.2
+      fraction_negative: 0.5
+      label: "Max Variance"
+
+## ---------------------------------------------------------------------------
+## Experiment 3: Convergence vs Transition Kernel / C_p (Figure 2)
+## Paper Section 4, Appendix C.3
+## ---------------------------------------------------------------------------
+experiment3:
+  ## Fixed MDP size — explicitly stated in paper Section 4
+  S: 16
+  A: 16
+  ## Number of PPG iterations — explicitly stated in paper Section 4
+  iterations: 3000
+  ## Reward function: high variance construction from Experiment 2 — Appendix C.3
+  ## "same reward function that is generated according to the process described above
+  ##  for high variance reward function"
+  reward_type: "high_variance"
+  ## Three transition kernel types — explicitly defined in Appendix C.3
+  kernel_variants:
+    uniform:
+      ## P(s'|s,a) = 1/S for all s, a, s' — Appendix C.3
+      type: "uniform"
+      label: "Uniform"
+    nonuniform:
+      ## P(i|s,i) = 1/(2S) + 1/2,  P(i|s,j) = 1/(2S) for i != j — Appendix C.3
+      type: "nonuniform"
+      label: "Non-uniform"
+    deterministic:
+      ## P(.|s,.) is a random permutation of the identity matrix — Appendix C.3
+      ## "every state leads to a different one"
+      type: "deterministic"
+      label: "Deterministic"
+
+## ---------------------------------------------------------------------------
+## Policy Gradient Algorithm Settings
+## Paper Section 2.1 (update rule), Theorem 1 (step size condition)
+## ---------------------------------------------------------------------------
+policy_gradient:
+  ## Step size condition from Theorem 1: eta < 1 / L_2^Pi
+  ## The paper does not specify the exact numerical value used in simulations.
+  ## Strategy: compute L_2^Pi per MDP and set eta = step_size_multiplier / L_2^Pi
+  ## If L_2^Pi cannot be computed or is near zero, use step_size_fallback
+  step_size_multiplier: 0.5
+  step_size_fallback: 0.01
+  ## Initial policy: uniform over actions (standard choice; not specified in paper)
+  init_policy: "uniform"
+
+## ---------------------------------------------------------------------------
+## Value Function Computation Settings
+## Paper Lemma 1, Equation 15: v_phi = (I - Phi P^pi)^{-1} Phi r^pi
+## ---------------------------------------------------------------------------
+value_functions:
+  ## Power iteration settings for stationary distribution computation
+  ## Not specified in paper; chosen for numerical stability
+  power_iter_tol: 1.0e-10
+  power_iter_max_iter: 10000
+
+## ---------------------------------------------------------------------------
+## Complexity Metrics Estimation Settings
+## Paper Table 1/2: C_m, C_p, C_r, kappa_r, L_2^Pi
+## These require maximizing over all policies (intractable exactly);
+## estimated by sampling random policies
+## ---------------------------------------------------------------------------
+complexity:
+  ## Number of random policies sampled to estimate C_m, C_p, C_r, kappa_r
+  ## Not specified in paper; chosen to balance accuracy and runtime
+  n_samples: 200
+  ## Dirichlet concentration parameter for sampling random policies
+  dirichlet_alpha: 1.0
+
+## ---------------------------------------------------------------------------
+## Plotting Settings
+## ---------------------------------------------------------------------------
+plotting:
+  figure_dpi: 150
+  figure_format: "png"
+  ## Figure 1a settings
+  figure1a:
+    filename: "figure1a.png"
+    title: "Figure 1(a): Convergence vs State/Action Space Size"
+    xlabel: "Iteration"
+    ylabel: "Average Reward"
+  ## Figure 1b settings
+  figure1b:
+    filename: "figure1b.png"
+    title: "Figure 1(b): Convergence vs Reward Variance (C_r)"
+    xlabel: "Iteration"
+    ylabel: "Average Reward"
+  ## Figure 2 settings
+  figure2:
+    filename: "figure2.png"
+    title: "Figure 2: Convergence vs Transition Kernel (C_p)"
+    xlabel: "Iteration"
+    ylabel: "Change in Average Reward"

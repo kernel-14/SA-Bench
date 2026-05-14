@@ -1,0 +1,83 @@
+# General experiment configuration
+experiment_name: gated_attention_llm_reproduction
+seed: 42
+output_dir: ./experiments
+
+# Model Configuration
+model:
+  type: dense # or moe
+  total_parameters_target: 1.7e9 # For dense models (e.g., 1.7B) or 15e9 for MoE
+  num_layers: 28 # or 48 for dense, assumed 28 for MoE unless specified
+  d_model: 2048 # Model dimension (estimated for 1.7B dense, d_k=128, q=32)
+  vocab_size: 32000 # Estimated common vocabulary size
+  max_seq_len: 4096 # Training context length
+  
+  # Attention specific
+  q_heads: 32 # Number of query heads (Table 1 Baseline)
+  kv_heads: 4 # Number of key-value heads (Table 1 Baseline)
+  head_dim: 128 # Dimension of each attention head (Table 1)
+  attn_dropout: 0.1 # Common practice, not explicitly stated
+  rope_base: 10000.0 # Default RoPE base
+
+  # Feedforward specific
+  d_ff: 8192 # Intermediate size of feedforward layer (estimated for 1.7B dense, 4*d_model)
+  ffn_activation: gelu # Common practice, not explicitly stated
+
+  # MoE specific (if model.type == moe)
+  moe:
+    num_experts: 128 # Total experts (15A2B model)
+    top_k_experts: 8 # Activated experts (15A2B model)
+    router_bias: false # Common practice, not explicitly stated
+    z_loss_coeff: 0.001 # Z-loss coefficient (Zoph et al., 2022)
+    load_balancing_loss_coeff: 0.01 # Load balancing loss coefficient (Qiu et al., 2025)
+    # fine_grained_experts: false # Placeholder, details from Dai et al. (2024) needed
+
+# Gating Configuration (for SDPA Elementwise G1, the most effective variant)
+gating:
+  enabled: true
+  position: G1 # Gating after SDPA output
+  granularity: elementwise # Elementwise gating
+  head_specific: true # Head-specific gating
+  type: multiplicative # Multiplicative gating
+  activation_fn: sigmoid # Sigmoid activation
+  # ns_sigmoid_factor: 0.5 # For NS-sigmoid analysis, 0.5 + 0.5 * sigmoid(x)
+
+# Training Configuration
+training:
+  total_train_tokens: 400e9 # Default to 400B tokens, can be overridden to 3.5e12 or 1e12
+  max_learning_rate: 0.004 # Default for 1.7B, 28L, 400B (Table 2)
+  min_learning_rate: 0.000003 # 3e-5 (cosine decay target)
+  warmup_steps: 1000 # Steps for linear LR warmup
+  global_batch_size: 1024 # Default for 1.7B, 28L, 400B (Table 2)
+  gradient_accumulation_steps: 1 # Default, adjust for GPU memory/batch size
+  optimizer: adamw
+  adam_beta1: 0.9 # Common AdamW default
+  adam_beta2: 0.999 # Common AdamW default
+  adam_epsilon: 1.0e-8 # Common AdamW default
+  weight_decay: 0.1 # Common practice
+  mixed_precision: bf16 # fp16 or bf16
+  checkpoint_interval_steps: 10000
+  eval_interval_steps: 1000
+
+# Data Configuration
+data:
+  tokenizer_path: "path/to/your/tokenizer" # e.g., 'EleutherAI/gpt-neo-125m' for a common tokenizer
+  train_data_paths: ["path/to/train_data_part1.jsonl", "path/to/train_data_part2.jsonl"] # Placeholder
+  eval_data_paths: ["path/to/eval_data.jsonl"] # Placeholder
+
+# Long-Context Extension Specifics
+long_context_extension:
+  enabled: false
+  initial_rope_base: 10000.0 # From main training
+  extended_rope_base: 1000000.0 # 1M (for long-context)
+  extended_seq_len: 32768 # 32k context length for continued training
+  additional_train_tokens_for_extension: 80e9 # Additional 80B tokens
+  # yarn_enabled: true # Placeholder, details from YaRN (Peng et al., 2023) needed
+
+# Evaluation Configuration
+evaluation:
+  benchmarks: ["hellaswag", "mmlu", "gsm8k", "human_eval", "c_eval", "cmmlu"] # Popular benchmarks
+  ruler_benchmark_enabled: false # Evaluate RULER for long-context models
+  attention_sink_analysis_enabled: true
+  massive_activation_analysis_enabled: true
+  gating_score_analysis_enabled: true

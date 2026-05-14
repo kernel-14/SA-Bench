@@ -1,0 +1,196 @@
+## config.yaml
+## Configuration for reproducing "Interpreting Emergent Planning in Model-Free Reinforcement Learning"
+## All hyperparameters are taken directly from the paper. See paper sections 2.3, E.3, E.4, D.1.
+
+agent:
+  ## DRC(3,3): 3 ConvLSTM layers, 3 internal ticks per environment step (Section 2.3)
+  type: drc
+  obs_channels: 7          # Symbolic observation: 8x8x7 one-hot (Section 2.2, E.2)
+  hidden_dim: 32           # G_d = 32 channels for encoder and all ConvLSTM units (Section 2.3)
+  num_layers: 3            # D = 3 ConvLSTM layers (Section 2.3)
+  num_ticks: 3             # N = 3 internal ticks per environment step (Section 2.3)
+  grid_h: 8                # H_d = 8, spatial height matches Sokoban grid (Section 2.3)
+  grid_w: 8                # W_d = 8, spatial width matches Sokoban grid (Section 2.3)
+  kernel_size: 3           # Convolutional kernel size 3 (Section 2.3, E.3)
+  padding: 1               # Single layer of input zero padding (Section 2.3, E.3)
+
+training:
+  ## IMPALA training details (Section E.4)
+  total_steps: 250_000_000       # 250 million transitions (Section 2.3, E.4)
+  unroll_length: 20              # Propagation through time unroll length (Section E.4)
+  batch_size: 16                 # Batch size (Section E.4)
+  learning_rate: 4.0e-4          # Initial learning rate, decays linearly to 0 (Section E.4)
+  lr_schedule: linear_decay      # Linear decay from 4e-4 to 0 over total_steps (Section E.4)
+  optimizer: adam                # Adam optimizer (Section E.4, citing Kingma & Ba 2015)
+
+  ## V-trace off-policy correction (Section E.4)
+  gamma: 0.97                    # Discount rate gamma (Section E.4)
+  lambda_vtrace: 0.97            # V-trace lambda (Section E.4)
+  clip_rho: 1.0                  # V-trace rho clipping threshold (standard IMPALA default)
+  clip_c: 1.0                    # V-trace c clipping threshold (standard IMPALA default)
+
+  ## Regularization (Section E.4)
+  l2_logits: 1.0e-3              # L2 penalty on action logits (Section E.4)
+  l2_heads: 1.0e-5               # L2 regularization on policy and value heads (Section E.4)
+  entropy_coef: 1.0e-2           # Entropy penalty strength on policy (Section E.4)
+
+  ## Infrastructure
+  n_envs: 16                     # Number of parallel environments (single-machine IMPALA)
+  checkpoint_every: 1_000_000    # Save checkpoint every 1M transitions (Section 6.2, C.1)
+  checkpoint_dir: checkpoints/drc33
+
+  ## Action selection
+  train_action: sample           # Sample from categorical during training (Section E.4)
+  eval_action: greedy            # Greedy (argmax) at test time (Section E.4)
+
+env:
+  ## Sokoban environment (Section 2.2, E.2)
+  name: sokoban
+  grid_size: 8                   # 8x8 grid (Section 2.2)
+  n_boxes: 4                     # 4 boxes (Section 2.2)
+  n_targets: 4                   # 4 targets (Section 2.2)
+  obs_type: symbolic             # Symbolic representation x_t in R^{8x8x7} (Section 2.2)
+  max_steps_min: 115             # Episode ends at random step in [115, 120] (Section E.2)
+  max_steps_max: 120             # Episode ends at random step in [115, 120] (Section E.2)
+
+  ## Reward structure (Section E.2)
+  reward_step: -0.01             # Reward at each environment step (Section E.2)
+  reward_box_on_target: 1.0      # Reward for pushing box onto target (Section E.2)
+  reward_box_off_target: -1.0    # Reward for pushing box off target (Section E.2)
+  reward_solved: 10.0            # Reward for solving level (all 4 boxes on targets) (Section E.2)
+
+  ## Actions: 0=UP, 1=DOWN, 2=LEFT, 3=RIGHT, 4=NOOP
+  n_actions: 5
+
+data:
+  ## Boxoban dataset (Section 2.3, E.4)
+  data_dir: data/boxoban
+  train_split: unfiltered_train  # Unfiltered training set, ~900k levels (Section E.4)
+  val_split: unfiltered_val      # Unfiltered validation set (Section 4.1)
+  test_split: unfiltered_test    # Unfiltered test set (Section E.4)
+  medium_split: medium           # Medium difficulty subset for evaluation (Section 6.2)
+  hard_split: hard               # Hard difficulty subset for evaluation (Section E.5)
+  n_medium_eval: 1000            # 1000 medium levels for thinking-step evaluation (Section 6.2)
+  n_hard_eval: 1000              # 1000 hard levels for evaluation (Section E.5)
+
+probing:
+  ## Linear probe training details (Section 4.1, D.1)
+  optimizer: adamw               # AdamW optimizer (Section D.1, citing Loshchilov & Hutter 2019)
+  n_epochs: 10                   # Train for 10 epochs (Section D.1)
+  batch_size: 16                 # Batch size (Section D.1)
+  learning_rate: 1.0e-3          # Learning rate 0.001 (Section D.1)
+  weight_decay: 1.0e-3           # Weight decay 0.001 (Section D.1)
+  n_seeds: 5                     # 5 unique initialization seeds (Section 4.1)
+
+  ## Probe sizes to train (Section 4.1, D.3)
+  probe_sizes:
+    - 1x1    # 160 parameters: 32*5 (Section 4.1)
+    - 3x3    # 1440 parameters: 288*5 (Section 4.1)
+    - 5x5    # Appendix D.3
+    - 7x7    # Appendix D.3
+
+  ## Probe input: cell state after FINAL tick at each layer (Section 4.1)
+  tick: final                    # Use cell state after final tick N=3 (Section 4.1)
+  state_type: cell               # Use cell state g_t^d, not output h_t^d (Section 4.1)
+
+  ## Dataset sizes for fully-trained agent (Section D.1)
+  n_train_episodes: 3000         # 3000 episodes on unfiltered training set -> ~106.6k transitions (Section D.1)
+  n_val_episodes: 1000           # 1000 episodes on unfiltered validation set -> ~25.7k transitions (Section D.1)
+
+  ## Dataset sizes for checkpoint probing (Section D.1, C.1)
+  n_train_episodes_ckpt: 1000    # 1000 episodes per checkpoint for training (Section D.1)
+  n_val_episodes_ckpt: 500       # 500 episodes per checkpoint for validation (Section D.1)
+
+  ## Evaluation metric
+  metric: macro_f1               # Macro F1 due to class imbalance (Section 4.2)
+  n_classes: 5                   # {NEVER, UP, DOWN, LEFT, RIGHT} (Section 3.2)
+
+  ## Concepts to probe
+  concepts:
+    - ca          # Agent Approach Direction C_A (Section 3.2)
+    - cb          # Box Push Direction C_B (Section 3.2)
+    - ca_binary   # Simplified binary: {NEVER, AGAIN} (Appendix D.4.1)
+    - cb_binary   # Simplified binary: {NEVER, AGAIN} (Appendix D.4.1)
+    - ca_exit     # Agent Exit Direction - reversed asymmetry (Appendix D.4.2)
+    - cb_approach # Box Approach Direction - reversed asymmetry (Appendix D.4.2)
+
+  save_dir: probes/drc33
+
+intervention:
+  ## Causal intervention experiments (Section 6.1, B.2)
+  alpha: 1.0                     # Default intervention strength alpha=1 (Section 6.1)
+  n_base_levels: 25              # 25 handcrafted base levels of each type (Section 6.1)
+  n_transformations: 8           # 8 versions: vertical reflection + 0/90/180/270 rotations (Section 6.1)
+  n_total_levels: 200            # 25 * 8 = 200 levels per intervention type (Section 6.1)
+  n_seeds: 5                     # 5 independently trained/initialized probes (Section 6.1)
+
+  ## Directional intervention squares (Appendix B.2)
+  default_p: 1                   # Default: intervene on first 1 square of long route (Section 6.1)
+  max_p: 3                       # Maximum p for ablation study (Appendix B.2.1)
+
+  ## Alpha sweep for ablation (Appendix B.2)
+  alpha_values: [0.25, 0.5, 1.0, 2.0, 4.0]
+
+  levels_dir: data/intervention_levels
+
+analysis:
+  ## Thinking steps / test-time compute experiments (Section 5, 6.2)
+  max_thinking_steps: 5          # Force agent stationary for 5 steps (Section 5, 6.2)
+  n_thinking_episodes: 1000      # Average over 1000 episodes (Section 5)
+
+  ## Corridor search-depth experiment (Appendix A.3.2)
+  corridor_lengths: [2, 6, 10, 14]   # Four corridor lengths tested (Appendix A.3.2)
+  n_corridor_base: 8             # 8 base corridor levels (Appendix A.3.2)
+  n_corridor_total: 80           # 80 total (8 base * 8 transformations * 4 lengths / 4) (Appendix A.3.2)
+
+  ## Training emergence analysis (Section 6.2, Appendix C)
+  emergence_start_step: 1_000_000    # Start at 1M transitions (Section 6.2)
+  emergence_end_step: 50_000_000     # Analyze first 50M transitions (Section 6.2)
+  emergence_checkpoint_interval: 1_000_000  # Every 1M transitions (Section 6.2)
+  n_emergence_checkpoints: 50        # 50 checkpoints total (Section 6.2)
+
+  figures_dir: figures/drc33
+
+## Alternative agent configurations (Appendix F)
+agent_variants:
+  drc_1_9:
+    type: drc
+    obs_channels: 7
+    hidden_dim: 32
+    num_layers: 1              # D=1 (Appendix F.1)
+    num_ticks: 9               # N=9 (Appendix F.1)
+    grid_h: 8
+    grid_w: 8
+    kernel_size: 3
+    padding: 1
+    total_steps: 100_000_000   # 100M transitions (Appendix F)
+
+  drc_9_1:
+    type: drc
+    obs_channels: 7
+    hidden_dim: 32
+    num_layers: 9              # D=9 (Appendix F.2)
+    num_ticks: 1               # N=1 (Appendix F.2)
+    grid_h: 8
+    grid_w: 8
+    kernel_size: 3
+    padding: 1
+    total_steps: 100_000_000   # 100M transitions (Appendix F)
+    intervention_alpha: 4.0    # Requires alpha=4 scaling (Appendix F.2)
+
+  resnet:
+    type: resnet
+    obs_channels: 7
+    num_blocks: 24             # 24 simplified residual blocks (Appendix G)
+    channels: 32               # 32 channels for consistency (Appendix G)
+    grid_h: 8
+    grid_w: 8
+    total_steps: 250_000_000   # 250M transitions (Appendix G)
+    intervention_alpha: 4.0    # Requires alpha=4 scaling (Appendix G)
+
+## Logging
+logging:
+  tensorboard_dir: runs/drc33
+  log_every: 10_000            # Log training metrics every 10k steps
+  eval_every: 1_000_000        # Evaluate solve rate every 1M steps
+  print_every: 100_000         # Print to stdout every 100k steps

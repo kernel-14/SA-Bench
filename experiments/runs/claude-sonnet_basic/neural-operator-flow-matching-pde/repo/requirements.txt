@@ -1,0 +1,9 @@
+torch>=2.0.0
+torchvision
+numpy
+scipy
+h5py
+pyyaml
+tqdm
+matplotlib
+einops

@@ -1,0 +1,9 @@
+{
+  "paper_id": "olmoe",
+  "run_id": "olmoe-20260506-175313",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 645.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 38
+}

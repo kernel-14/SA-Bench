@@ -1,0 +1,34 @@
+# Global configuration for SCoRe reproduction
+
+# Reward shaping parameter (alpha from Section 5.2)
+alpha: 2.0
+
+# KL-divergence penalty coefficients
+# Beta_1 for general RL fine-tuning (Equation 2 and 4)
+beta_1: 0.1
+# Beta_2 for Stage I (Equation 3)
+beta_2: 1.0
+
+# Task configuration
+task:
+  type: "math" # or "code"
+  dataset: "MATH500" # or "HumanEval", "MBPP"
+
+# Model configuration (placeholder values)
+model:
+  name: "Gemini1.5Flash" # or "Gemini1.0Pro"
+  base_model_path: "/path/to/base_model"
+  ref_model_path: "/path/to/reference_model" # For KL-divergence penalty
+
+# Training parameters (placeholder values)
+training:
+  learning_rate: 1e-5
+  num_epochs_stage1: 1
+  num_epochs_stage2: 1
+  batch_size: 4
+  gradient_accumulation_steps: 1
+
+# Paths
+paths:
+  output_dir: "./outputs"
+  data_dir: "./data"

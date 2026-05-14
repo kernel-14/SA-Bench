@@ -1,0 +1,9 @@
+{
+  "paper_id": "adjoint-matching",
+  "run_id": "adjoint-matching-20260506-010047",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1345.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 27
+}

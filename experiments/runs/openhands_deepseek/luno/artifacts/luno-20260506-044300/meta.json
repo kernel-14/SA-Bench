@@ -1,0 +1,9 @@
+{
+  "paper_id": "luno",
+  "run_id": "luno-20260506-044300",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 978.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 20
+}

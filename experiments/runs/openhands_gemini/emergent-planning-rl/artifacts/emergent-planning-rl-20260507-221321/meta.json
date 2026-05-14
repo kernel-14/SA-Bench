@@ -1,0 +1,9 @@
+{
+  "paper_id": "emergent-planning-rl",
+  "run_id": "emergent-planning-rl-20260507-221321",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 200,
+  "elapsed_s": 932.4,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 57
+}

@@ -1,0 +1,9 @@
+{
+  "paper_id": "conformal-bayesian-quadrature",
+  "run_id": "conformal-bayesian-quadrature-20260506-020423",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 729.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 22
+}

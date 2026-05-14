@@ -1,0 +1,9 @@
+{
+  "paper_id": "wdno",
+  "run_id": "wdno-20260507-160011",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 4399.9,
+  "agent_state": "AgentState.ERROR",
+  "iterations": 100
+}

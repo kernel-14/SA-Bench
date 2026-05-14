@@ -1,0 +1,490 @@
+# SENSITIVITY-CONSTRAINED FOURIER NEURAL OPER-ATORS FOR FORWARD AND INVERSE PROBLEMS IN PARAMETRIC DIFFERENTIAL EQUATIONS∗
+
+Abdolmehdi Behroozi & Chaopeng Shen †
+
+Department of Civil and Environmental Engineering Penn State University University Park, PA 16802-1408, USA {amb10399, cxs1024}@psu.edu
+
+Daniel Kifer   
+School of Electrical Engineering and Computer Science   
+Penn State University   
+University Park, PA 16802-1408, USA   
+duk17@psu.edu
+
+# ABSTRACT
+
+Parametric differential equations of the form $\begin{array} { r } { \frac { \partial u } { \partial t } = f ( u , x , t , p ) } \end{array}$ are fundamental in science and engineering. While deep learning frameworks like the Fourier Neural Operator (FNO) efficiently approximate differential equation solutions, they struggle with inverse problems, sensitivity calculations $\frac { \partial u } { \partial p }$ , and concept drift. We address these challenges by introducing a novel sensitivity loss regularizer, demonstrated through Sensitivity-Constrained Fourier Neural Operators (SC-FNO). Our approach maintains high accuracy for solution paths and outperforms both standard FNO and FNO with Physics-Informed Neural Network regularization. SC-FNO exhibits superior performance in parameter inversion tasks, accommodates more complex parameter spaces (tested with up to 82 parameters), reduces training data requirements, and decreases training time while maintaining accuracy. These improvements apply across various differential equations and neural operators, enhancing their reliability without significant computational overhead $( 3 0 \% - 1 3 0 \%$ extra training time per epoch). Models and selected experiment code are available at: https://github.com/AMBehroozi/SC_Neural_Operators.
+
+# 1 INTRODUCTION
+
+Ordinary and Partial Differential Equations (ODEs and PDEs), which contain physically meaningful parameters p, form the foundation of most modern engineering systems across diverse fields such as fluid mechanics, medicine design, molecular dynamics, relativistic physics, climate, and environmental sciences (Palais & Palais, 2009). These physical parameters p, whether describing fixed or evolving system properties (Feng et al., 2022), physiological constants (Reichert & Omlin, 1997), environmental characteristics (Tartakovsky et al., 2020), or serving as simplifications for subgrid-scale processes (Yuval & O’Gorman, 2020; Watt-Meyer et al., 2024), significantly influence the behavior of the equations. Neural Operators are neural networks whose inputs are initial conditions and physical parameters, and whose output is a function u, also known as a solution path, that approximates the solution to the ODE/PDE. When the values of $\mathbf { p }$ are known, neural operators can be used for simulations (predicting system state ${ \bf \delta u } ( t )$ at time $t$ ). However, in many cases, there is uncertainty about the values of p, so they must be estimated from observations of u. This is known as (parameter) inversion. The estimated p can then be used to simulate u beyond existing observations, or they may themselves be quantities of interest to scientists. Other potential uses of neural operators include sensitivity analysis (i.e., estimating $\partial \mathbf { u } / \partial \mathbf { p } )$ and applying them in situations not covered by training data. Even state-of-the-art neural operators struggle with these applications and this paper presents a method to address this problem.
+
+Fourier Neural Operators (FNOs). Introduced in 2021, FNOs (Li et al., 2021; 2024) leverage the linear nature of differential operators in Fourier space, delivering orders of magnitude of computational efficiencies compared to traditional numerical solvers. They are currently the most popular type of neural operator. FNOs are known for their meshless—or discretization-invariant—characteristics, and some versions eliminate the need for time-stepping, allowing them to output solutions at any spatiotemporal resolution. FNOs achieve these improvements over prior surrogate models (Audet et al., 2000; Alizadeh et al., 2020) by utilizing representations in the frequency domain to efficiently learn time trajectories of the evolution of initial conditions. Learning the trajectories in time domain would necessitate large amounts of weights and extensive training data.
+
+While this method offers significant efficiency, prediction accuracy may decline for predictions far into the future (Grady et al., 2023), prompting the use of additional constraints in some models (Jiang et al., 2023; Bonev et al., 2023). FNO is so far mostly used in forward simulations and research; the critical issues of parameter inversion have received much less attention by neural operator research and estimating the parameter sensitivity ${ \partial \mathbf { u } } / { \partial \mathbf { p } }$ has not been studied for neural operators (to the best of our knowledge). Li et al. (2021) evaluate the use of FNO to run the differential equation backward in time to recover initial conditions; although they name it Bayesian inversion, they did not recover physical parameters. In follow-up work, (Li et al., 2023) also observed the problems of using FNO for parameter inversion and proposed to add physics-informed neural network (PINN) regularization to training. While it improves over vanilla FNO, we show that our approach can outperform $\mathrm { F N O + P I N N }$ by up to $30 \%$ . Furthermore, $\mathrm { F N O + P I N N }$ still produces inaccurate sensitivity estimates. An alternative to neural operators is learning direct inverse mapping (Vadeboncoeur et al., 2023; Li et al., 2023), but then one still needs separate techniques for estimating solution paths and sensitivities. In contrast, SC-FNO addresses all of these issues in one (convenient) framework.
+
+Sensitivity awareness allows a model to adapt its predictions to different scenarios and respond to input and parameter changes, thus reducing overfitting and improving robustness. In practical applications, the ability to predict these Jacobians of the outputs with respect to physical parameters p can also have significant value. In engineering design and control systems, knowing the sensitivity of performance outputs relative to design parameters helps in optimizing design and improving performance. Similarly, in financial modeling or resource management, sensitivity information allows for better risk assessment and resource allocation decisions. Gradient-based optimization or data assimilation (Barker et al., 2004), of course, is critically guided by gradients. In scenario analysis, parameters or inputs are perturbed, often beyond the observed ranges, to assess the responses. Without correctly capturing the sensitivity, the responses could be erroneous (Saltelli et al., 2019).
+
+Gradient Computation for PDE Solvers: Gradient, or sensitivity computations, are widely used in the analysis of partial differential equations (PDEs). Traditionally, methods like finite differences can approximate gradients using existing numerical solvers and they remain relevant. Now we also have the option of using automatic differentiation (AD) offered by differentiable-programming platforms such as PyTorch, TensorFlow, Julia, or JAX, which enable efficient computation of gradients of outputs with respect to inputs. While the main purpose of implementing solvers on these platforms is often to train process-based equations together ("end-to-end") with NNs so that missing relationships can be learned along with partial knowledge (Innes et al., 2019; Shen et al., 2023; Zhu et al., 2023; Schoenholz & Cubuk, 2020; Tsai et al., 2021), these solvers can indeed provide rapid calculation of gradients as a byproduct. Gradients can be also computed by adjoint methods, either "discretize-thenoptimize"(Onken & Ruthotto, 2020; Song et al., 2024a) or "optimize-then-discretize" (Chen et al., 2018). Differentiable PDE solvers are rapidly increasing across numerous domains, demonstrating highly competitive performance, especially in data-scarce (Feng et al., 2023) or unseen extreme (Song et al., 2024b) scenarios. Our work is compatible with either finite differences or AD. In this context, our work introduces a novel methodology that seamlessly integrates sensitivity analysis directly into the Fourier Neural Operator framework, significantly enhancing the operator’s capability to tackle both forward and inverse problems. Notable studies such as Gradient enhanced neural networks Liu & Batill (2000) and Sobolev training Czarnecki et al. (2017) have explored the utilization of derivative information to improve neural network training, but they focused on low-dimensional approximation of derivatives. Our proposed Sensitivity-Constrained Fourier Neural Operator (SC-FNO) overcomes the problems with the estimation of parametric sensitivity, allowing better inversion while maintaining FNO-level computational efficiency for solving differential equations. The SC-FNO can provide highly accurate parameter sensitivities with less training data, ensuring that solution accuracy is maintained even under input perturbations and even concept drift (physical parameters in testing exceed ranges encountered during training). Although we focus attention on FNOs here, our experiments show the approach generalizes to many other neural operators (see Appendix D.1).
+
+# 2 METHODOLOGY
+
+Training data for Neural Operators are obtained by running physics-based model simulations multiple times with different initial conditions and physical parameters. We note that for differentiable physicsbased models, the sensitivities $\partial \mathbf { u } / \partial \mathbf { p }$ can also be computed. For non-differentiable models, they can be approximated with finite differences. The training of SC-FNO uses a loss function $L _ { u }$ over the solution paths (as with FNO) and also adds a loss $L _ { s }$ over the parameter sensitivities. One can optionally add a PINN equation loss $L _ { E q }$ (resulting in SC-FNO-PINN). This framework can be used with other neural operators as well (see Appendix D.1).
+
+# 2.1 SC-FNO: ENHANCING FNO WITH SENSITIVITY
+
+Original Fourier Neural Operators (Li et al., 2021): FNOs represent a class of learning architectures designed to model mappings between infinite-dimensional function spaces, thereby providing efficient solutions to complex parametric PDEs. Mathematically, FNOs operate within a defined domain $\mathbf { D } \subset \mathbf { R } ^ { d }$ . The function spaces, denoted as ${ \bf A } ( { \bf D } ; { \bf R } ^ { d _ { a } } )$ for inputs and ${ \bf U } ( { \bf D } ; { \bf R } ^ { d _ { u } } )$ for outputs, encapsulate the functional domains of the inputs and outputs respectively. The goal of an FNO is to approximate the operator $\mathbf { G } : \mathbf { A } \times \Theta  \mathbf { U }$ , which ideally maps each input function $\mathbf { a } _ { j }$ in $\mathbf { A }$ to an output function $\mathbf { u } _ { j }$ in U. Formally, the FNO framework is expressed as:
+
+$$
+\widetilde { \mathbf { G } } : \mathbf { A } \times \boldsymbol { \Theta }  \mathbf { U } ,
+$$
+
+where $\Theta$ represents the space of parameters that the FNO optimizes to reduce the discrepancy between predicted and true outputs. The Fourier transformation, essential in the operation of FNOs, is applied to transform function data into the frequency domain, facilitating the application of linear operators:
+
+$$
+( \mathbf { F f } ) _ { j } ( \mathbf { k } ) = \int _ { \mathbf { D } } \mathbf { f } _ { j } ( \mathbf { x } ) e ^ { - 2 \pi i \langle \mathbf { x } , \mathbf { k } \rangle } \mathrm { d } \mathbf { x } \qquad \mathrm { a n d } \qquad ( \mathbf { F } ^ { - 1 } \mathbf { f } ) _ { j } ( \mathbf { x } ) = \int _ { \mathbf { D } } \mathbf { f } _ { j } ( \mathbf { k } ) e ^ { 2 \pi i \langle \mathbf { x } , \mathbf { k } \rangle } \mathrm { d } \mathbf { k } .
+$$
+
+This representation utilizes the convolution theorem to model complex nonlinear behaviors efficiently:
+
+$$
+\mathbf { K } ( \phi ) \mathbf { v } _ { t } ( \mathbf { x } ) = \mathbf { F } ^ { - 1 } ( \mathbf { R } _ { \phi } \cdot ( \mathbf { F } \mathbf { v } _ { t } ) ) ( \mathbf { x } ) ,
+$$
+
+where $\mathbf { R } _ { \phi }$ represents a learnable parameterized function within the Fourier domain, allowing FNOs to encode and decode information effectively. While FNOs offer significant computational advantages, they necessitate extensive training data (Kovachki et al., 2021; Li et al., 2021). Moreover, generalizing beyond the training datasets remains a challenge.
+
+Our Contribution: We introduce sensitivity-based loss terms to Neural Operators, resulting in a novel framework we call Sensitivity-Constrained Neural Operators (SC-NO) (Figure A.7 in Appendix A). For clarity, we demonstrate this concept primarily through its application to Fourier Neural Operators (FNO), yielding SC-FNO. However, we also show that the framework is generalizable to various types of neural operators, such as Wavelet Neural Operators (Tripura & Chakraborty, 2023), Multiwavelet Neural Operators (Gupta et al., 2021), and DeepONets (Wang et al., 2021) (descriptions and results are in Appendix D.1). The current neural operator training never harnessed sensitivity information (such as Jacobians) and never explicitly guaranteed how the inputs should be used in the model. However, our approach leverages either finite difference or a differentiable solver to compute these sensitivities. This development improves the robustness of prediction of both u and $\partial \mathbf { u } / \partial \mathbf { p }$ by ensuring that input variables are utilized correctly by the FNO — we dictate the sensitivity of the predicted outcomes with respect to input parameters and initial conditions, while in the future boundary conditions can also be incorporated. The model is expressed concisely as:
+
+$$
+\mathbf { u } ( \mathbf { x } , t ) = \mathcal { F } _ { \mathrm { S C - F N O } } ( \mathbf { u } _ { 0 } , \mathbf { x } , t , \mathbf { p } ) ,
+$$
+
+where $\mathcal { F } _ { \mathrm { S C - F N O } }$ denotes the SC-FNO mapping, $\mathbf { u } _ { 0 }$ are the initial conditions, $\mathbf { X }$ represents spatial coordinates, $t$ is time. The output $\mathbf { u }$ is governed by the differential equation:
+
+$$
+\frac { \partial { \bf u } } { \partial t } = f ( { \bf u } , { \bf x } , t , { \bf p } ) ,
+$$
+
+with $f$ defining the dynamics of the system. In this formulation, $\mathbf { p }$ encapsulates parameters that critically modulate, influence, or characterize the system, including physical constants, material properties, or scale-dependent parameterizations. SC-FNO incorporates a sensitivity loss to enforce the accuracy of the predicted sensitivities (Jacobians) against those computed from the differentiable numerical solver. The SC-FNO model computes the solution u across all time and space in a single execution. The mathematical definition of sensitivity loss $L _ { \mathrm { s } }$ is as follows:
+
+$$
+L _ { \mathrm { s } } = \frac { 1 } { M } \sum _ { j = 1 } ^ { M } \left\| \frac { \partial \hat { \mathbf { u } } ( \mathbf { x } _ { j } , t _ { j } ; \mathbf { p } ) } { \partial \mathbf { p } } - \frac { \partial \mathbf { u } ( \mathbf { x } _ { j } , t _ { j } ; \mathbf { p } ) } { \partial \mathbf { p } } \right\| ^ { 2 } .
+$$
+
+where $\mathbf { x } _ { j }$ and $t _ { j }$ represent the spatial and temporal coordinates of the sampled points at which the Jacobians are evaluated. ${ \partial \hat { \mathbf { u } } } / { \partial \bar { \mathbf { p } } }$ is the Jacobian of the predicted outputs with respect to the input parameters, obtained through AD applied to the SC-FNO. ${ \partial \mathbf { u } } / { \partial \mathbf { p } }$ is the true Jacobian derived from precise differentiable numerical solvers or known analytical solutions. $M$ denotes the number of evaluation points across the domain, including points used to impose boundary and initial conditions.
+
+# 2.2 THE PINN-LOSS EQUATION AS AN OPTIONAL REGULARIZER
+
+Physics-Informed Neural Networks (PINNs) regularize the gradients of the neural networks using the governing differential equations at collocation points and boundary conditions Raissi et al. (2019); Karniadakis et al. (2021); He et al. (2022). The core PDE constraint in PINNs is represented as:
+
+$$
+\mathcal { N } [ \mathbf { u } ( \mathbf { x } , t ) ; \mathbf { p } ] = 0
+$$
+
+The PINN loss function, $L _ { \mathrm { E q } }$ , incorporates the discrepancy from the PDE with terms for initial and boundary conditions ( $L _ { \mathrm { I C } }$ and $\scriptstyle L _ { \mathrm { B C , } }$ ):
+
+$$
+L _ { \mathrm { E q } } = L _ { \mathrm { P D E } } + \alpha ( L _ { \mathrm { I C } } + L _ { \mathrm { B C } } ) = \frac { 1 } { N } \sum _ { i = 1 } ^ { N } | \mathcal { N } [ \mathbf { u } ( \mathbf { x } _ { i } , t _ { i } ) ; \mathbf { p } ] | ^ { 2 } + \alpha ( L _ { \mathrm { I C } } + L _ { \mathrm { B C } } ) ,
+$$
+
+where $\alpha$ is a weighting factor, and $N$ denotes the number of collocation points in the computational domain. PINNs trained for specific conditions often cannot predict general evolutionary trajectories or guarantee accurate parameter sensitivity Jin et al. (2021); Ren et al. (2022). Additionally, PINNs can be computationally slower than traditional numerical solvers. In this work, we evaluate the ability of PINN-type loss to improve prediction accuracy along with sensitivities. In a broadened sense, SC-FNO can be considered a novel type of PINN as it also regularizes the gradient of the neural networks, but their procedures are fundamentally different. PINNs do not have access to this sensitivity, as usual PDEs do not contain $\partial \mathbf { u } / \partial \mathbf { p }$ . SC-FNO prepares gradient data to supervise ${ \partial \mathbf { u } } / { \partial \mathbf { p } }$ but do not require optimization during forward simulation, whereas PINNs rely on collocation points for equation-based loss optimization to supervise $( \partial { \mathbf { u } } / \partial { \mathbf { x } } , \partial { \mathbf { u } } / \partial { \mathbf { t } } )$ , but not $\partial \mathbf { { \bar { u } } } / \partial \mathbf { { p } }$ . SC-FNO is designed to serve as an efficient forward simulator that can handle various changes in high dimensional input, which can also help with inversion tasks.
+
+# 2.3 GRADIENT COMPUTATION METHODS FOR DIFFERENTIAL EQUATIONS
+
+To prepare training and validation datasets containing true solution paths along with their sensitivity (gradients with respect to parameters), we developed and implemented two distinct approaches:
+
+1. A differentiable numerical solver based on the torchdiffeq package. We extended this ODE-oriented framework to handle PDEs by reformulating them in the form $\begin{array} { r } { \frac { d \mathbf { u } } { d t } = \mathbb { R } \mathrm { H } \mathbf { S } ( \mathbf { x } ) } \end{array}$ , where $\mathrm { R H S } ( \mathbf { x } )$ encapsulates terms related to spatial derivatives. This solver leverages PyTorch’s AD capability, although adjoint methods can also be used. The computation time for preparing datasets with and without Jacobian computation is presented in Table D.12. 2. Finite difference methods for gradient computation with a traditional solver. The method approximates gradients by solving the PDE multiple times with slightly perturbed parameter values and computing the differences between the solutions. This process offers a nonintrusive means of gradient estimation for any existing numerical solvers.
+
+We implemented efficient functions to compute the sensitivities. These solution paths and sensitivities are computed once and archived for later use, though they could also be generated on the fly if desired. This represents a one-time cost per equation, and since input impacts are resolved upfront, no repeated preparation is needed for different parameters. We assessed the effectiveness of both gradient computation methods and compared their accuracies.
+
+# 2.4 IMPLEMENTATION DETAILS
+
+The SC-FNO architecture processes parameters $\mathbf { \tau } ( \mathbf { p } )$ alongside spatial coordinates and initial conditions through the lifting layer as function inputs. This layer reshapes and repeats parameters to match the problem’s spatial-temporal dimensions, then concatenates them with other inputs before neural network processing. Notably, both FNO and SC-FNO share identical neural network architectures and inputs, differing only in their loss configurations. After computing true gradients $( \partial \mathbf { u } / \partial \mathbf { p } )$ once during dataset preparation (Section 2.3), our training procedure contains several efficiency-focused steps. Instead of computing gradients at all points, we randomly select a subset of spatial-temporal points in each epoch $\mathit { n } < N$ spatial points $\times t < T$ time points) where $n < N$ and $t < T$ . The neural operator’s predicted gradients at these points are computed using AD and compared with the pre-computed true gradients. This sampling varies between epochs to eventually cover the full solution space. This procedure eliminates the need for additional solver runs during training while maintaining effective sensitivity supervision. Each minibatch requires only one forward pass before applying AD, adding minimal computational overhead. The pre-computed gradients are stored and reused throughout training, making the approach efficient as parameter dimensionality increases.
+
+# 3 EXPERIMENTS
+
+We evaluated four different configurations of the FNO models, each defined by a unique combination of loss functions. The first configuration uses only the data loss $L _ { \mathrm { u } }$ (FNO), which matches predicted state variables with the solution paths; The second, $L _ { \mathrm { u } } + L _ { \mathrm { E q } }$ (FNO-PINN), incorporates the equation loss; The third, ${ \cal L } _ { \mathrm { u } } + { \cal L } _ { \mathrm { E q } } + { \cal L } _ { s }$ (SC-FNO-PINN), combining both sensitivity and equation losses; and finally, $L _ { \mathrm { u } } + L _ { s }$ (SC-FNO), which adds only sensitivity loss to data loss. Pseudocodes for these models can be found in the Appendix A. We evaluated the competing methods on the following well-known differential equations.
+
+ODE1: Composite Harmonic Oscillator and ODE2: Duffing Oscillator Equation each operate within a temporal domain of $t \in [ 0 , 1 ]$ , where was discretized into $N = 1 0 0$ equal time steps. Our goal was to learn the operator that maps the first $M$ time steps of solutions $u$ , alongside parameters $\mathbf { p }$ , to the solutions at the next $N - M$ subsequent time steps, formulated as $u : [ 0 : M ] \cup { \bf p }  u : [ M : N ]$
+
+PDE1: Generalized Nonlinear Damped Wave Equation is explored within both a temporal domain $t \in [ 0 , 1 ]$ and a spatial domain $x \in [ 0 , 1 ]$ . The temporal domain was discretized into $N = 3 0$ equal time steps and the spatial domain was discretized into $S _ { x } = 2 0$ . We aim to learn the operator that maps from the first $M$ initial time steps of $u$ , alongside parameters $\mathbf { p }$ , to the next $N - M$ subsequent time steps, expressed as $u : [ 0 , S _ { x } ] ^ { 1 } \stackrel { \cdot } { \times } [ 0 , M ] \cup \bar { \bf p }  u : [ 0 , S _ { x } ] ^ { 1 } \stackrel { \cdot } { \times } [ M , N ]$ .
+
+PDE2: Forced Burgers’ Equation is analyzed across a time interval $t \in [ 0 , \pi ]$ and a spatial domain $x \in [ 0 , 1 ]$ . The temporal domain is segmented into $N = 3 0$ equal parts, and the spatial domain into $S _ { x } = 4 0$ parts. The aim is to identify the operator that maps the first $M$ time steps of $u$ , in conjunction with parameters $\mathbf { p }$ , to the remaining $N - M$ time steps, formulated as $\boldsymbol { u } : [ 0 , S _ { x } ] ^ { 1 } \times [ 0 , \dot { M } ] \cup \mathbf { p }  \boldsymbol { u } : [ 0 , S _ { x } ] ^ { 1 } \times [ \bar { M } , N ]$ .
+
+PDE3: Stream Function-Vorticity Formulation of the Navier-Stokes Equations spans the temporal domain $t \in [ 0 , 3 ]$ and spatial domains $x , y \in [ 0 , 1 ]$ . The spatial domain and the temporal domain are $[ 0 , 1 ]$ and $[ 0 , 3 ]$ , respectively. The 2D spatial domain was discretized into $S _ { x } = S _ { y } = 6 4$ equal spatial divisions. Here, our goal is to learn an operator that takes initial conditions of $u$ along with parameters $\mathbf { p }$ , and directly maps them to the solution of vorticity at the final time step $t = 3 s$ formulated as $u : [ 0 , S _ { x } ] \times [ 0 , \dot { S } _ { y } ] \stackrel { \cdot } { \times } [ t = 0 ( s ) ] \cup \mathbf { p }  u : [ 0 , S _ { x } ] \times [ \dot { 0 } , S _ { y } ] \times [ t = 3 ( s ) ]$ .
+
+PDE4: Allen-Cahn equation is analyzed within temporal domain $t \in [ 0 , 1 . 0 ]$ and spatial domain $x \in [ 0 , 1 ]$ , discretized into $N = 3 0$ and $S _ { x } = 4 0$ parts respectively. We aim to learn the operator that maps from first $M$ time steps of $u$ and parameters $\mathbf { p }$ to the next $N - M$ time steps, formulated as $u : [ 0 , S _ { x } ] ^ { 1 } \times [ 0 , M ] \cup \mathbf { p }  u : [ 0 , S _ { x } ] ^ { 1 } \times [ M , N ]$ .
+
+Detailed specifications of the differential equations and the ranges of their parameters are provided in Table B.6 in Appendix B. The architectural details, hyperparameters and training time information are comprehensively presented in Tables C.7 and C.8 in Appendix C.
+
+In the following, we first demonstrate the superior performance of SC-FNO in inversion (or optimization) tasks compared to FNO alone. Then we explain such outperformance using several experiments: we show how trained FNOs alone captured the gradients poorly and thus fared worse than SC-FNOs when inputs are perturbed, which often occurs during inversion. Then, we show that SC-FNO requires fewer training samples to reach higher quality, particularly when the input dimension is higher. Finally, we show that finite difference can also be functional. Experiments were run with various neural operators and PDEs to ensure the generality of the conclusions.
+
+# 3.1 PARAMETER INVERSION FROM SOLUTION PATHS
+
+Parameter inversion with PDEs plays a pivotal role in system identification, calibration, and optimization, and serves as a primary area benefiting from the efficiency of surrogate models. Our inversion experiments utilized FNO and SC-FNO surrogate models, which were trained and rigorously evaluated on synthetic datasets as described in Section 3.2 for PDE1-PDE3. These datasets, containing $2 \times 1 0 ^ { 3 }$ training samples, were generated using the differentiable numerical solver. They feature randomly generated initial conditions and parameter values, alongside their corresponding solutions at multiple time points (Table B.6 in Appendix B) and Jacobians. We used $70 \%$ of the data for training, $15 \%$ for validation, and $15 \%$ for testing, and ensured that the validation and test sets contained parameter values not encountered during training. The first experiment inverted the models to infer the $\alpha$ parameter alone while treating others as known. We then used backpropagation to optimize the parameter by minimizing the discrepancy between the synthetic data and PDE solutions. The second task simultaneously inverted all parameters of either PDE1 or PDE2. SC-FNO demonstrates notably superior performance over FNO and FNO-PINN in simple inversion tasks, achieving nearly perfect inversion while the latter two showed significantly more scattering (Figure 1). In the single-parameter inversion, SC-FNO $R ^ { 2 } = 0 . 9 9 8$ ) achieves less than 1/5 and 1/4 the relative $\mathrm { L } ^ { 2 }$ inversion errors of FNO $R ^ { 2 } = 0 . 9 0 5 )$ and FNO-PINN, respectively (Figure 1a). Multi-parameter inversion incurs larger uncertainty and greater contrasts — SC-FNO has 1/6 and $1 / 2 . 8$ the relative L² inversion errors of FNO and FNO-PINN, respectively (Figures 1b and 2). Retrieving $\alpha$ in the multi-parameter case results in large heteroscedastic scattering with FNO ( $R ^ { 2 } = 0 . 6 3 5 )$ , whereas SC-FNO remains highly accurate (Figure 1b). For PDE2 with four parameters, SC-FNO’s $R ^ { 2 }$ values are above 0.96, while those of FNO hover around 0.85. For PDE1 with five parameters, SC-FNO maintains $R ^ { 2 }$ above 0.94 for all parameters, while those of FNO drop below 0.64, suggesting overfitting and a breakdown of the surrogate model. Similar contrasts are found with PDE3 (Navier Stokes) (Figure D.10 in Appendix D). This performance gap may widen further with increased parameter dimensions. FNO-PINN’s relative $\mathrm { L } ^ { 2 }$ is half of that of FNO (Figures 1 and 2) but still $3 \mathrm { X } \mathrm { - } 5 \mathrm { X }$ that of SC-FNO. Additional scatter plots for parameter inversion are available in Figures D.8 and D.9 in Appendix D. The introduction of the sensitivity loss lead to consistent enhancements across other neural operators like WNO, MWNO, and DeepONet, with uniform conclusions reflected in Table D.11 in Appendix D. These enhancements are larger than the differences between different neural operators. By training on both solution data and their gradients, SC-FNO builds a more robust internal representation of the PDE dynamics, particularly regarding the roles of inputs. The next sections explore in more depth the advantages of gradient-aware surrogate models.
+
+![](images/figures/sc-fno-fig-0001.jpg)  
+Figure 1: Inversion of the parameter $_ \alpha$ in PDE1 using FNO and SC-FNO models (a) single parameter inversion, (b) simultaneous multi-parameter inversion.
+
+![](images/figures/sc-fno-fig-0002.jpg)  
+Figure 2: Simultaneous multi-parameter inversion accuracy for PDEs 1 and 2 using FNO and SC-FNO.
+
+# 3.2 SURROGATE MODEL QUALITY AND ROBUSTNESS TO INPUT PERTURBATION
+
+Surrogate quality assessments indicate that the superior inversion performance of SC-FNO, even with so few parameters, can be attributed to the model’s unique ability to accurately capture parameter sensitivities and its robustness to input perturbations. As discussed earlier, the surrogate models were trained on identical input and output datasets uniformly prepared for each differential equation, but only SC-FNO or SC-FNO-PINN used parameter sensitivities. We first evaluated the models on test datasets with parameters ranging from [a, b], the same as the training data, as detailed in Table B.6 in Appendix B. Subsequently, to assess the models’ generalizability, we perturbed the parameters beyond their original ranges by applying various perturbation percentages, $\lambda$ , resulting in a parameter range of ([b, $( 1 + \lambda )  { \mathbf { b } } ] ,$ ). By systematically increasing $\lambda$ , we evaluated the models’ performance at various levels of extrapolation beyond the training dataset.
+
+Table 1: Error metrics for PDE1 (5 parameters) and PDE2 (4 parameters) with $2 \times 1 0 ^ { 3 }$ training samples. Both have low dimensional parameters. (a) PDE1   
+
+<table><tr><td rowspan="2">Value</td><td rowspan="2">Metric</td><td colspan="4">Original range of parameters</td><td colspan="4">Perturbed range (λ : 0.4)</td></tr><tr><td>FNO</td><td>SC-FNO</td><td>SC-FNO-PINN</td><td>FNO-PINN</td><td>FNO</td><td>SC-FNO</td><td>SC-FNO-PINN</td><td>FNO-PINN</td></tr><tr><td rowspan="2">u(t)</td><td>R2</td><td>0.986</td><td>0.983</td><td>0.989</td><td>0.978</td><td>0.529</td><td>0.912</td><td>0.928</td><td>0.620</td></tr><tr><td>Relative L2</td><td>0.0146</td><td>0.0175</td><td>0.0112</td><td>0.0220</td><td>0.4716</td><td>0.0882</td><td>0.0721</td><td>0.3805</td></tr><tr><td rowspan="2">∂u ∂c</td><td>R2</td><td>0.723</td><td>0.924</td><td>0.943</td><td>0.801</td><td>0.515</td><td>0.901</td><td>0.915</td><td>0.605</td></tr><tr><td>Relative L2</td><td>0.2772</td><td>0.0761</td><td>0.0577</td><td>0.1992</td><td>0.4855</td><td>0.0993</td><td>0.0851</td><td>0.3953</td></tr><tr><td rowspan="2">∂u ∂α</td><td>R2</td><td>0.741</td><td>0.925</td><td>0.945</td><td>0.805</td><td>0.522</td><td>0.908</td><td>0.924</td><td>0.615</td></tr><tr><td>Relative L2</td><td>0.2590</td><td>0.0750</td><td>0.0552</td><td>0.1955</td><td>0.4780</td><td>0.0924</td><td>0.0767</td><td>0.3852</td></tr><tr><td rowspan="2">∂u ∂β</td><td>R2</td><td>0.763</td><td>0.930</td><td>0.956</td><td>0.817</td><td>0.530</td><td>0.914</td><td>0.930</td><td>0.622</td></tr><tr><td>Relative L2</td><td>0.2370</td><td>0.0700</td><td>0.0441</td><td>0.1834</td><td>0.4708</td><td>0.0862</td><td>0.0732</td><td>0.3781</td></tr><tr><td rowspan="2">∂u</td><td>R2</td><td>0.772</td><td>0.931</td><td>0.955</td><td>0.815</td><td>0.539</td><td>0.920</td><td>0.936</td><td>0.630</td></tr><tr><td>Relative L2</td><td>0.2283</td><td>0.0696</td><td>0.0451</td><td>0.1858</td><td>0.4610</td><td>0.0801</td><td>0.0644</td><td>0.3706</td></tr><tr><td rowspan="2">∂u</td><td>R2</td><td>0.781</td><td>0.932</td><td>0.963</td><td>0.825</td><td>0.545</td><td>0.924</td><td>0.937</td><td>0.632</td></tr><tr><td>Relative L2</td><td>0.2190</td><td>0.0682</td><td>0.0375</td><td>0.1752</td><td>0.4557</td><td>0.0761</td><td>0.0633</td><td>0.3687</td></tr></table>
+
+(b) PDE2   
+
+<table><tr><td rowspan="2">Value</td><td rowspan="2">Metric</td><td colspan="4">Original range of parameters</td><td colspan="4">Perturbed range (λ : 0.4)</td></tr><tr><td>FNO</td><td>SC-FNO</td><td>SC-FNO-PINN</td><td>FNO-PINN</td><td>FNO</td><td>SC-FNO</td><td>SC-FNO-PINN</td><td>FNO-PINN</td></tr><tr><td rowspan="2">u(t)</td><td>R2</td><td>0.997</td><td>0.997</td><td>0.995</td><td>0.995</td><td>0.734</td><td>0.933</td><td>0.923</td><td>0.802</td></tr><tr><td>Relative L2</td><td>0.0029</td><td>0.0016</td><td>0.0065</td><td>0.0073</td><td>0.0325</td><td>0.0112</td><td>0.0124</td><td>0.0287</td></tr><tr><td rowspan="2">∂u</td><td>R2</td><td>0.206</td><td>0.987</td><td>0.907</td><td>0.137</td><td>0.152</td><td>0.904</td><td>0.830</td><td>0.113</td></tr><tr><td>Relative L2</td><td>0.2092</td><td>0.0135</td><td>0.0813</td><td>0.8545</td><td>1.1236</td><td>0.0755</td><td>0.0987</td><td>0.9865</td></tr><tr><td rowspan="2">∂u</td><td>R2</td><td>0.423</td><td>0.986</td><td>0.991</td><td>0.519</td><td>0.311</td><td>0.903</td><td>0.904</td><td>0.429</td></tr><tr><td>Relative L2</td><td>0.8542</td><td>0.0540</td><td>0.0523</td><td>0.7566</td><td>0.9875</td><td>0.0767</td><td>0.0755</td><td>0.8244</td></tr><tr><td rowspan="2">$∂fra }$</td><td>R2</td><td>0.821</td><td>0.912</td><td>0.957</td><td>0.871</td><td>0.604</td><td>0.835</td><td>0.876</td><td>0.719</td></tr><tr><td>Relative L2</td><td>0.1245</td><td>0.0756</td><td>0.0567</td><td>0.1023</td><td>0.2544</td><td>0.1023</td><td>0.0888</td><td>0.1567</td></tr><tr><td rowspan="2">u</td><td>R2</td><td>0.321</td><td>0.982</td><td>0.912</td><td>0.427</td><td>0.236</td><td>0.912</td><td>0.834</td><td>0.353</td></tr><tr><td>Relative L2</td><td>0.8856</td><td>0.0567</td><td>0.0789</td><td>0.7899</td><td>1.0244</td><td>0.0722</td><td>0.0944</td><td>0.8878</td></tr></table>
+
+For PDEs, when the test data originate from the same parameter ranges as the training data (Table B.6 in Appendix B), the solution paths are of high quality, but FNO learns sensitivities significantly poorer than those of SC-FNO (Table 1 left half). While the metrics for $u$ are similarly high among all models, the $R ^ { 2 }$ values for FNO gradients range only from 0.72 to 0.78 (relative L²: 0.28 to 0.22) for PDE1 and from 0.21 to 0.82 (relative L²: 0.21 to 0.12) for PDE2. In contrast, SC-FNO and SC-FNO-PINN consistently achieve $R ^ { 2 }$ values of 0.92-0.93 (relative L $^ { 2 } \colon 0 . 0 8 – 0 . 0 7 )$ for PDE1 and 0.91-0.99 (relative L²: 0.09-0.1) for PDE2. The inclusion of a PINN-type equation loss $( L _ { E q } )$ in FNO-PINN provides only minor benefits for $\textstyle { \frac { \partial \mathbf { u } } { \partial \mathbf { p } } }$ , with $R ^ { 2 }$ values remaining below 0.52 (relative L²: ${ > } 0 . 4 8$ ) for most gradients in PDE2. These improvements are not comparable to those achieved by SC-FNO and SC-FNO-PINN, highlighting the predominant impact of $L _ { s }$ terms. ODEs show a similar pattern where SC-FNO has much better sensitivity accuracy for both parameters (Appendix Table D.14) and initial conditions $\langle \gamma$ in Table $\mathbf { D . 1 4 a }$ and $\zeta$ in Table D.14b). In some sample test predictions (Figure 3a-d), surprisingly large and unphysical oscillations are observed in FNO-predicted sensitivities. These simple cases were designed to show that a surrogate model accurately predicting $u$ may fail to capture the dependence of solution paths on the inputs, leading to large inversion errors.
+
+This pattern is reliably repeated for more challenging PDEs with a small number of parameters, e.g., for PDE3 (Navier Stokes, 2 parameters), where models lacking the sensitivity loss well predicts vorticity but falter in capturing the sensitivities (Table 2), missing both fine-scale features and largescale patterns (Figure 6). In contrast, SC-FNO accurately recreates patterns and even fine-scale details. In the case of PDE4 (Allen-Cahn), a challenging test case due to its bifurcation nature where small parameter changes can cause abrupt phase transitions in solutions, SC-FNO exhibits mildly better $u$ solution accuracy than FNO (Table 3). More noticeably, SC-FNO generates 1/25 the Jacobian error as FNO, even with reduced samples near critical parameter values where solution behavior changes sharply. Given the diverse dynamics in the equations tested, the general incapability of FNO to capture sensitivity is evident. Note that SC-FNO does not entail excessive additional training cost (Table C.8). We also tested a broad range of other neural operators, all of which exhibited markedly improved sensitivities upon introducing the sensitivity loss (Appendix Table D.9). The difficulty FNO has in capturing parameter gradients leads to prominently degraded performance under input perturbations, though SC-FNO remains robust and reliable. The $\overline { { R ^ { 2 } } }$ for the solution $\mathbf { u }$ at $40 \%$ perturbation decreases precipitously to 0.529 (relative L²: 0.471) for PDE1 and 0.734 (relative L²: 0.266) for PDE2, compared to 0.912 (relative L²: 0.088, 1/5 that of FNO’s) and 0.933 (relative L²: 0.067, 1/4 that of FNO’s) for SC-FNO, respectively (Table 1). As the perturbation ratio increases for PDE1, a stark decline in $R ^ { 2 }$ is observed for FNO, in contrast to the relatively stable SC-FNO (Figure 5). We argue that the large perturbation-induced error is a primary reason for FNO’s poor performance in inversion tasks, during which the search algorithm ventures into under-sampled regions of the parameter space, consistent with the arguments in Li et al. (2023). At an accuracy level of $\overline { { R ^ { 2 } } } = 0 . 5 2 9$ (relative L²: 0.471) (as illustrated in Figure 1b by the scatter plot), the surrogate model loses its ability to guide the inversion. Even without straying beyond the training parameter range, a mere change in the pattern of inter-parameter correlations could cause a departure from the training conditions (concept drift). While increasing training data can help, it becomes exponentially more difficult to adequately cover the parameter space for FNO as the input dimension increases. This challenge is highlighted by the contrasts observed between Figures 1a and 1b, as well as between Figures 2a and 2b. Additionally, SC-FNO-PINN only shows a slight benefit in $\mathrm { L } ^ { 2 }$ over SC-FNO in all of these tests (Table 1). The minimal impact of the equation loss is both surprising and previously unexamined. This ineffectiveness likely stems from the absence of terms related to (time-integrated) ${ \partial \mathbf { u } } / { \partial \mathbf { p } }$ in the differential equations, which leaves this sensitivity unconstrained even though $\mathbf { p }$ is in the equation. For coupled optimization tasks, it is imperative that surrogate models not only reflect the physical phenomena accurately but also adapt to new, unobserved conditions. SC-FNO thus provides an effective alternative solution.
+
+Table 2: Error metrics for PDE3 with $1 \times 1 0 ^ { 3 }$ training Samples. Both have   
+
+<table><tr><td></td><td colspan="2">ω</td><td colspan="2">∂ω/∂α</td><td colspan="2">∂ω/∂β</td></tr><tr><td>Method</td><td>Relative L2</td><td>R2</td><td>Relative L2</td><td>R2</td><td>Relative L2</td><td>R2</td></tr><tr><td>FNO</td><td>0.0312</td><td>0.997</td><td>0.7230</td><td>0.036</td><td>0.9642</td><td>0.036</td></tr><tr><td>SC-FNO</td><td>0.0345</td><td>0.994</td><td>0.0112</td><td>0.986</td><td>0.0132</td><td>0.987</td></tr></table>
+
+![](images/figures/sc-fno-fig-0003.jpg)  
+Figure 3: Sample prediction of models for ODEs and PDE1 and PDE2.
+
+# 3.3 MODEL PERFORMANCE ACROSS VARYING TRAINING DATA VOLUMES
+
+We explored how different models respond to varying amounts of training data. Specifically, we aimed to investigate how the integration of different loss terms affects both the accuracy and the generalization capabilities of the models under limited training data scenarios. The remaining portion of the dataset, not used for training, served to test and measure the models’ performance.
+
+![](images/figures/sc-fno-fig-0004.jpg)  
+Figure 4: Models’ performance on PDE1 across training sample sizes, (a) ∂u∂ω (b) $u ( t )$ .
+
+![](images/figures/sc-fno-fig-0005.jpg)  
+Figure 5: Performance of modelStandardized $\frac { \partial \hat { \mathbf { u } } } { \partial \mathbf { p } }$ PDE1 fand (b) $u ( t )$ rturbed datasets, (a).
+
+![](images/figures/sc-fno-fig-0006.jpg)  
+Figure 6: Sample prediction of models for PDE 3
+
+Table 3: Performance comparison for PDE4   
+
+<table><tr><td rowspan="2">Metrics</td><td colspan="2">N=500</td><td colspan="2">N=100</td></tr><tr><td>FNO</td><td>SC-FNO</td><td>FNO</td><td>SC-FNO</td></tr><tr><td colspan="5">State Value Metrics</td></tr><tr><td>R2</td><td>0.999</td><td>0.999</td><td>0.997</td><td>0.998</td></tr><tr><td>Relative L2</td><td>0.0110</td><td>0.0081</td><td>0.0205</td><td>0.0151</td></tr><tr><td colspan="5">Mean Jacobian Metrics</td></tr><tr><td>R2</td><td>-3.11</td><td>0.998</td><td>-5.8373</td><td>0.993</td></tr><tr><td>Relative L2</td><td>0.5212</td><td>0.0207</td><td>0.5830</td><td>0.0486</td></tr></table>
+
+Table 4: Performance comparison for zoned PDE2   
+
+<table><tr><td rowspan="2">Metrics</td><td colspan="2">N=500</td><td colspan="2">N=100</td></tr><tr><td>FNO</td><td>SC-FNO</td><td>FNO</td><td>SC-FNO</td></tr><tr><td colspan="5">State Value Metrics</td></tr><tr><td>R2</td><td>0.960</td><td>0.997</td><td>0.927</td><td>0.996</td></tr><tr><td>Relative L²</td><td>0.0282</td><td>0.0073</td><td>0.0387</td><td>0.0087</td></tr><tr><td colspan="5">Mean Jacobian Metrics</td></tr><tr><td>R2</td><td>-8.332</td><td>0.949</td><td>-14.012</td><td>0.927</td></tr><tr><td>Relative L2</td><td>1.9627</td><td>0.1770</td><td>2.4623</td><td>0.2134</td></tr></table>
+
+The experiment demonstrates that FNO performance can rapidly degrade as the volume of training data decreases, whereas SC-FNO can maintain higher accuracy and continue to function effectively as a surrogate model (Figure 4). While all models exhibit a decrease in $R ^ { 2 }$ scores for both state values $u ( t )$ and gradients $\frac { \partial \hat { u } } { \partial \mathbf { p } }$ as training sizes diminish, SC-FNO and SC-FNO-PINN show a notably slower rate of decline. With only 500 training samples, FNO’s $R ^ { 2 }$ dropped to 0.8, displaying an acceleration in degradation, while SC-FNO maintained an $R ^ { 2 }$ around 0.9, comparable to FNO’s performance with 1,000 training samples. This advantage is attributed to the use of higher-order (gradient) information, which, similar to traditional numerical methods such as spline interpolation or second-order finite differences, typically results in a better rate of error convergence. This sensitivity to the volume of training data contributed to FNO’s poor performance in inversion tasks (Section 3.1), indicating that dense training data is necessary throughout the parameter search space to ensure accuracy. In practical applications where comprehensive datasets are unattainable, the ability to maintain high model performance with fewer examples is invaluable.
+
+# 3.4 HANDLING FUNCTIONAL AND HIGH-DIMENSIONAL PARAMETER SPACE
+
+All previous examples have small numbers of scalar parameters. To evaluate the models’ effectiveness with higher parameter dimensions, we modified PDE2 (Burger’s equation) with zoned parameters. We divided the spatial domain into $S = 4 0$ segments with different advection $\alpha$ and forcing amplitude $\delta$ in each zone, along with global parameters $\gamma$ and $\omega$ , resulting in $2 S + 2 = 8 2$ total parameters. Maintaining the settings from Section 3.2, models were trained with different sample sizes. SC-FNO’s advantages become immediately prominent from this higher dimensional case, even for the solution path $\mathbf { u }$ itself. At 500 samples, SC-FNO has only 1/4 the relative $\mathrm { L } ^ { 2 }$ error (0.0073) as FNO (0.0282, Table 4) while requiring moderately more training time (Appendix Table C.8). With $N = 1 0 0$ samples, SC-FNO maintains the low error (relative $\mathrm { L } ^ { 2 } = 0 . 0 0 8 7 $ ) while FNO degrades significantly (relative $\mathrm { L } ^ { 2 } = 0 . 0 3 9$ ). In fact, SC-FNO with 100 samples has less than $1 / 3$ of the relative $\mathrm { L } ^ { 2 }$ error of FNO with 500 samples, and also requires less time to train. SC-FNO’s level of accuracy seems elusive for FNO, which sees L² error decreasing by only $28 \%$ as $N$ increases from 100 to 500, and thus we argue SC-FNO lifts the performance ceiling. The contrast is more dramatic for Jacobian predictions (SC-FNO: relative $\mathrm { L } ^ { 2 } = 0 . 2 1 3$ ; FNO: relative $\mathrm { L } ^ { 2 } = 2 . 4 6$ ), which, as discussed earlier, has strong implications for the success of inversion and generalizability. These results highlight SC-FNO’s capability to handle high-dimensional parameter spaces efficiently, maintaining accuracy even with limited training data. We can reasonably hypothesize that drastically increasing the number of parameters will further highlight SC-FNO’s unique capability, which we reserve for future work.
+
+# 3.5 DIFFERENT GRADIENT CALCULATION METHODS
+
+We tested gradients derived from both a differentiable solver with automatic differentiation (AD) and a fourth-order finite difference solver (FD) using a traditional solver against the analytical solution for gradients of ODE1. The results of this verification are presented in Table D.13 in Appendix D.3. Following this validation, we used these methods to generate solution paths and sensitivities for training and testing surrogate models. We trained SC-FNOs using $70 \%$ of the produced data, dividing the remainder into $15 \%$ each for validation and testing. The validation and testing datasets included parameter values not featured in the training data, testing the models’ generalization capabilities. SC-FNOs trained with either AD- or FD-generated gradients proved effective, producing accurate predictions for both solutions and their gradients, as shown in Table 5. These models both achieved $\mathrm { R } ^ { 2 } > 0 . 9 5$ (relative $\mathrm { L } ^ { 2 } < 0 . 0 5$ ) for solution paths and $\mathrm { R } ^ { 2 } > 0 . 9$ (relative $\mathrm { L } ^ { 2 } < 0 . 1 $ ) for sensitivities. While AD provides higher accuracy and efficiency (Table D.13), FD remains effective and applicable to any existing model code. This makes SC-FNO versatile while maintaining computational efficiency comparable to traditional methods.
+
+Table 5: Performance comparison of SC-FNO and SC-FNO-PINN using AD and FD solvers.   
+
+<table><tr><td></td><td></td><td colspan="4">ODE1</td><td colspan="4">PDE1</td></tr><tr><td>Value</td><td>Metric</td><td>SC-FNO (AD)</td><td>SC-FNO (FD)</td><td>SC-FNO- PINN(AD)</td><td>SC-FNO- PINN(FD)</td><td>SC-FNO (AD)</td><td>SC-FNO (FD)</td><td>SC-FNO- PINN(AD)</td><td>SC-FNO- PINN(FD)</td></tr><tr><td>u</td><td>R2 Relative L2</td><td>0.991 0.009</td><td>0.968</td><td>0.994</td><td>0.983</td><td>0.983</td><td>0.963</td><td>0.989</td><td>0.978</td></tr><tr><td></td><td></td><td>0.996</td><td>0.032</td><td>0.006</td><td>0.017</td><td>0.017</td><td>0.037</td><td>0.011</td><td>0.022</td></tr><tr><td>Avg. ∂p</td><td>R2 Relative L2</td><td>0.004</td><td>0.987 0.013</td><td>0.995 0.005</td><td>0.983 0.017</td><td>0.928 0.072</td><td>0.913 0.087</td><td>0.952 0.048</td><td>0.932 0.068</td></tr></table>
+
+# 3.6 FURTHER DISCUSSION AND CONCLUSION
+
+This work has demonstrated the powerful regularizing effect of sensitivities. The effectiveness of SC-FNO stems from the explicit governance of input influence through time-integrated parameter sensitivities $( \partial u / \partial p )$ . Unlike PINNs, which supervise spatial-temporal derivatives $( \partial u / \partial \bar { \boldsymbol { x } } , \partial u / \partial t )$ through equation-based loss optimization, SC-FNO directly constrains parameter sensitivities typically absent in PDE formulations, using forward numerical models with differentiable solvers to prepare sensitivity data. This fundamental difference enhances model interpretability and reliability, making SC-FNO more suitable for coupled inversion or optimization tasks. Especially when input parameters have a higher dimension, SC-FNO can reduce training data demand, maintain robustness and generalizability, elevate the performance ceiling of neural operators, and even reduce training time. Our innovations include employing differentiable numerical solvers—and alternatively, finite differences—for computing (almost) exact gradients. Although differentiable programming is gaining traction in various domains (Shen et al., 2023; Song et al., 2024a; Aboelyazeed et al., 2023), few studies have leveraged computed gradients beyond backpropagation. We have used these gradients to supervise FNOs, calculating second-order gradients during training. The additional computational cost remains affordable—training the FNO on PDE1 used $7 2 2 \mathrm { M B }$ while training SC-FNO required $7 6 4 \mathrm { M B }$ . We argue that sensitivity regularization and time-step-free methods like FNO complement each other exceptionally well. SC-FNO’s programmatic differentiability allows its seamless integration with neural networks (NNs), speeding up hybrid NN-based learning and optimization. Accurate gradients are crucial for the effective training of coupled NNs, thus opening up new avenues in the field of AI-enhanced solutions to differential equations.
+
+# ACKNOWLEDGEMENTS
+
+This work was primarily supported by subaward A23-0249-S001 from the Cooperative Institute for Research to Operations in Hydrology (CIROH) through the National Oceanic and Atmospheric Administration (NOAA) Cooperative Agreement (grant no. NA22NWS4320003). The statements, findings, conclusions, and recommendations are those of the authors and do not necessarily reflect the view of NOAA. It was also partially supported by the U.S. Department of Energy, Office of Science, under award no. DE-SC0021979. Chaopeng Shen has financial interests in HydroSapient, Inc., a company that could potentially benefit from the results of this research. This interest has been reviewed by The Pennsylvania State University in accordance with its conflict of interest policy to ensure the objectivity and integrity of the research. The other authors have no competing interests to declare.
+
+# REFERENCES
+
+Doaa Aboelyazeed, Chonggang Xu, Forrest Hoffman, Jiangtao Liu, Alex Jones, Chris Rackauckas, Kathryn Lawson, and Chaopeng Shen. A differentiable, physics-informed ecosystem modeling and learning framework for large-scale inverse problems: demonstration with photosynthesis simulations. Biogeosciences, 20(13):2671–2692, 2023. doi: 10.5194/bg-20-2671-2023. URL https://bg.copernicus.org/articles/20/2671/2023/.
+
+Reza Alizadeh, Janet K Allen, and Farrokh Mistree. Managing computational complexity using surrogate models: a critical review. Research in Engineering Design, 31(3):275–298, 2020.
+
+Charles Audet, J Denni, Douglas Moore, Andrew Booker, and Paul Frank. A surrogate-modelbased method for constrained optimization. In 8th symposium on multidisciplinary analysis and optimization, pp. 4891, 2000.
+
+D. M. Barker, W. Huang, Y-R. Guo, A. J. Bourgeois, and Q. N. Xiao. A three-dimensional variational data assimilation system for mm5: Implementation and initial results. Monthly Weather Review, 132(4):897 – 914, 2004. doi: 10.1175/1520-0493(2004)132<0897:ATVDAS> 2.0.CO;2. URL https://journals.ametsoc.org/view/journals/mwre/132/4/ 1520-0493_2004_132_0897_atvdas_2.0.co_2.xml.
+
+Boris Bonev, Thorsten Kurth, Christian Hundt, Jaideep Pathak, Maximilian Baust, Karthik Kashinath, and Anima Anandkumar. Spherical Fourier neural operators: Learning stable dynamics on the sphere. In Proceedings of the 40th International Conference on Machine Learning, volume 202 of ICML’23, pp. 2806–2823, Honolulu, Hawaii, USA, July 2023. JMLR.org. doi: 10.5555/3618408. 3618525.
+
+Ricky T. Q. Chen, Yulia Rubanova, Jesse Bettencourt, and David Duvenaud. Neural ordinary differential equations. In Proceedings of the 32nd International Conference on Neural Information Processing Systems, NIPS’18, pp. 6572–6583, Montreal, Canada, December 2018. Curran Associates Inc.
+
+Wojciech M Czarnecki, Simon Osindero, Max Jaderberg, Grzegorz Swirszcz, and Razvan Pascanu. Sobolev training for neural networks. Advances in neural information processing systems, 30, 2017.
+
+Dapeng Feng, Jiangtao Liu, Kathryn Lawson, and Chaopeng Shen. Differentiable, learnable, regionalized process-based models with multiphysical outputs can approach state-of-the-art hydrologic prediction accuracy. Water Resources Research, 58(10):e2022WR032404, 2022. ISSN 1944-7973. doi: 10.1029/2022WR032404.
+
+Dapeng Feng, Hylke Beck, Kathryn Lawson, and Chaopeng Shen. The suitability of differentiable, physics-informed machine learning hydrologic models for ungauged regions and climate change impact assessment. Hydrology and Earth System Sciences, 27(12):2357–2373, June 2023. ISSN 1027-5606. doi: 10.5194/hess-27-2357-2023.
+
+Thomas J Grady, Ravi Khan, Mathias Louboutin, Ziyi Yin, Philipp A Witte, Ravi Chandra, et al. Model-parallel fourier neural operators as learned surrogates for large-scale parametric pdes. Computational Geosciences, 178:105402, 2023. doi: 10.1016/j.cageo.2023.105402.
+
+Gaurav Gupta, Xiongye Xiao, and Paul Bogdan. Multiwavelet-based Operator Learning for Differential Equations. In Advances in Neural Information Processing Systems, November 2021.
+
+QiZhi He, Panos Stinis, and Alexandre M. Tartakovsky. Physics-constrained deep neural network method for estimating parameters in a redox flow battery. Journal of Power Sources, 528:231147, April 2022. ISSN 0378-7753. doi: 10.1016/j.jpowsour.2022.231147.
+
+Mike Innes, Alan Edelman, Keno Fischer, Chris Rackauckas, Elliot Saba, Viral B. Shah, and Will Tebbutt. A Differentiable Programming System to Bridge Machine Learning and Scientific Computing, July 2019.
+
+Peishi Jiang, Zhao Yang, Jiali Wang, Chenfu Huang, Pengfei Xue, T. C. Chakraborty, Xingyuan Chen, and Yun Qian. Efficient Super-Resolution of Near-Surface Climate Modeling Using the Fourier Neural Operator. Journal of Advances in Modeling Earth Systems, 15(7):e2023MS003800, 2023. ISSN 1942-2466. doi: 10.1029/2023MS003800.
+
+Xiaowei Jin, Shengze Cai, Hui Li, and George Em Karniadakis. NSFnets (Navier-Stokes flow nets): Physics-informed neural networks for the incompressible Navier-Stokes equations. Journal of Computational Physics, 426:109951, February 2021. ISSN 0021-9991. doi: 10.1016/j.jcp.2020. 109951.
+
+George Em Karniadakis, Ioannis G. Kevrekidis, Lu Lu, Paris Perdikaris, Sifan Wang, and Liu Yang. Physics-informed machine learning. Nature Reviews Physics, 3(6):422–440, June 2021. ISSN 2522-5820. doi: 10.1038/s42254-021-00314-5.
+
+Nikola B Kovachki, Zongyi Li, Burigede Liu, Kamyar Azizzadenesheli, Kaushik Bhattacharya, Andrew Stuart, et al. Neural operator: Learning maps between function spaces. ArXiv Preprint ArXiv:210808481, 2021.
+
+Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier Neural Operator for Parametric Partial Differential Equations, May 2021.
+
+Zongyi Li, Hongkai Zheng, Nikola Kovachki, David Jin, Haoxuan Chen, Burigede Liu, Kamyar Azizzadenesheli, and Anima Anandkumar. Physics-informed neural operator for learning partial differential equations, 2023.
+
+Zongyi Li, Hongkai Zheng, Nikola Kovachki, David Jin, Haoxuan Chen, Burigede Liu, Kamyar Azizzadenesheli, and Anima Anandkumar. Physics-Informed Neural Operator for Learning Partial Differential Equations. ACM / IMS Journal of Data Science, February 2024. doi: 10.1145/3648506.
+
+Lukas Liebel and Marco Körner. Auxiliary tasks in multi-task learning. arXiv preprint arXiv:1805.06334, 2018.
+
+Weiyu Liu and S Batill. Gradient-enhanced neural network response surface approximations. In 8th Symposium on Multidisciplinary Analysis and Optimization, pp. 4923, 2000.
+
+Derek Onken and Lars Ruthotto. Discretize-Optimize vs. Optimize-Discretize for Time-Series Regression and Continuous Normalizing Flows, July 2020.
+
+Richard S Palais and Robert Andrew Palais. Differential equations, mechanics, and computation, volume 51. American Mathematical Soc., 2009.
+
+M. Raissi, P. Perdikaris, and G. E. Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics, 378:686–707, 2019. ISSN 0021-9991. doi: 10/gfzbvx.
+
+Peter Reichert and Martin Omlin. On the usefulness of overparameterized ecological models. Ecological Modelling, 95(2):289–299, February 1997. ISSN 0304-3800. doi: 10.1016/S0304-3800(96) 00043-9.
+
+Pu Ren, Chengping Rao, Yang Liu, Jian-Xun Wang, and Hao Sun. PhyCRNet: Physics-informed convolutional-recurrent network for solving spatiotemporal PDEs. Computer Methods in Applied Mechanics and Engineering, 389:114399, February 2022. ISSN 0045-7825. doi: 10.1016/j.cma. 2021.114399.
+
+Andrea Saltelli, Ksenia Aleksankina, William Becker, Pamela Fennell, Federico Ferretti, Niels Holst, Sushan Li, and Qiongli Wu. Why so many published sensitivity analyses are false: A systematic review of sensitivity analysis practices. Environmental modelling & software, 114:29–39, 2019.
+
+Samuel Schoenholz and Ekin Dogus Cubuk. JAX MD: A Framework for Differentiable Physics. In Advances in Neural Information Processing Systems, volume 33, pp. 11428–11441. Curran Associates, Inc., 2020.
+
+Chaopeng Shen, Alison P. Appling, Pierre Gentine, Toshiyuki Bandai, Hoshin Gupta, Alexandre Tartakovsky, Marco Baity-Jesi, Fabrizio Fenicia, Daniel Kifer, Li Li, Xiaofeng Liu, Wei Ren, Yi Zheng, Ciaran J. Harman, Martyn Clark, Matthew Farthing, Dapeng Feng, Praveen Kumar, Doaa Aboelyazeed, Farshid Rahmani, Yalan Song, Hylke E. Beck, Tadd Bindas, Dipankar Dwivedi, Kuai Fang, Marvin Höge, Chris Rackauckas, Binayak Mohanty, Tirthankar Roy, Chonggang Xu, and Kathryn Lawson. Differentiable modelling to unify machine learning and physical models for geosciences. Nature Reviews Earth & Environment, 4(8):552–567, August 2023. ISSN 2662-138X. doi: 10.1038/s43017-023-00450-9.
+
+Yalan Song, Wouter Knoben, Martyn Clark, Dapeng Feng, Kathryn Lawson, Kamlesh Sawadekar, and Chaopeng Shen. When ancient numerical demons meet physics-informed machine learning: adjoint-based gradients for implicit differentiable modeling. Hydrology and Earth System Sciences, 28(13):3051–3077, 2024a. doi: 10.5194/hess-28-3051-2024. URL https: //hess.copernicus.org/articles/28/3051/2024/.
+
+Yalan Song, Kamlesh Sawadekar, Jonathan M Frame, Ming Pan, Martyn Clark, Wouter JM Knoben, Andrew W Wood, Trupesh Patel, and Chaopeng Shen. Improving physics-informed, differentiable hydrologic models for capturing unseen extreme events. ESS Open Archive, 2024b. doi: 10.22541/essoar.172304428.82707157/v1. URL https://doi.org/10.22541/essoar. 172304428.82707157/v1.
+
+A. M. Tartakovsky, C. Ortiz Marrero, Paris Perdikaris, G. D. Tartakovsky, and D. Barajas-Solano. Physics-informed deep neural networks for learning parameters and constitutive relationships in subsurface flow problems. Water Resources Research, 56(5):e2019WR026731, 2020. ISSN 1944-7973. doi: 10.1029/2019wr026731.
+
+Tapas Tripura and Souvik Chakraborty. Wavelet Neural Operator for solving parametric partial differential equations in computational mechanics problems. Computer Methods in Applied Mechanics and Engineering, 404:115783, February 2023. ISSN 0045-7825. doi: 10.1016/j.cma. 2022.115783.
+
+Wen-Ping Tsai, Dapeng Feng, Ming Pan, Hylke Beck, Kathryn Lawson, Yuan Yang, Jiangtao Liu, and Chaopeng Shen. From calibration to parameter learning: Harnessing the scaling effects of big data in geoscientific modeling. Nature Communications, 12(1):5988, October 2021. ISSN 2041-1723. doi: 10.1038/s41467-021-26107-z.
+
+Arnaud Vadeboncoeur, Ömer Deniz Akyildiz, Ieva Kazlauskaite, Mark Girolami, and Fehmi Cirak. Fully probabilistic deep models for forward and inverse problems in parametric pdes. Journal of Computational Physics, 491:112369, 2023. ISSN 0021-9991. doi: https://doi.org/10.1016/j.jcp. 2023.112369. URL https://www.sciencedirect.com/science/article/pii/ S0021999123004643.
+
+Sifan Wang, Hanwen Wang, and Paris Perdikaris. Learning the solution operator of parametric partial differential equations with physics-informed deeponets. Science advances, 7(40):eabi8605, 2021.
+
+Oliver Watt-Meyer, Noah D. Brenowitz, Spencer K. Clark, Brian Henn, Anna Kwa, Jeremy McGibbon, W. Andre Perkins, Lucas Harris, and Christopher S. Bretherton. Neural Network Parameterization of Subgrid-Scale Physics From a Realistic Geography Global Storm-Resolving Simulation. Journal of Advances in Modeling Earth Systems, 16(2):e2023MS003668, 2024. ISSN 1942-2466. doi: 10.1029/2023MS003668.
+
+Janni Yuval and Paul A. O’Gorman. Stable machine-learning parameterization of subgrid processes for climate modeling at a range of resolutions. Nature Communications, 11(1):3295, July 2020. ISSN 2041-1723. doi: 10.1038/s41467-020-17142-3.
+
+Shang Zhu, Bharath Ramsundar, Emil Annevelink, Hongyi Lin, Adarsh Dave, Pin-Wen Guan, Kevin Gering, and Venkatasubramanian Viswanathan. Differentiable Modeling and Optimization of Battery Electrolyte Mixtures Using Geometric Deep Learning, November 2023.
+
+# APPENDIX
+
+# A SC-FNO ARCHITECTURE AND SENSITIVITY INTEGRATION
+
+Figure A.7 illustrates the schematic of the SC-FNO model architecture. In this framework, this variation of the Fourier Neural Operator (FNO) integrates various inputs: parameters $( \mathbf { P } )$ that influence the differential equation, spatial and temporal coordinates $( X : [ x , y , t ] )$ , and the function $a ( x )$ , which may represent different initial conditions. This setup enables comprehensive learning and adaptation across different scenarios by leveraging both automatic differentiation for optimization and multiple loss components tailored to the specific dynamics and constraints of the system. Furthermore, in our framework, the FNO can be regularized by both a PINN-style differential equation $( L _ { E q } )$ as well as the sensitivities (gradients of the solution path of a differential equation with respect to parameters contributing to the diff equation). These regularization terms ensure that the model adheres to the underlying physical laws that reflect how the solution path is determined by a parameter and how it changes when a parameter changes.
+
+![](images/figures/sc-fno-fig-0007.jpg)  
+Figure A.7: Schematic of SC-FNO architecture.
+
+Pseudocode for different FNO models, each with various loss configuration settings, are presented as follows. This section aims to highlight how different loss functions can be integrated and optimized within these models to enhance their predictive accuracy and performance.
+
+# Algorithm 1 FNO Training Loop with $L _ { u }$ Loss Over Epochs
+
+1: Initialize FNO model   
+2: for epoch $= 1$ to max_epochs do   
+3: Shuffle training data   
+4: for each batch $\mathbf { P }$ , $\mathbf { u } _ { \mathrm { t r u e } }$ in training data do   
+5: Predict state values using FNO: $\hat { \mathbf { u } } \gets \mathrm { F N O } ( \mathbf { P } )$   
+6: Calculate loss: $L _ { u } = \log ( \hat { \mathbf { u } } , \mathbf { u } _ { \mathrm { t r u e } } )$   
+7: Backpropagate loss and update FNO model   
+8: end for   
+9: Evaluate on validation set   
+10: Record training and validation loss   
+11: end for
+
+Algorithm 2 SC-FNO Training Loop with $L _ { u }$ and $L _ { s }$ Loss Over Epochs
+
+1: Initialize FNO model   
+2: for epoch $= 1$ to max_epochs do   
+3: Shuffle training data   
+4: for each batch P, utrue, ∂utrue in training data do   
+5: Predict state values using FNO: $\hat { \mathbf { u } } \gets \mathrm { F N O } ( \mathbf { P } )$   
+6: Calculate primary loss: $L _ { u } = \log ( \hat { \mathbf { u } } , \mathbf { u } _ { \mathrm { t r u e } } )$   
+7: Predict Jacobian of state values using Auto Diff (AD): $\begin{array} { r } { \hat { \mathbf { J } }  \frac { \partial \hat { \mathbf { u } } } { \partial \mathbf { P } } } \end{array}$   
+8: Calculate sensitivity loss: $\begin{array} { r } { L _ { s } = \log s ( \hat { \mathbf { J } } , \frac { \partial \mathbf { u } _ { \mathrm { t r u e } } } { \partial \mathbf { P } } ) } \end{array}$   
+9: Calculate total loss: ${ \cal L } _ { \mathrm { t o t a l } } = { \bf c } _ { 1 } \cdot { \cal L } _ { u } + { \bf c } _ { 2 } \cdot { \cal L } _ { s }$   
+10: Backpropagate total loss and update FNO model   
+11: end for   
+12: Eevaluate on validation set   
+13: Record training and validation loss   
+14: end for
+
+# Algorithm 3 SC-FNO-PINN Training Loop with $L _ { u }$ , $L _ { s }$ , and $L _ { e q }$ Loss Over Epochs
+
+1: Initialize FNO model   
+2: for epoch $= 1$ to max_epochs do   
+3: Shuffle training data   
+4: for each batch P, utrue, ∂utrue in training data do   
+5: Predict state values using FNO: $\hat { \mathbf { u } } \gets \mathrm { F N O } ( \mathbf { P } )$   
+6: Calculate primary loss: $\bar { L } _ { u } = \log ( \hat { \mathbf { u } } , \mathbf { u } _ { \mathrm { t r u e } } )$   
+7: Predict Jacobian of state values using Auto Diff (AD): $\begin{array} { r } { \hat { \mathbf { J } }  \frac { \partial \hat { \mathbf { u } } } { \partial \mathbf { P } } } \end{array}$   
+8: Calculate sensitivity loss: $\begin{array} { r } { L _ { s } = \log ( \hat { \mathbf { J } } , \frac { \partial \mathbf { u } _ { \mathrm { t r u e } } } { \partial \mathbf { P } } ) } \end{array}$   
+9: Calculate equation loss: $L _ { e q } =$ residual(uˆ)   
+10: Calculate total loss: $L _ { \mathrm { t o t a l } } = \mathbf { c } _ { 1 } \cdot L _ { u } + \mathbf { c } _ { 2 } \cdot L _ { s } + \mathbf { c } _ { 3 } \cdot L _ { e q }$   
+11: Backpropagate total loss and update FNO model   
+12: end for   
+13: Evaluate on validation set   
+14: Record training and validation loss   
+15:
+
+# B DIFFERENTIAL EQUATION DETAILS
+
+In this section, the differential equations investigated in the work are detailed. This includes their mathematical formulations, initial conditions, parameter setups.
+
+ODE1: Composite Harmonic Oscillator We chose this ODE because it has an analytical solution, allowing us to validate our differential equation solvers and sensitivity computations. The ODE is defined as:
+
+$$
+{ \frac { d u } { d t } } = \alpha \sin ( \alpha \pi t ) + \beta \cos ( \beta \pi t )
+$$
+
+with the initial condition $u ( 0 ) = \sin ( \gamma \pi )$ . This oscillator’s behavior is modulated by the parameters $\alpha$ , $\beta$ , and $\gamma$ , affecting the frequency and amplitude of oscillations within the temporal domain $t \in [ 0 , 1 ]$ . The analytical solution for $\mathbf { u ( t ) }$ is:
+
+$$
+u ( t ) = - \frac { 1 } { \pi } \cos ( \alpha \pi t ) + \frac { 1 } { \pi } \sin ( \beta \pi t ) + \sin ( \gamma \pi ) + \frac { 1 } { \pi }
+$$
+
+The sensitivities of $\mathbf { u }$ with respect to each parameter are:
+
+$$
+\begin{array} { r } { \displaystyle { \frac { \partial u } { \partial \alpha } } = t \sin ( \alpha \pi t ) } \\ { \displaystyle { \frac { \partial u } { \partial \beta } } = t \cos ( \beta \pi t ) } \\ { \displaystyle { \frac { \partial u } { \partial \gamma } } = \pi \cos ( \gamma \pi ) } \end{array}
+$$
+
+These analytical solutions provide a benchmark against which we can compare the accuracy of our numerical solvers and sensitivity computations.
+
+# ODE2: Duffing Oscillator Equation
+
+$$
+\ddot { x } + \delta \dot { x } + \alpha t + \beta t ^ { 3 } = \gamma \cos ( \omega t ) ,
+$$
+
+with initial conditions $x ( 0 ) = \epsilon , \dot { x } ( 0 ) = \zeta$ . This equation describes a non-linear oscillator where damping $\delta$ , stiffness $\alpha$ , non-linear stiffness $\beta$ , driving amplitude $\gamma$ , and frequency $\omega$ play crucial roles.
+
+# PDE1: Generalized Nonlinear Damped Wave Equation
+
+$$
+\frac { \partial ^ { 2 } u } { \partial t ^ { 2 } } = c ^ { 2 } \frac { \partial ^ { 2 } u } { \partial x ^ { 2 } } + \alpha \frac { \partial u } { \partial t } + \beta u + \gamma \sin ( \omega u ) ,
+$$
+
+al conditions and tempora $u ( x , 0 ) = u _ { 0 }$ $\textstyle { \frac { \partial u } { \partial t _ { - } } } ( x , 0 ) = u _ { 0 } ^ { \prime }$ . This PDE extends over a spatial domawave propagation influenced by damping $x \in [ 0 , 1 ]$ $t \in [ 0 , 1 ]$ $\alpha$ stiffness $\beta$ , and external forcing $\gamma$ and $\omega$ .
+
+# PDE2: Forced Burgers’ Equation
+
+$$
+{ \frac { 1 } { \pi } } { \frac { \partial u } { \partial t } } + \alpha u { \frac { \partial u } { \partial x } } = \gamma { \frac { \partial ^ { 2 } u } { \partial x ^ { 2 } } } + \delta \sin ( \omega t ) ,
+$$
+
+This equation is set within a spatial domain $x \in [ 0 , 1 . 0 ]$ and a temporal domain $t \in [ 0 , \pi ]$ . It models fluid dynamics phenomena such as velocity $u ( x , t )$ , incorporating effects of advection $\alpha$ , viscosity $\gamma$ , and external periodic forcing characterized by amplitude $\delta$ and frequency $\omega$ . The initial state of the system is defined as follows:
+
+$$
+u ( x , 0 ) = u _ { 0 } ( x ) = \left( e ^ { - \frac { ( x - x _ { 0 } ) ^ { 2 } } { 2 \sigma ^ { 2 } } } + \sin ( 0 . 5 \pi x ) \right) ,
+$$
+
+where the Gaussian pulse is centered at $x _ { 0 } = 0 . 5$ with a width $\sigma = 0 . 3$ , combined with a sinusoidal component. The model employs periodic boundary conditions, ensuring that $u ( 0 , t ) = u ( 1 . 0 , t )$
+
+throughout the simulation, facilitating the study of continuous and cyclic phenomena in a finite spatial interval.
+
+# PDE3: Stream Function-Vorticity Formulation of the Navier-Stokes Equations
+
+$$
+\frac { \partial \omega } { \partial t } + \psi _ { y } \frac { \partial \omega } { \partial x } - \psi _ { x } \frac { \partial \omega } { \partial y } = \frac { 1 } { R e } \left( \frac { \partial ^ { 2 } \omega } { \partial x ^ { 2 } } + \frac { \partial ^ { 2 } \omega } { \partial y ^ { 2 } } \right) ,
+$$
+
+$$
+{ \frac { \partial ^ { 2 } \psi } { \partial x ^ { 2 } } } + { \frac { \partial ^ { 2 } \psi } { \partial y ^ { 2 } } } = - \omega ,
+$$
+
+with initial condition $\omega ( x , y , 0 ) = f ( x , y ; \alpha , \beta )$ where:
+
+$$
+f ( x , y ; \alpha , \beta ) = \sin ( \alpha x ) \cos ( \beta y ) + \cos ( \alpha y ) \sin ( \beta x ) + \sin ( \alpha x + \beta y ) \cos ( \alpha y - \beta x ) ,
+$$
+
+covering the spatial domain $x , y \in [ 0 , 1 ]$ and temporal domain $t i n [ 0 , 3 ]$ . The Reynolds Number $R e$ for the Navier-Stokes equations is set to 1000 to simulate realistic fluid dynamics. This equation captures the dynamics of fluid flow, with initial vorticity distribution determined by parameters $\alpha$ and $\beta$ .
+
+# PDE4: Allen-Cahn equation
+
+$$
+\frac { \partial \boldsymbol { u } } { \partial t } = \epsilon \frac { \partial ^ { 2 } \boldsymbol { u } } { \partial x ^ { 2 } } + \alpha \boldsymbol { u } - \beta \boldsymbol { u } ^ { 3 } ,
+$$
+
+with initial condition $u ( x , 0 ) = c \operatorname { t a n h } ( \omega x )$ and periodic boundary conditions. This PDE, known for exhibiting rich bifurcation behavior, explores phase transition phenomena influenced by diffusion coefficient $\epsilon$ , linear term $\alpha$ , cubic term $\beta$ , and initial condition parameters $c$ and $\omega$ . The equation’s solutions can undergo sharp qualitative changes with small parameter variations, making it an excellent test case for sensitivity analysis.
+
+The parameter ranges used in our simulations are detailed in Table B.6. Parameters for these simulations were randomly generated using a uniform distribution. The uniform distribution is denoted by $\textstyle { \mathcal { U } } ( a , b )$ , where $a$ is the lower bound and $b$ is the upper bound of the distribution. This means that any value within the range $[ a , b ]$ has an equal probability of being selected. The uniform distribution was chosen to ensure a balanced representation of parameter values across the entire specified range, without favoring any particular subset of values. This approach allows for a comprehensive exploration of the parameter space, providing a robust test of our models across a wide range of potential input conditions.
+
+Table B.6: Parameter values for different ODE and PDE cases.   
+
+<table><tr><td>Case</td><td>c</td><td>α</td><td>β</td><td>γ</td><td>δ</td><td>ω</td><td>€</td><td>ζ</td><td>M</td></tr><tr><td>ODE 1</td><td></td><td>[1, 3]</td><td>[1, 3]</td><td>[0, 1]</td><td></td><td></td><td></td><td></td><td>10</td></tr><tr><td>ODE 2</td><td></td><td>[0.02, 0.06]</td><td>[0.01, 0.03]</td><td>[20, 60]</td><td>[0.5, 1.5]</td><td>[0.2, 0.6]</td><td>[0.0, 0.2]</td><td>[0.0, 0.2]</td><td>10</td></tr><tr><td>PDE 1</td><td>[0.0, 0.25]</td><td>[0.0, 0.1]</td><td>[0.0, 0.25]</td><td>[0.0, 0.25]</td><td></td><td>[0.0, 0.25]</td><td></td><td></td><td>5</td></tr><tr><td>PDE 2</td><td></td><td>[0.1, 1.0]</td><td></td><td>[0.025, 0.25]</td><td>[0.1, 0.5]</td><td>[0.01, 0.1]</td><td></td><td></td><td>5</td></tr><tr><td>PDE 3</td><td></td><td>[π, 5π]</td><td>[π, 5π]</td><td>-</td><td></td><td></td><td>-</td><td></td><td>1</td></tr><tr><td>PDE 4</td><td>[0.1,0.9]</td><td>[0.01,1.0]</td><td>[0.01,1.0]</td><td>-</td><td>-</td><td>[5.0, 10.0]</td><td>[0.01,1.0]</td><td>-</td><td>5</td></tr></table>
+
+# C FNOS HYPERPARAMETERS
+
+Table C.7 presents the hyperparameters used for training the FNO models for each case study. In the network architecture, "Mode" refers to the Fourier modes used in the neural network’s layers for each dimension (t, x, and y), while "Width" denotes the number of channels or features in the hidden layers of the neural network. The learning rate and number of epochs used for training are also provided for each case. Additionally, Table C.8 compares training times per epoch for different model configurations and batch sizes.
+
+Table C.7: Hyperparameters for FNOs   
+
+<table><tr><td>Case</td><td>Mode for t</td><td>Mode for x</td><td>Mode for y</td><td>Width</td><td>Number of Fourier Layers</td><td>Learning Rate</td><td>Number of Epochs</td><td>Number of Learnable Parameters</td></tr><tr><td>ODE 1</td><td>8</td><td>8</td><td>-</td><td>20</td><td>4</td><td>0.001</td><td>500</td><td>17921</td></tr><tr><td>ODE 2</td><td>8</td><td>8</td><td>-</td><td>20</td><td>4</td><td>0.001</td><td>500</td><td>17921</td></tr><tr><td>PDE 1</td><td>8</td><td>8</td><td>-</td><td>20</td><td>4</td><td>0.001</td><td>500</td><td>107897</td></tr><tr><td>PDE 2</td><td>8</td><td>8</td><td>8</td><td>20</td><td>4</td><td>0.001</td><td>500</td><td>107897</td></tr><tr><td>PDE 3</td><td>-</td><td>8</td><td>8</td><td>20</td><td>4</td><td>0.001</td><td>500</td><td>209397</td></tr><tr><td>PDE 4</td><td>8</td><td>8</td><td>8</td><td>20</td><td>4</td><td>0.001</td><td>500</td><td>107897</td></tr></table>
+
+Table C.8: Comparison of model configurations and training time   
+
+<table><tr><td rowspan="2">Case</td><td rowspan="2">Batch size</td><td rowspan="2">Number of physical parameters (p)</td><td rowspan="2">Number of training samples</td><td colspan="4">Average training time per epoch (s)</td></tr><tr><td>FNO</td><td>SC-FNO</td><td>FNO-PINN</td><td>SC-FNO-PINN</td></tr><tr><td>ODE1</td><td>16</td><td>3</td><td>2000</td><td>1.10</td><td>1.94</td><td>1.53</td><td>2.46</td></tr><tr><td>ODE2</td><td>16</td><td>7</td><td>2000</td><td>1.58</td><td>2.13</td><td>1.76</td><td>2.86</td></tr><tr><td>PDE1</td><td>4</td><td>5</td><td>2000</td><td>35.24</td><td>53.32</td><td>52.13</td><td>82.13</td></tr><tr><td>PDE2</td><td>4</td><td>4</td><td>2000</td><td>32.66</td><td>44.92</td><td>39.11</td><td>73.06</td></tr><tr><td>PDE2 (Zoned)</td><td>1</td><td>82</td><td>100</td><td>5.37</td><td>7.23</td><td>-</td><td>-</td></tr><tr><td>PDE2 (Zoned)</td><td>1</td><td>82</td><td>500</td><td>8.09</td><td>11.23</td><td></td><td></td></tr><tr><td>PDE3</td><td>4</td><td>2</td><td>1000</td><td>47.16</td><td>109.43</td><td></td><td></td></tr><tr><td>PDE4</td><td>1</td><td>5</td><td>100</td><td>11.54</td><td>19.12</td><td></td><td></td></tr></table>
+
+# D ADDITIONAL RESULTS
+
+# D.1 PERFORMANCE COMPARISON OF NEURAL OPERATORS
+
+This appendix section presents a comprehensive comparison of the performance of various neural operators, both in their original form and with our proposed sensitivity-constrained framework. We evaluate these operators on four different systems, PDE1 and PDE2. The following tables provide quantitative results for Fourier Neural Operators (FNO), Wavelet Neural Operators (WNO), Multiwavelet Neural Operators (MWNO), and DeepONets, along with their sensitivity-constrained counterparts.
+
+Table D.9: $R ^ { 2 }$ for PDE1 with $2 \times 1 0 ^ { 3 }$ training samples.   
+
+<table><tr><td>Value</td><td>FNO</td><td>SC-FNO</td><td>WNO</td><td>SC-WNO</td><td>MWNO</td><td>SC-MWNO</td><td>DeepONet</td><td>SC-DeepONet</td></tr><tr><td>u(t)</td><td>0.986</td><td>0.983</td><td>0.981</td><td>0.989</td><td>0.978</td><td>0.952</td><td>0.974</td><td>0.954</td></tr><tr><td>∂u</td><td>0.723</td><td>0.924</td><td>0.661</td><td>0.919</td><td>0.596</td><td>0.939</td><td>0.117</td><td>0.508</td></tr><tr><td>∂c</td><td>0.741</td><td>0.925</td><td>0.402</td><td>0.923</td><td>0.090</td><td>0.916</td><td>0.110</td><td>0.243</td></tr><tr><td>oα ∂β</td><td>0.763</td><td>0.930</td><td>0.921</td><td>0.914</td><td>0.863</td><td>0.915</td><td>0.778</td><td>0.827</td></tr><tr><td>∂u</td><td>0.772</td><td>0.931</td><td>0.572</td><td>0.834</td><td>0.531</td><td>0.659</td><td>0.483</td><td>0.572</td></tr><tr><td>o ∂ω</td><td>0.781</td><td>0.932</td><td>0.614</td><td>0.823</td><td>0.558</td><td>0.684</td><td>0.497</td><td>0.531</td></tr></table>
+
+Table D.10: $R ^ { 2 }$ for PDE2 with $2 \times 1 0 ^ { 3 }$ training samples.   
+
+<table><tr><td>Value</td><td>FNO</td><td>SC-FNO</td><td>WNO</td><td>SC-WNO</td><td>MWNO</td><td>SC-MWNO</td><td>DeepONet</td><td>SC-DeepONet</td></tr><tr><td>u(t)</td><td>0.997</td><td>0.997</td><td>0.981</td><td>0.979</td><td>0.989</td><td>0.971</td><td>0.990</td><td>0.985</td></tr><tr><td>ou</td><td>0.206</td><td>0.987</td><td>0.422</td><td>0.635</td><td>0.558</td><td>0.821</td><td>0.344</td><td>0.882</td></tr><tr><td></td><td>0.423</td><td>0.986</td><td>0.432</td><td>0.562</td><td>0.387</td><td>0.905</td><td>0.511</td><td>0.873</td></tr><tr><td> </td><td>0.821</td><td>0.912</td><td>0.865</td><td>0.894</td><td>0.501</td><td>0.932</td><td>0.445</td><td>0.958</td></tr><tr><td></td><td>0.321</td><td>0.982</td><td>0.425</td><td>0.542</td><td>0.214</td><td>0.952</td><td>0.363</td><td>0.806</td></tr></table>
+
+# D.2 ADDITIONAL RESULTS FOR THE INVERSION EXPERIMENTS
+
+Figures D.8, D.9 and D.10 showcase parameter inversion results for parameters for PDE1, PDE2, and PDE3, respectively. SC-FNO works significantly better than either FNO or FNO-PINN. Table D.11 shows the comparison between various neural operators and their sensitivity-constrained (SC-) versions in simultaneous parameter inversion. Note the uniform pattern that the sensitivity-constrained versions have much higher inversion accuracy. Furthermore, the differences between different neural operators are smaller than the difference between the versions with and without the sensitivity constraint.
+
+Table D.11: Multi-parameter inversion accuracy for PDEs 1 and 2 with and without gradient supervision. (a) PDE1   
+
+<table><tr><td></td><td colspan="4">Fourier Neural Operators</td><td colspan="6">Other Neural Operators</td></tr><tr><td></td><td colspan="2">FNO</td><td colspan="2">SC-FNO</td><td colspan="3">Without gradient supervision.</td><td colspan="3">With gradient supervision.</td></tr><tr><td>Parameter</td><td>R2</td><td>Relative L 2</td><td>R2</td><td>Relative L 2</td><td>WNO</td><td>MWNO</td><td>DeepONet</td><td>SC-WNO</td><td>SC-MWNO</td><td>SC-DeepONet</td></tr><tr><td>c</td><td>0.657</td><td>0.212</td><td>0.987</td><td>0.035</td><td>0.636</td><td>0.614</td><td>0.538</td><td>0.984</td><td>0.981</td><td>0.977</td></tr><tr><td>α</td><td>0.642</td><td>0.222</td><td>0.986</td><td>0.036</td><td>0.621</td><td>0.598</td><td>0.519</td><td>0.984</td><td>0.980</td><td>0.977</td></tr><tr><td>β</td><td>0.753</td><td>0.183</td><td>0.974</td><td>0.042</td><td>0.738</td><td>0.723</td><td>0.668</td><td>0.969</td><td>0.963</td><td>0.956</td></tr><tr><td>γ</td><td>0.804</td><td>0.165</td><td>0.985</td><td>0.037</td><td>0.792</td><td>0.780</td><td>0.736</td><td>0.982</td><td>0.978</td><td>0.975</td></tr><tr><td>ω</td><td>0.750</td><td>0.186</td><td>0.916</td><td>0.075</td><td>0.735</td><td>0.719</td><td>0.663</td><td>0.901</td><td>0.879</td><td>0.859</td></tr></table>
+
+(b) PDE2   
+
+<table><tr><td></td><td colspan="4">Fourier Neural Operators</td><td colspan="6">Other Neural Operators</td></tr><tr><td></td><td colspan="2">FNO</td><td colspan="2">SC-FNO</td><td colspan="3">Without Grad. Sup.</td><td colspan="3">With Grad. Sup.</td></tr><tr><td>Parameter</td><td>R2</td><td>Relative L2</td><td>R2</td><td>Relative L 2</td><td>WNO</td><td>MWNO</td><td>DeepONet</td><td>SC-WNO</td><td>SC-MWNO</td><td>SC-DeepONet</td></tr><tr><td>α</td><td>0.954</td><td>0.078</td><td>0.982</td><td>0.045</td><td>0.951</td><td>0.949</td><td>0.938</td><td>0.979</td><td>0.974</td><td>0.970</td></tr><tr><td>γ</td><td>0.925</td><td>0.082</td><td>0.967</td><td>0.022</td><td>0.921</td><td>0.916</td><td>0.899</td><td>0.961</td><td>0.953</td><td>0.945</td></tr><tr><td>δ</td><td>0.842</td><td>0.145</td><td>0.970</td><td>0.051</td><td>0.832</td><td>0.822</td><td>0.787</td><td>0.964</td><td>0.956</td><td>0.949</td></tr><tr><td>ω</td><td>0.895</td><td>0.118</td><td>0.986</td><td>0.042</td><td>0.889</td><td>0.838</td><td>0.859</td><td>0.983</td><td>0.973</td><td>0.976</td></tr></table>
+
+![](images/figures/sc-fno-fig-0008.jpg)  
+Figure D.8: Individual parameter results for PDE1 in simultaneous multi-parameter recovery, comparing FNO and SC-FNO performance. $\dot { \alpha }$ has been presented in Figure 1b)
+
+![](images/figures/sc-fno-fig-0009.jpg)  
+Figure D.9: Individual parameter results for PDE2 in simultaneous multi-parameter recovery, comparing FNO and SC-FNO performance.
+
+# D.3 VERIFICATION OF DIFFERENTIABLE AND FINITE DIFFERENCE SOLVERS
+
+Table D.13 presents a comparison of $R ^ { 2 }$ values for both the solution path u(t) and the gradients of u with respect to different parameters obtained from both differentiable solver (AD) and 4th order finite difference solver (FD). The table includes runtime measurements for generating $2 \times 1 0 ^ { 3 }$ samples using both solvers, providing insight into their computational efficiency. These measurements were obtained using a machine equipped with a V100 GPU and four Intel Xeon processors, offering a standardized comparison of computational cost (The Wall Clock Times) between the two solvers.
+
+![](images/figures/sc-fno-fig-0010.jpg)  
+Figure D.10: Inversion of the parameter $_ \alpha$ in PDE3 using FNO and SC-FNO models.
+
+Table D.12: Computation time for preparing datasets using AD solver with and without Jacobian   
+
+<table><tr><td rowspan="3">Case</td><td rowspan="3">Number of input parameter (P)</td><td colspan="2">Computation time (s)</td></tr><tr><td>With jacobian</td><td>Without jacobian</td></tr><tr><td>PDE1</td><td>5</td><td>1.852</td><td>0.932</td></tr><tr><td>PDE2</td><td>4</td><td>1.387</td><td>0.796</td></tr><tr><td>PDE3</td><td>2</td><td>6.205</td><td>2.762</td></tr></table>
+
+Table D.13: Error metrics and runtime comparison for training data preparation with AD and FD solvers on ODE1   
+
+<table><tr><td rowspan="2">Value</td><td colspan="2">FD solver</td><td colspan="2">AD solver</td></tr><tr><td>R2</td><td>Runtime</td><td>R2</td><td>Runtime</td></tr><tr><td>U ∂u</td><td>0.9872 0.9712</td><td>1907.32 s</td><td>0.9981 0.9906</td><td>252.54 s</td></tr><tr><td>O ∂u</td><td>0.9885</td><td></td><td>0.9989</td><td></td></tr><tr><td>∂γ</td><td>0.9618</td><td></td><td>0.9890</td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td></tr></table>
+
+# D.4 SURROGATE MODEL QUALITY FOR THE ORDINARY DIFFERENTIAL EQUATIONS (ODES).
+
+Table D.14: Test $R ^ { 2 }$ values and Relative L² for the solution paths $^ { u }$ and sensitivities $\begin{array} { r } { ( \frac { \partial u } { \partial p } ) } \end{array}$ of the surrogate models for ODE1 and ODE2 with $2 \times 1 0 ^ { 3 }$ training samples. The train and test parameters are in the same range. ODEs are simpler to capture by surrogate models than PDEs. (a) ODE1   
+
+<table><tr><td>Value</td><td>Metric</td><td>FNO</td><td>SC-FNO</td><td>SC-FNO-PINN</td><td>FNO-PINN</td></tr><tr><td>u(t)</td><td>R2</td><td>0.996</td><td>0.991</td><td>0.994</td><td>0.991</td></tr><tr><td></td><td>Relative L2</td><td>0.004</td><td>0.009</td><td>0.006</td><td>0.009</td></tr><tr><td>∂u ∂α</td><td>R2 Relative L2</td><td>0.327</td><td>0.994</td><td>0.992</td><td>0.318 0.682</td></tr><tr><td></td><td></td><td>0.673</td><td>0.006</td><td>0.008</td><td></td></tr><tr><td>$ara$</td><td>R2 Relative L2</td><td>0.415 0.585</td><td>0.995 0.005</td><td>0.995 0.005</td><td>0.462 0.538</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>∂u</td><td>R2 Relative L2</td><td>0.028</td><td>0.998 0.002</td><td>0.998 0.002</td><td>0.131 0.869</td></tr><tr><td></td><td></td><td>0.972</td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td>(b) ODE2</td><td></td><td></td></tr><tr><td>Value</td><td>Metric</td><td>FNO</td><td>SC-FNO</td><td>SC-FNO-PINN</td><td>FNO-PINN</td></tr><tr><td>u(t)</td><td>R2</td><td>0.998</td><td>0.995</td><td>0.997</td><td>0.997</td></tr><tr><td></td><td>Relative L2</td><td>0.002</td><td>0.005</td><td>0.003</td><td>0.003</td></tr><tr><td>$∂ua$</td><td>R2</td><td>0.162</td><td>0.997</td><td>0.998</td><td>0.152</td></tr><tr><td></td><td>Relative L2</td><td>0.838</td><td>0.003</td><td>0.002</td><td>0.848</td></tr><tr><td>$∂u</td><td>R2 Relative L2</td><td>0.956</td><td>0.997</td><td>0.998</td><td>0.951</td></tr><tr><td></td><td></td><td>0.044</td><td>0.003</td><td>0.002</td><td>0.049</td></tr><tr><td>$∂ura}$</td><td>R2</td><td>0.135</td><td>0.996</td><td>0.997</td><td>0.147</td></tr><tr><td></td><td>Relative L2</td><td>0.865</td><td>0.004</td><td>0.003</td><td>0.853</td></tr></table>

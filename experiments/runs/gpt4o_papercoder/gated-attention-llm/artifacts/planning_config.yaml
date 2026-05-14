@@ -1,0 +1,46 @@
+## config.yaml
+training:
+  learning_rate: 0.002  # Mentioned as max LR in the paper for MoE and dense configurations
+  min_learning_rate: 0.00003  # Decays to this value using a cosine schedule
+  batch_size: 1024  # For models trained on 400B tokens
+  large_batch_size: 2048  # For models trained on 3.5T tokens
+  epochs: 10  # Assumed based on 100k training steps, adapted for simplified reproduction
+  warmup_steps: 1000  # Based on specific schedule mentioned in the paper
+  total_steps: 100000  # Exact number of optimization steps mentioned
+
+model:
+  type: "transformer"  # Base Transformer structure with Gated Attention
+  layers: 28  # Default configuration for smaller dense models
+  hidden_size: 1024  # Assumed based on typical 1.7B parameter dense model specs
+  num_heads: 16  # Typical for transformer architecture
+  gated_attention_positions: ["G1", "G2"]  # Gating applied at SDPA and Value outputs
+  gating_config:
+    type: "multiplicative"  # Most effective type from the paper
+    granularity: "elementwise"  # Fine-grain gating mechanism
+    activation_function: "sigmoid"  # Critically preferred in the experiments
+
+dataset:
+  path_training: "path/to/training/data"  # Replace with actual path
+  path_evaluation: "path/to/evaluation/data"  # Replace with actual path
+  context_length: 4096  # Sequence length for main experiments
+  extended_context_length: 32000  # Extended sequence context for RULER experiments
+  vocabulary_size: 50000  # Assumed standard value
+
+evaluation:
+  metrics: ["perplexity", "accuracy"]  # Metrics evaluated on multiple downstream tasks
+  benchmarks:
+    - name: "Hellaswag"
+      type: "reasoning"
+    - name: "MMLU"
+      type: "general_knowledge"
+    - name: "GSM8k"
+      type: "math_reasoning"
+    - name: "HumanEval"
+      type: "programming"
+    - name: "C-Eval"
+      type: "chinese_proficiency"
+
+optimization:
+  optimizer: "adamw"
+  weight_decay: 0.01  # Not mentioned but commonly used in transformers
+  gradient_clipping: 1.0  # Default for numerical stability

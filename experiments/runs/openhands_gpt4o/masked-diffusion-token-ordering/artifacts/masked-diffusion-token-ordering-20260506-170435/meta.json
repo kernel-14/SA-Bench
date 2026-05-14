@@ -1,0 +1,9 @@
+{
+  "paper_id": "masked-diffusion-token-ordering",
+  "run_id": "masked-diffusion-token-ordering-20260506-170435",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 390.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 34
+}

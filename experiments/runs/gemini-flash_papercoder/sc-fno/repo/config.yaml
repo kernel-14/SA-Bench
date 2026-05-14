@@ -1,0 +1,174 @@
+## config.yaml
+experiment:
+  name: "SC-FNO_Reproduction"
+  seed: 42
+  log_dir: "./logs"
+  checkpoint_dir: "./checkpoints"
+
+training:
+  learning_rate: 0.001 # From Table C.7
+  epochs: 500 # From Table C.7
+  optimizer: "Adam" # Not explicitly specified, assumed based on common FNO practice
+  scheduler: null # Not specified in paper
+  loss_weights:
+    u_loss: 1.0 # Weight for L_u. Not specified, assumed 1.0, needs tuning.
+    s_loss: 0.1 # Weight for L_s. Not specified, assumed 0.1 as a starting point, needs tuning.
+    eq_loss: 0.01 # Weight for L_Eq. Not specified, assumed 0.01 as a starting point, needs tuning.
+
+dataset_generation:
+  train_split: 0.7 # From Section 3.1
+  val_split: 0.15 # From Section 3.1
+  test_split: 0.15 # From Section 3.1
+  gt_solver_type: "AD" # Default for ground truth generation (AD or FD). Paper uses AD mostly.
+  fd_epsilon: 1.0e-4 # Perturbation for finite difference gradient calculation. Not specified, assumed small.
+  sensitivity_sampling_percentage: 0.1 # Percentage of (spatial, temporal) points to sample for L_s. Not specified, assumed 10%.
+  pinn_alpha_boundary_init: 1.0 # Weight for L_IC + L_BC within L_Eq (alpha in section 2.2). Not specified, assumed 1.0.
+  pinn_num_collocation_points: 10000 # Number of random collocation points for PDE residual loss. Not specified, assumed reasonable value.
+  dataset_save_path: "./data" # Path to save generated datasets
+
+# --- Model Architecture Defaults (shared if not overridden by equation) ---
+model_architecture_defaults:
+  width: 20 # From Table C.7
+  num_fourier_layers: 4 # From Table C.7
+  fno_data_channels: 1 # Number of channels for the dependent variable (e.g., u, x, omega). Scalar = 1.
+  fno_output_channels: 1 # Output channels for the dependent variable. Scalar = 1.
+
+# --- Equation Specific Configurations ---
+# These configurations override or add parameters to model_architecture_defaults and training settings
+equations:
+  ODE1:
+    type: "ODE"
+    num_samples: 2000 # From Table C.8
+    batch_size: 16 # From Table C.8
+    time_discretization_N: 100 # From Section 3
+    modes_t: 8 # From Table C.7
+    modes_x: 8 # From Table C.7. Ambiguous for ODE; implementation will clarify its usage (e.g., treated as extra feature dim, or ignored).
+    modes_y: null # From Table C.7
+    parameters: # From Table B.6
+      alpha: [1.0, 3.0]
+      beta: [1.0, 3.0]
+      gamma: [0.0, 1.0]
+    M_input_timesteps: 10 # From Table B.6. Number of initial time steps provided as input to FNO.
+    fno_coord_channels: 1 # Number of coordinate channels (e.g., 't' for ODE).
+
+  ODE2:
+    type: "ODE"
+    num_samples: 2000 # From Table C.8
+    batch_size: 16 # From Table C.8
+    time_discretization_N: 100 # From Section 3
+    modes_t: 8 # From Table C.7
+    modes_x: 8 # From Table C.7. Ambiguous for ODE.
+    modes_y: null # From Table C.7
+    parameters: # From Table B.6
+      delta: [0.5, 1.5]
+      alpha: [0.02, 0.06]
+      beta: [0.01, 0.03]
+      gamma: [20.0, 60.0]
+      omega: [0.2, 0.6]
+      epsilon: [0.0, 0.2] # Initial condition x(0)
+      zeta: [0.0, 0.2] # Initial condition x_dot(0)
+    M_input_timesteps: 10 # From Table B.6
+    fno_coord_channels: 1
+
+  PDE1:
+    type: "PDE"
+    num_samples: 2000 # From Table C.8
+    batch_size: 4 # From Table C.8
+    time_discretization_N: 30 # From Section 3
+    spatial_discretization_S_x: 20 # From Section 3
+    spatial_discretization_S_y: null # From Section 3
+    modes_t: 8 # From Table C.7
+    modes_x: 8 # From Table C.7
+    modes_y: null # From Table C.7
+    parameters: # From Table B.6
+      c: [0.0, 0.25]
+      alpha: [0.0, 0.1]
+      beta: [0.0, 0.25]
+      gamma: [0.0, 0.25]
+      omega: [0.0, 0.25]
+    M_input_timesteps: 5 # From Table B.6
+    fno_coord_channels: 2 # x, t
+    initial_condition_type: "benchmark_wave_equation" # u(x,0) and du/dt(x,0) unspecified in paper for PDE1, will assume simple forms like sin waves.
+    boundary_conditions: "dirichlet_zero" # Not specified in paper, assumed typical for wave equation.
+
+  PDE2:
+    type: "PDE"
+    num_samples: 2000 # From Table C.8
+    batch_size: 4 # From Table C.8
+    time_discretization_N: 30 # From Section 3
+    spatial_discretization_S_x: 40 # From Section 3
+    spatial_discretization_S_y: null # From Section 3
+    modes_t: 8 # From Table C.7
+    modes_x: 8 # From Table C.7
+    modes_y: null # From Table C.7
+    parameters: # From Table B.6
+      alpha: [0.1, 1.0]
+      gamma: [0.025, 0.25]
+      delta: [0.1, 0.5]
+      omega: [0.01, 0.1]
+    M_input_timesteps: 5 # From Table B.6
+    fno_coord_channels: 2 # x, t
+    initial_condition_type: "gaussian_plus_sin" # u(x,0) formula provided in Section B
+    boundary_conditions: "periodic" # From Section B
+
+  PDE2_Zoned: # Special case for high-dimensional parameter study (Section 3.4)
+    type: "PDE"
+    num_samples: 500 # From Table C.8 (also tested with 100)
+    batch_size: 1 # From Table C.8
+    time_discretization_N: 30 # From Section 3
+    spatial_discretization_S_x: 40 # From Section 3
+    spatial_discretization_S_y: null # From Section 3
+    modes_t: 8 # From Table C.7
+    modes_x: 8 # From Table C.7
+    modes_y: null # From Table C.7
+    parameters: # Structure for zoned parameters implies 2*S_x functional params + 2 global
+      global_gamma: [0.025, 0.25]
+      global_omega: [0.01, 0.1]
+      alpha_zone_range: [0.1, 1.0] # Range for S_x alpha parameters
+      delta_zone_range: [0.1, 0.5] # Range for S_x delta parameters
+      num_zones: 40 # Corresponds to S_x, used for generation logic. Total params = 2*num_zones + 2.
+    M_input_timesteps: 5 # From Section 3
+    fno_coord_channels: 2
+    initial_condition_type: "gaussian_plus_sin"
+    boundary_conditions: "periodic"
+
+  PDE3:
+    type: "PDE"
+    num_samples: 1000 # From Table C.8
+    batch_size: 4 # From Table C.8
+    time_discretization_N: 1 # Output is only at final time step t=3s, from Section 3
+    spatial_discretization_S_x: 64 # From Section 3
+    spatial_discretization_S_y: 64 # From Section 3
+    modes_t: null # No explicit time modes for Fourier transform in FNO (output is fixed at t=3s)
+    modes_x: 8 # From Table C.7
+    modes_y: 8 # From Table C.7
+    parameters: # From Table B.6
+      alpha: [3.14159, 15.70795] # pi, 5pi
+      beta: [3.14159, 15.70795] # pi, 5pi
+    fixed_params: # These are constant for the equation, not varied for training
+      Re: 1000.0 # From Section B
+    M_input_timesteps: 1 # Only initial condition at t=0s is input
+    output_time_point: 3.0 # Solution (vorticity) is predicted at this fixed time point, from Section 3
+    fno_coord_channels: 3 # x, y, fixed_t (if FNO uses it), or 2 (x,y) if t is implicitly handled by forward pass logic
+    fno_data_channels: 1 # omega(x,y,t)
+
+  PDE4:
+    type: "PDE"
+    num_samples: 500 # From Table 3 (also tested with 100)
+    batch_size: 1 # From Table C.8
+    time_discretization_N: 30 # From Section 3
+    spatial_discretization_S_x: 40 # From Section 3
+    spatial_discretization_S_y: null # From Section 3
+    modes_t: 8 # From Table C.7
+    modes_x: 8 # From Table C.7
+    modes_y: null # From Table C.7
+    parameters: # From Table B.6
+      c: [0.1, 0.9]
+      epsilon: [0.01, 1.0]
+      alpha: [0.01, 1.0]
+      beta: [0.01, 1.0]
+      omega: [5.0, 10.0]
+    M_input_timesteps: 5 # From Section 3
+    fno_coord_channels: 2
+    initial_condition_type: "tanh_wave" # u(x,0) formula provided in Section B
+    boundary_conditions: "periodic" # From Section B

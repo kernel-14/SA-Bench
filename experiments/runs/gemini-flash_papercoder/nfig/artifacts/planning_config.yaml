@@ -1,0 +1,79 @@
+## config.yaml
+data:
+  dataset_name: "ImageNet_2012"
+  image_size: 256
+  num_classes: 1000 # For ImageNet 1k categories
+  dataset_root: "/path/to/imagenet" # Placeholder, user needs to specify
+
+fr_vae:
+  # VQGAN architecture with DINO discriminator
+  latent_dim_channels: 256 # Assumed, common for VQGANs (C in H'xW'xC)
+  encoder_latent_size: 16 # H', W' for 256x256 input (256 / 16 = 16)
+  codebook_size: 4096
+  freq_bands:
+    num_bands: 10
+    scaling_factors: [1, 2, 3, 4, 5, 6, 8, 10, 13, 16] # From paper, implying 10 bands
+    # The actual (h_i, w_i) dimensions for each band, which sum up to 680 tokens.
+    # This is a critical missing detail from the paper and needs to be manually configured
+    # to sum to 680 tokens, with increasing h_i, w_i.
+    # Example (to be refined and confirmed):
+    # band_dims:
+    #   - [2, 2] # 4 tokens
+    #   - [3, 3] # 9 tokens
+    #   - [4, 4] # 16 tokens
+    #   - [5, 5] # 25 tokens
+    #   - [6, 6] # 36 tokens
+    #   - [7, 7] # 49 tokens
+    #   - [8, 8] # 64 tokens
+    #   - [10, 10] # 100 tokens
+    #   - [12, 12] # 144 tokens
+    #   - [13, 14] # 182 tokens (Total = 629. Need to adjust to 680)
+    # Total tokens must sum to 680
+    total_quantized_tokens: 680 # From paper "vocabulary size of 680 tokens"
+  encoder_pretrained_weights:
+    dino_v2_base: "/path/to/dinov2_base_pretrained.pth" # Placeholder, for encoder initialization
+
+fr_vae_training:
+  batch_size: 768
+  learning_rate: 8.0e-5
+  epochs: 200 # Not explicitly stated for FR-VAE, assumed a reasonable number for VQGAN stage
+  optimizer: "Adam"
+  loss_weights:
+    recon_image_L2: 1.0 # Weight for ||I - hat_I||_2^2
+    recon_feature_L2: 1.0 # Weight for ||hat_f - tilde_f||_2^2
+    perceptual_loss: 1.0 # Weight for L_p(I) (LPIPS)
+    gan_loss_generator: 0.5 # Weight for 0.5 * L_g(I)
+    codebook_loss_beta: 0.25 # Assumed common VQ-VAE beta value
+
+nfig_transformer:
+  # Based on VAR Transformer backbone with depth 16 (for 310M params)
+  # Specific architecture details (e.g., d_model, num_heads, ff_dim)
+  # are not explicitly stated in NFIG paper, must refer to VAR paper or infer for 310M params.
+  # Assuming VAR-d16 as per Table 4 (310M params)
+  depth: 16 # From paper "VAR Transformer backbone with a depth of 16"
+  embed_dim: 768 # Assumed, common for 310M param models, e.g., similar to ViT-B/16
+  num_heads: 12 # Assumed
+  ffn_dim: 3072 # Assumed (4*embed_dim)
+  vocab_size: 4096 # Same as FR-VAE codebook size
+  total_sequence_length: 680 # Sum of h_i * w_i
+  # For Classifier-Free Guidance (CFG)
+  # The percentage of labels to be dropped/replaced with a null token during training
+  # to enable CFG at inference. Not specified in paper, common values are 10-20%.
+  unconditional_training_probability: 0.1 # Assumed
+
+nfig_transformer_training:
+  batch_size: 768
+  learning_rate: 8.0e-5
+  epochs: 350 # From paper "Training of the model ran for 350 epochs" for 310M
+  optimizer: "Adam"
+  loss_type: "CrossEntropy"
+
+inference:
+  cfg_weight: 4.5
+  top_k: 990
+  num_samples: 50000 # For gFID/IS calculation, matches standard practice
+  output_dir: "generated_images"
+
+evaluation:
+  fid_model: "inception_v3" # Standard for FID/IS
+  # Metrics will be automatically calculated based on the above

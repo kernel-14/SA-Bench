@@ -1,0 +1,695 @@
+# INITIALIZATION USING UPDATE APPROXIMATION IS A Silver Bullet FOR EXTREMELY EFFICIENT LOW-RANK FINE-TUNING
+
+Kaustubh Ponkshe\*1, Raghav Singhal\*1, Eduard Gorbunov1, Alexey Tumanov2, Samuel Horvath1, Praneeth Vepakomma1,3 1 Mohamed bin Zayed University of Artificial Intelligence, UAE 2 Georgia Institute of Technology, USA 3 Massachusetts Institute of Technology, USA
+
+# ABSTRACT
+
+Low-rank adapters have become standard for efficiently fine-tuning large language models, but they often fall short of achieving the performance of full fine-tuning. We propose a method, LoRA Silver Bullet or LoRA-SB, that approximates full fine-tuning within low-rank subspaces using a carefully designed initialization strategy. We theoretically demonstrate that the architecture of LoRA-XS, which inserts a learnable $r \times r$ matrix between $B$ and $A$ while keeping other matrices fixed, provides the precise conditions needed for this approximation. We leverage its constrained update space to achieve optimal scaling for high-rank gradient updates while removing the need for scaling factor tuning. We prove that our initialization offers an optimal low-rank approximation of the initial gradient and preserves update directions throughout training. Extensive experiments across mathematical reasoning, commonsense reasoning, and language understanding tasks demonstrate that our approach exceeds the performance of LoRA (and baselines) while using 27-90 times fewer learnable parameters, and comprehensively outperforms LoRA-XS. Our findings establish that it is possible to simulate full fine-tuning in low-rank subspaces, and achieve significant parameter efficiency gains without sacrificing performance. Our code is publicly available at: https://github.com/CERT-Lab/lora-sb.
+
+# 1 INTRODUCTION
+
+Pre-trained language models have become central to natural language processing, achieving state-ofthe-art performance across diverse tasks (35; 21; 1). While these models excel at general-purpose capabilities (4; 14), adapting them to specific downstream tasks often requires fine-tuning (FT). At the same time, full FT, while highly effective, is computationally expensive and impractical at scale.
+
+Parameter-efficient fine-tuning (PEFT) has become vital for adapting large language models (LLMs) under computational constraints. Low-rank methods like LoRA (17) address this by reducing learnable parameters via low-rank updates, sparking advancements in optimization, initialization, structured matrices, and adaptive rank selection (52; 46; 45). However, these methods face trade-offs: either retain many parameters to match full FT or sacrifice performance for extreme efficiency (17; 10; 46). This raises a critical question: Can we design low-rank methods that achieve full FT-level performance while drastically reducing parameter counts?
+
+Low-rank decomposition methods operate on a fundamental premise: FT requires learning only a low-rank update to the pre-trained weights. However, the gradients computed by these methods do not inherently possess this property. For instance, LoRA’s gradients need explicit optimization at each step to better approximate the full FT gradient (46). Additionally, initialization has emerged as a critical factor in low-rank adaptation, as highlighted by recent works like PiSSA-LoRA (30) and LoRA-GA (45).
+
+![](images/figures/lora-sb-fig-0001.jpg)  
+Figure 1: LoRA-SB. LoRA-XS (2) reduces parameters compared to LoRA (17) by inserting a learnable $r \times r$ matrix $R$ between $B$ and $A$ , while keeping other matrices fixed, leading to $W =$ $W _ { 0 } + s B R A$ . Our method, LoRA-SB, uses the same architecture. We find that updating $R$ using its gradients $g ^ { R }$ is equivalent to updating the full FT matrix $W$ with an equivalent gradient $\tilde { g } _ { S B } =$ $s B \bar { g } ^ { R } A$ . We initialize $B , R$ , and $A$ such that the equivalent gradient $\tilde { g } _ { S B }$ provably best approximates the full FT gradient $g$ in low rank subspaces at each step. In essence, we simulate the entire full FT process optimally within low-rank subspaces by utilizing only the first full FT gradient $g _ { 1 }$ .
+
+We analyze these limitations in the context of the architecture of LoRA-XS (2), which inserts a learnable $r \times r$ matrix between $B$ and $A$ while keeping other matrices fixed, and demonstrate that these challenges are even more pronounced. While exploring solutions inspired by LoRA-based methods, we discover a remarkable property unique to LoRA-XS: through careful initialization of $A$ and $B$ , we can simulate the full FT optimization in low rank subspaces through entire training, as shown in Figure 1. Our initialization provides optimal scaling for approximating high-rank full FT gradients and eliminates need for tuning the hyperparameter $\alpha$ . The peak memory usage of LoRA-SB never exceeds that of LoRA or other baselines, and its training-time overhead relative to LoRA is negligible $( \approx 1 . 1 \% - 1 . 3 \% )$ . Our key contributions are:
+
+• We formalize the limitations of LoRA-XS, showing how its constrained update space leads to suboptimal gradient approximation, initialization sensitivity, and scaling dependence. • We propose an initialization strategy derived from using the first step of full FT, which provides an optimal approximation of the initial gradient and preserves update directions throughout. • We prove our initialization makes gradient optimization scaling-independent and guarantees convergence by maintaining orthonormal bases, eliminating need for tuning the scaling factor $\alpha$ . • Through extensive experiments on 4 models across 16 datasets covering mathematical reasoning, commonsense reasoning, and language understanding, we demonstrate that LoRA-SB surpasses LoRA while using 27-90x less learnable parameters, and comprehensively outperforms LoRA-XS.
+
+# 2 METHODOLOGY
+
+# 2.1 PRELIMINARIES
+
+In standard FT, a pre-trained weight matrix $W \in \mathbb { R } ^ { m \times n }$ is updated using the update matrix $\Delta W$ as:
+
+$$
+W = W _ { 0 } + \Delta W
+$$
+
+where $W _ { 0 }$ is the pre-trained weight. This requires updating $m n$ parameters per layer. LoRA posits that updates lie in a low-dimensional subspace, parameterizing $\Delta W$ as:
+
+$$
+W = W _ { 0 } + s B A
+$$
+
+where $B \in \mathbb { R } ^ { m \times r }$ and $A \in \mathbb { R } ^ { r \times n }$ are trainable low-rank matrices with rank $r \ll \operatorname* { m i n } ( m , n )$ , and $s$ is a scaling factor $( \alpha / r )$ to stabilize training. This reduces the number of parameters from $m n$ to
+
+$r ( m + n )$ . LoRA-XS efficiently parameterizes as:
+
+$$
+W = W _ { 0 } + s B R A
+$$
+
+where We de $B$ and te th $A$ are fixed, and oull FT gradient: $R \in \mathbb { R } ^ { r \times r }$ is trainable, redA-XS gradient: of parameters to is the loss funct $r ^ { 2 }$ $\begin{array} { r } { g = \frac { \partial L } { \partial W } } \end{array}$ $\begin{array} { r } { g _ { \mathrm { L o R A - X S } } ^ { R } = \frac { \partial L } { \partial R } } \end{array}$ $L$
+
+# 2.2 MOTIVATION
+
+LoRA-XS (2) has significantly fewer learnable parameters than LoRA but performs suboptimally. LoRA-XS’s architecture causes constraints on the type of updates it can learn. The subspace of learned updates is characterized in Lemma 1. This implies that while $\Delta W$ is constrained to be rank $\leq r$ , it also needs to have column and row spaces defined by those of $B$ and $A$ , respectively. In contrast, LoRA can learn any update $\Delta W$ as long as ran $\ b { \Sigma } ( \Delta W ) \leq r$ . Thus, the low expressivity of LoRA-XS as compared to LoRA can account for the performance drop.
+
+Lemma 1. Let ∆W be an update learned with LoRA-XS. Then, the set of all possible $\Delta W$ , say $\mathcal { W } _ { L o R A - X S }$ , is given as:
+
+$$
+\begin{array} { r } { \mathcal { W } _ { L o R A - X S } = \{ M \in \mathbb { R } ^ { m \times n } | C o l ( M ) \subseteq C o l ( B ) \wedge R o w ( M ) \subseteq R o w ( A ) \} , } \end{array}
+$$
+
+where $C o l ( M )$ and $R o w ( M )$ are column and row spaces of matrix $M$ respectively.
+
+Proof. See Appendix B.1.
+
+We identify three key limitations, which arise due to this and otherwise:
+
+1) Inadequate Gradient Approximation: LoRA optimization is mathematically equivalent to full FT using a constrained low-rank gradient. The gradient of LoRA does not optimally approximate the full gradient, and needs to be tuned at each step. LoRA-Pro (46) finds that this results in suboptimal performances, and provides a closed form solution to optimize the gradients. In LoRA-XS, the gradient updates are restricted to an even more constrained low-rank space since $A$ and $B$ are fixed. We posit that the limitation becomes particularly severe when the ideal updates lie outside the space spanned by fixed $A$ and $B$ , and consequently has a larger impact on performance.
+
+2) Suboptimal Initialization: While initialization impacts all low-rank methods, it becomes critical in LoRA-XS where $A$ and $B$ are frozen. Unlike LoRA where poor initialization can be compensated through training, LoRA-XS relies entirely on its initial subspace defined by $A$ and $B$ . Consider the zero initialization of the $B$ matrix, for example. While LoRA may experience some performance degradation in this case (45; 30), the ideal low-rank update $\Delta W$ can still be reached through gradient descent. In fact, zero initialization for the $B$ matrix is commonly used, including in the original LoRA paper (17). However, in LoRA-XS, this results in no learning, as the product $B R A$ remains zero. LoRA-XS uses the most significant subspaces spanned by the columns of pre-trained weights for initialization, inspired by PiSSA (30). This initialization is not aligned well with FT because it fails to capture the specific subspaces relevant to the FT task.
+
+3) Scaling Factor Sensitivity: The scaling factor $s$ , present in almost every LoRA based method, requires tuning to maintain stability during training. This factor acts as a bridge between the low-rank and full-rank spaces, compensating for the dimensional mismatch in gradients. Poor tuning of $s$ can lead to unstable training or slow convergence (rsLoRA (20)), adding complexity and potentially limiting practical deployment.
+
+# 2.3 APPROXIMATION OF THE FULL FT GRADIENT
+
+As mentioned, LoRA optimization is equivalent to full FT using a constrained low-rank gradient. However, the update generated using the gradients of LoRA does not result in the same update which the low-rank gradient would have generated. The following holds true for LoRA-XS as well. To understand this, let us look at the change in weight $W$ and its relationship with changing of low-rank matrix $R$ , which can be simply given by $\mathrm { d } W = - s B ( \mathrm { d } R ) A$ . This implies that updating $R$ with gradient $g ^ { R }$ is equivalent to updating $W$ with low rank equivalent gradient $\tilde { g }$ in full FT (Definition 1).
+
+Definition 1. We define the equivalent gradient in LoRA-XS as: $\tilde { g } = s B g ^ { R } A$ , where $g ^ { R }$ is the gradient of $L$ with respect to $R$ .
+
+The equivalent gradient describes the virtual low-rank gradient of matrix $W$ in LoRA-XS optimization process, despite $W$ not being directly trainable. This gradient determines how updates to $R$ affect $W$ To bridge the performance gap between LoRA-XS and full FT, we aim to minimize the discrepancy between the equivalent gradient $\tilde { g }$ and the full gradient $g$ . First, we establish the relationship between gradients in LoRA-XS optimization in Lemma 2.
+
+Lemma 2. The gradient of the loss with respect to matrix $R$ can be expressed in terms of the gradient with respect to the weight matrix $W$ as: $g _ { L o R A - X S } ^ { R } = s B ^ { \top } g A ^ { \dagger }$ .
+
+Proof. See Appendix B.2.
+
+We now formulate our objective to minimize the distance between the equivalent gradient and the full gradient. We do not have access to the full FT gradient $g$ during LoRA-XS based FT. Thus we need to find the ideal gradient with respect to $R$ , given by $g ^ { R }$ , and subsequently the optimal approximation $\tilde { g }$ , in terms of the gradient which is available to us during training: $g _ { L o R A - X S } ^ { \check { R } }$ . Fortunately, this optimization problem admits a closed-form solution independent of $g$ as described in Theorem 3.
+
+Theorem 3. For full-rank $A$ and $B$ matrices, the optimal solution for the objective $m i n _ { g ^ { R } } | | \tilde { g } - g | | _ { F } ^ { 2 }$ , such that $\tilde { g } = s B g ^ { R } A$ , is: $g ^ { R } = { \frac { 1 } { s ^ { 2 } } } ( B ^ { \top } B ) ^ { - 1 } g _ { L o R A - X S } ^ { R } ( A A ^ { \top } ) ^ { - 1 } .$
+
+Proof. See Appendix B.3.
+
+The closed-form solution in Theorem 3 solves the optimization problem $\begin{array} { r } { \operatorname* { m i n } _ { g ^ { R } } | | \tilde { g } - g | | _ { F } ^ { 2 } } \end{array}$ , but by itself doesn’t ensure the loss will decrease when updating $R$ . Through Theorem 4, we prove that the change in loss is non-positive $\Delta L \leq 0 \mathrm { , }$ ). This property is fundamental to optimization as it guarantees consistent loss minimization throughout training.
+
+Theorem 4. Consider the update for matrix $R$ using the solution derived in Theorem 3: $R  R - \eta g ^ { R }$ , where $\eta > 0$ is the (sufficiently small) learning rate. This update guarantees a reduction in the loss $\Delta L$ , given by: $\Delta \tilde { L } = - \dot { \eta } \langle g _ { L o R A - X S } ^ { R } , g ^ { \tilde { R _ { \rangle } } } \rangle _ { F } + o ( \eta ) \leq \mathrm { \hat { 0 } }$ .
+
+Proof. See Appendix B.4.
+
+# 2.4 INITIALIZATION USING UPDATE APPROXIMATION
+
+In FT, the primary goal is to update weights to better suit the target task. The initial gradient steps are particularly informative, as they indicate the direction of desired adaptation. We leverage this insight by using the first update step from full FT for initialization.
+
+This approach offers two key advantages. First, it ensures the low-rank space captures the most relevant subspace for the target task rather than relying on pre-trained properties. Second, since $A$ and $B$ are fixed, initializing them to span the subspace of early adaptation increases the likelihood of capturing useful updates throughout training. This also ensures that the final update is learnt in the correct subspace, of which we have no apriori information besides the first full FT step. Our method is summarized as: set such initialization that best approximates the first step of full FT. Given a full FT update $\Delta W _ { f i r s t - s t e p }$ , our initialization satisfies:
+
+$$
+s B _ { i n i t } R _ { i n i t } A _ { i n i t } \approx \Delta W _ { f i r s t - s t e p }
+$$
+
+The first step of full FT, for Adam-based optimizers such as AdamW, for sample $x _ { i }$ is:
+
+$$
+\Delta W _ { f i r s t - s t e p } = - \eta \times \mathbf { s i g n } ( \nabla _ { W } \mathcal { L } ( W _ { 0 } , x _ { i } ) )
+$$
+
+However, the usage of a single sample may lead to noisy estimates. Instead, we compute a more stable initialization by averaging gradients over a subset of the training data:
+
+$$
+\Delta W _ { a v g } = - \eta \mathbf { s i g n } \big ( \sum _ { i = 0 } ^ { n \leq | \mathbb { X } | } \nabla _ { W } \mathcal { L } ( W _ { 0 } , x _ { i } ) \big ) , \quad x _ { i } \in \mathbb { X }
+$$
+
+Since AdamW is used as the optimizer for both full FT and LoRA-SB training, we approximate its first update step using the sign of the summed gradients rather than their raw values (see Appendix C for details). This better captures the direction of adaptation required for the target task while being less sensitive to individual sample variations. We then use truncated SVD to obtain a low-rank approximation of $\Delta W _ { \mathrm { a v g } }$ , and express it as $s B R A$ . There exist infinite combinations of $B$ and $A$ which can obey this relationship. For instance, we can initialize $B$ and $A$ as $U S$ and $V ^ { \top }$ and keep $R$ as $I / s$ . This is equivalent to the $B$ and $A$ initialization in LoRA-XS but by approximating the update rather than the pre-trained matrix. The above process can be computed for any optimizer, by approximating the corresponding first step. We compute this specifically for AdamW since we use it.
+
+# 2.5 SCALING FACTOR INDEPENDENCE
+
+The hyperparameter $\alpha$ is used in LoRA and other decomposition-based methods to tackle instability caused to improper scaling of the updates. The gradient scaling is accounted for, by adding a hyperparameter to normalize the updates. The importance of scaling is shown in methods like rank stabilization (20). However, the full FT gradient $g$ needs no such tuning. We claim that approximating the full FT gradient removes the need for introducing a scaling factor, as shown in Theorem 5.
+
+Theorem 5. The equivalent gradient $\tilde { g }$ is hyperparameter s independent for $\tilde { g } = s B g ^ { R } A$ , but not for $\tilde { g } = s B g _ { L o R A - X S } ^ { R } A$ .
+
+Proof. See Appendix B.5.
+
+The scaling factor independence of the equivalent gradient eliminates the need for manual gradient scaling. Updates to $W$ depend solely on this gradient (modulo learning rate), making any additional scaling redundant. This can be understood by examining the relationship with the full FT gradient $g$ . Since $g$ is naturally scaled for optimal weight updates, and our method approximates $g$ in a constrained subspace, the equivalent gradient inherits appropriate scaling automatically. This property is unique to our gradient approximation approach and does not hold for standard LoRA-XS.
+
+# 2.6 LORA-SB: UPDATE APPROXIMATION INITIALIZATION IS A silver bullet
+
+The solutions discussed independently address the gradient approximation and initialization problems, while also providing scaling factor independence. LoRA-SB, elegantly combines these solutions through a simple initialization strategy, derived from approximating the first full FT step:
+
+$$
+U , S , V ^ { \top } \gets \mathbf { S V D } ( \Delta W _ { a v g } )
+$$
+
+$$
+B _ { i n i t }  U [ 1 : r ] , A _ { i n i t }  V [ 1 : r ] , R _ { i n i t }  \frac { 1 } { s } S [ 1 : r , 1 : r ]
+$$
+
+By the Eckart-Young theorem (13; 32), this gives the optimal rank- $_ r$ approximation of the full FT update. where $U , S , V$ are obtained from truncated SVD of the averaged first update $\Delta W _ { \mathrm { a v g } }$ . This initialization leads to several key advantages.
+
+Simplified Gradient Optimization. Our initialization ensures $B _ { \mathrm { i n i t } }$ and $A _ { \mathrm { i n i t } }$ form orthonormal bases in $\mathbb { R } ^ { m }$ and $\mathbb { R } ^ { n }$ respectively, leading to $B ^ { \top } B = A A ^ { \top } = I$ . With fixed $B$ and $A$ matrices being orthonormal, the need for complex matrix inversions during training is eliminated, , as the optimal update step, derived in Equation 3, simplifies to:
+
+$$
+g ^ { R } = \frac { 1 } { s ^ { 2 } } ( B ^ { \top } B ) ^ { - 1 } g _ { L o R A - X S } ^ { R } ( A A ^ { \top } ) ^ { - 1 } = \frac { 1 } { s ^ { 2 } } g _ { L o R A - X S } ^ { R }
+$$
+
+Optimal Update Approximation. Our initialization guarantees that the first update optimally approximates the full FT weight updates: $s B _ { \mathrm { i n i t } } R _ { \mathrm { i n i t } } A _ { \mathrm { i n i t } } \approx \Delta W _ { a v g }$ . By the Eckart-Young theorem, this is the optimal rank- $\mathbfit { \nabla } x$ approximation of the initial full FT update.
+
+Scaling Factor Independence. As shown in Theorem 5, when gradient approximation is applied with orthonormal $B$ and $A$ , the hyperparameter $s$ can be set to 1, resulting in guaranteed optimal gradient approximation at every step, without requiring any scaling factor:
+
+$$
+\boxed { g ^ { R } = g _ { \mathrm { L o R A - X S } } ^ { R } }
+$$
+
+Guaranteed Loss Reduction. Since $B$ is a tall orthonormal and $A$ a wide orthonormal matrix, they remain full rank throughout training. This ensures that $d L$ remains negative (Theorem 4), guaranteeing stable optimization and convergence.
+
+$$
+\Delta ( s B _ { i n i t } R _ { i n i t } A _ { i n i t } ) \approx \gamma \Delta W
+$$
+
+Another heuristic which might lead to a good initialization is setting $B$ and $A$ , such that the first update also approximately matches the $\Delta W$ direction (Equation 10). Thankfully, we don’t have to choose between the two. For SGD, we prove that setting $B _ { i n i t }$ and $A _ { i n i t }$ using Equations 7-8, results in the first update of LoRA-XS to best approximate the direction of the full FT update (Theorem 6).
+
+Theorem 6. If $A _ { i n i t }$ and $B _ { i n i t }$ are initialized using LoRA-SB for the first step of SGD optimizer, then the update given by LoRA-SB, $\Delta ( B _ { i n i t } R _ { i n i t } A _ { i n i t } )$ , is the best low-rank approximation of full fine-tuning update, $\Delta W$ .
+
+Proof. See Appendix B.6.
+
+While Theorem 6 is stated for SGD, the result extends to other SGD-based optimizers such as AdamW. In practice, we use AdamW and approximate the first update by taking the sign of the averaged gradients, consistent with AdamW’s first-step behavior. This produces an initialization whose SVD still yields the optimal rank- $\mathbfit { \nabla } \cdot \boldsymbol { r }$ approximation of the simulated full FT update.
+
+Initialization Memory. To optimize GPU memory during initialization, we hook into the backward pass and compute the gradients layerwise, immediately discarding the computed gradients (29; 45). This ensures $\bar { O } ( 1 )$ memory usage, independent of the number of layers, keeping GPU memory well within limits. This guarantees that the memory required for LoRA-SB initialization never exceeds the memory needed for subsequent LoRA-SB fine-tuning, and that the peak memory usage of the entire LoRA-SB algorithm never exceeds that of standard LoRA and other baselines.
+
+LoRA-SB Advantages over LoRA. Many properties described above are not achievable with standard LoRA methods. Even if $B$ and $A$ are initialized as orthonormal in LoRA, subsequent updates do not preserve this property because $B$ and $A$ are trainable. This results in several challenges in using LoRA (even with optimal gradient approximation) compared to LoRA-SB:
+
+• Potential instability of $( B ^ { \top } B ) ^ { - 1 }$ and $( A A ^ { \top } ) ^ { - 1 }$ , not guaranteed to remain non-singular throughout.   
+• Inability to ensure consistent loss reduction due to potential rank deficiency, $B$ and $A$ may not remain full-rank throughout training.   
+• Necessity to fine-tune the scaling factor hyperparameter $\alpha$ .   
+• Repeated re-computation of $B ^ { \top } B$ and $A A ^ { \top }$ is required at each optimizer step for accurate gradient approximation.
+
+# 3 EXPERIMENTS
+
+We evaluate over 16 different datasets on 3 widely-used benchmarks, using models ranging from the $3 5 5 \mathrm { ~ M ~ }$ RoBERTa-large model to the 9 B Gemma-2 model. Our setup spans both masked and autoregressive architectures, allowing us to comprehensively assess the effectiveness of LoRA-SB. Specifically, we fine-tune RoBERTa-large (27), Llama-3.2 3B (12), Mistral-7B (19), and Gemma-2 9B (43). We compute the update approximation using only 1/1000 $( 0 . 1 \% )$ of each dataset’s total size. This ensures that the training time overhead is minimal and has a negligible effect on efficiency. Detailed hyperparameter and dataset details are given in Appendix H and I, respectively.
+
+Baselines. We compare LoRA-SB against full FT, LoRA (17), LoRA-XS (2), and several popular variants of LoRA - rsLoRA (20), PiSSA (30), DoRA (26), and LoRA-Pro (46).
+
+Table 1: Comparison of FT methods on Mistral-7B and Gemma-2 9B across arithmetic benchmarks. # Params denotes the number of trainable parameters. Best results among PEFT methods are in bold.   
+
+<table><tr><td rowspan="2">Method</td><td rowspan="2">Rank</td><td colspan="3">Mistral-7B</td><td colspan="3">Gemma-2 9B</td></tr><tr><td># Params</td><td>GSM8K (↑)</td><td>MATH(↑)</td><td># Params</td><td>GSM8K (↑)</td><td>MATH()</td></tr><tr><td>Full FT</td><td></td><td>7.24 B</td><td>63.87</td><td>17.65</td><td>9.24 B</td><td>79.23</td><td>38.02</td></tr><tr><td>LoRA</td><td></td><td>83.88 M</td><td>61.94</td><td>15.98</td><td>108.04 M</td><td>76.19</td><td>36.56</td></tr><tr><td>rsLoRA</td><td></td><td>83.88 M</td><td>62.15</td><td>16.24</td><td>108.04 M</td><td>76.84</td><td>36.88</td></tr><tr><td>PiSSA</td><td>32</td><td>83.88 M</td><td>62.43</td><td>16.52</td><td>108.04 M</td><td>77.12</td><td>37.04</td></tr><tr><td>DoRA</td><td>32</td><td>85.26 M</td><td>62.65</td><td>16.64</td><td>109.88 M</td><td>77.58</td><td>37.04</td></tr><tr><td>LoRA-Pro</td><td>32</td><td>83.88 M</td><td>63.07</td><td>17.32</td><td>108.04 M</td><td>78.26</td><td>37.53</td></tr><tr><td>LoRA-XS</td><td>32</td><td>0.23 M</td><td>54.28</td><td>13.36</td><td>0.30 M</td><td>74.07</td><td>34.62</td></tr><tr><td>LoRA-XS</td><td>64</td><td>0.92 M</td><td>57.08</td><td>15.62</td><td>1.20 M</td><td>75.02</td><td>36.46</td></tr><tr><td>LoRA-XS</td><td>96</td><td>2.06 M</td><td>58.53</td><td>16.42</td><td>2.71 M</td><td>75.21</td><td>36.98</td></tr><tr><td>LoRA-SB</td><td>32</td><td>0.23 M</td><td>58.91</td><td>15.28</td><td>0.30 M</td><td>75.44</td><td>36.66</td></tr><tr><td>LoRA-SB</td><td>64</td><td>0.92 M</td><td>60.73</td><td>16.28</td><td>1.20 M</td><td>76.65</td><td>37.14</td></tr><tr><td>LoRA-SB</td><td>96</td><td>2.06 M</td><td>63.38</td><td>17.44</td><td>2.71 M</td><td>78.40</td><td>37.70</td></tr></table>
+
+Table 2: Comparison of FT methods on Llama-3.2 3B across eight commonsense reasoning datasets. # Params denotes the number of trainable parameters. Best results among PEFT methods are in bold.   
+
+<table><tr><td rowspan="2">Method</td><td rowspan="2"></td><td rowspan="2">Rank # Params</td><td colspan="8">Accuracy (↑)</td></tr><tr><td>BoolQ</td><td>PIQA</td><td>SIQA</td><td></td><td>HellaS. WinoG.</td><td>ARC-e</td><td>ARC-c</td><td>OBQA Avg.</td></tr><tr><td>Full FT</td><td>-</td><td>3.21 B</td><td>70.43</td><td>85.64 80.45</td><td>91.92</td><td>85.02</td><td>88.52</td><td>75.29</td><td>81.88</td><td>82.39</td></tr><tr><td>LoRA</td><td>32</td><td>48.63 M</td><td>70.03</td><td>85.20 79.12</td><td>90.71</td><td>82.24</td><td>86.91</td><td>74.32</td><td>81.87</td><td>81.30</td></tr><tr><td>rsLoRA</td><td>32</td><td>48.63 M</td><td>69.81</td><td>85.63</td><td>78.92</td><td>90.45 82.02</td><td>86.71</td><td>74.18</td><td>81.72</td><td>81.11</td></tr><tr><td>PiSSA</td><td>32</td><td>48.63 M</td><td>70.12</td><td>85.42</td><td>79.44 90.88</td><td>82.68</td><td>87.23</td><td>74.61</td><td>81.79</td><td>81.52</td></tr><tr><td>DoRA</td><td>32</td><td>49.40 M</td><td>70.43</td><td>85.63 79.68</td><td>90.76</td><td>82.90</td><td>87.61</td><td>74.87</td><td>82.04</td><td>81.74</td></tr><tr><td>LoRA-Pro</td><td>32</td><td>48.63 M</td><td>71.28</td><td>85.81</td><td>79.35 90.90</td><td>83.42</td><td>87.24</td><td>75.32</td><td>81.74</td><td>81.88</td></tr><tr><td>LoRA-XS</td><td>32</td><td>0.20 M</td><td>65.01</td><td>82.87</td><td>76.17</td><td>87.32 80.12</td><td>84.78</td><td>70.31</td><td>75.71</td><td>77.79</td></tr><tr><td>LoRA-XS</td><td>64</td><td>0.80 M</td><td>66.53</td><td>83.12</td><td>77.98 88.53</td><td>81.76</td><td>85.15</td><td>72.04</td><td>77.14</td><td>79.03</td></tr><tr><td>LoRA-XS</td><td>96</td><td>1.81 M</td><td>67.28</td><td>83.35 78.66</td><td>88.99</td><td>82.08</td><td>85.18</td><td>72.61</td><td>78.88</td><td>79.63</td></tr><tr><td>LoRA-SB</td><td>32</td><td>0.20 M</td><td>66.33</td><td>84.06</td><td>78.91</td><td>89.04 81.37</td><td>86.62</td><td>72.44</td><td>76.97</td><td>79.47</td></tr><tr><td>LoRA-SB</td><td>64</td><td>0.80 M</td><td>68.35</td><td>84.55</td><td>79.94 91.68</td><td>83.03</td><td>87.84</td><td>74.83</td><td>80.12</td><td>81.29</td></tr><tr><td>LoRA-SB</td><td>96</td><td>1.81 M</td><td>70.34</td><td>84.76</td><td>80.19 91.62</td><td>84.61</td><td>87.92</td><td>74.74</td><td>81.20</td><td>81.92</td></tr></table>
+
+Table 3: Comparison of FT methods on RoBERTa-large across GLUE datasets. # Params denotes the number of trainable parameters. Best results among PEFT methods are in bold. We use Pearson correlation for STS-B, Matthew’s correlation for CoLA, and accuracy for others.   
+
+<table><tr><td>Method</td><td>Rank</td><td># Params</td><td>CoLA Mcc ↑</td><td>RTE Acc ↑</td><td>MRPC Acc ↑</td><td>STS-B Corr ↑</td><td>QNLI Acc ↑</td><td>SST-2 Acc ↑</td><td>All Avg. ↑</td></tr><tr><td>Full FT</td><td>-</td><td>355.36 M</td><td>68.44</td><td>83.42</td><td>90.21</td><td>91.76</td><td>93.92</td><td>96.21</td><td>87.33</td></tr><tr><td>LoRA</td><td>8</td><td>2162.69 K</td><td>68.02</td><td>82.98</td><td>90.05</td><td>91.43</td><td>93.42</td><td>95.98</td><td>86.98</td></tr><tr><td>rsLoRA</td><td>8</td><td>2162.69 K</td><td>67.87</td><td>82.84</td><td>89.97</td><td>91.30</td><td>93.29</td><td>95.87</td><td>86.85</td></tr><tr><td>PiSSA</td><td>8</td><td>2162.69 K</td><td>68.22</td><td>83.14</td><td>90.10</td><td>91.59</td><td>93.55</td><td>96.03</td><td>87.10</td></tr><tr><td>DoRA</td><td>8</td><td>2260.99 K</td><td>68.05</td><td>83.04</td><td>89.93</td><td>91.34</td><td>93.11</td><td>95.82</td><td>86.88</td></tr><tr><td>LoRA-Pro</td><td>8</td><td>2162.69 K</td><td>67.98</td><td>83.40</td><td>90.49</td><td>91.38</td><td>93.37</td><td>95.98</td><td>87.10</td></tr><tr><td>LoRA-XS</td><td>8</td><td>6.14 K</td><td>61.07</td><td>75.23</td><td>86.21</td><td>89.29</td><td>92.44</td><td>94.72</td><td>83.16</td></tr><tr><td>LoRA-XS</td><td>16</td><td>24.57 K</td><td>63.32</td><td>79.06</td><td>86.28</td><td>90.36</td><td>93.69</td><td>95.76</td><td>84.70</td></tr><tr><td>LoRA-XS</td><td>24</td><td>55.20 K</td><td>66.27</td><td>80.14</td><td>88.48</td><td>90.77</td><td>93.21</td><td>95.89</td><td>85.79</td></tr><tr><td>LoRA-SB</td><td>8</td><td>6.14 K</td><td>63.57</td><td>78.43</td><td>88.72</td><td>90.59</td><td>92.95</td><td>95.07</td><td>84.88</td></tr><tr><td>LoRA-SB</td><td>16</td><td>24.57 K</td><td>64.36</td><td>82.31</td><td>89.71</td><td>91.24</td><td>93.89</td><td>95.87</td><td>86.23</td></tr><tr><td>LoRA-SB</td><td>24</td><td>55.20 K</td><td>68.28</td><td>83.03</td><td>90.12</td><td>91.65</td><td>93.75</td><td>96.11</td><td>87.16</td></tr></table>
+
+We fine-tune Mistral-7B (19) and Gemma-2 9B (43) on 50K samples from MetaMathQA (50) and evaluate on GSM8K (8) and MATH (16). We apply LoRA modules to the key, value, query, attention output, and all fully connected weight matrices, training with ranks $r = \{ 3 2 , 6 4 , 9 6 \}$ . We present results in Table 1. LoRA-SB significantly outperforms LoRA-XS across all settings. LoRA-SB outperforms LoRA-based methods $( r = 3 2$ ) while using $\mathbf { 4 0 x }$ fewer trainable parameters for Mistral-7B and 90x fewer for Gemma-2 9B at ranks $r = 9 6$ and $r = 6 4$ , respectively. We present training loss curves comparing LoRA-SB and LoRA-XS in Figure 2. Thanks to superior initialization, LoRA-SB starts with a lower initial loss compared to LoRA-XS. Further, due to optimal gradient approximation, LoRA-SB maintains a consistently better loss throughout and converges to a superior final value.
+
+![](images/figures/lora-sb-fig-0002.jpg)  
+Figure 2: Training loss curves for Mistral-7B and Gemma-2 9B, comparing LoRA-SB and LoRA-XS.
+
+# 3.2 COMMONSENSE REASONING
+
+We fine-tune Llama-3.2 3B (12) on COMMONSENSE170K, a dataset with eight commonsense reasoning tasks (18). LoRA modules are applied to the key, value, query, attention output, and all fully connected weight matrices, training with ranks $r = \{ 3 2 , 6 4 , 9 6 \}$ . We present the results in Table 2. LoRA-SB consistently outperforms LoRA-XS across all settings. In addition, LoRA-SB $( r = 9 6$ ) outperforms LoRA-based methods $\gamma = 3 2$ ) with $\mathbf { 2 7 x }$ fewer trainable parameters.
+
+# 3.3 NATURAL LANGUAGE UNDERSTANDING
+
+We fine-tune RoBERTa-large (27) on GLUE, a popular language understanding benchmark. LoRA modules are applied only to the self-attention layers, with ranks $r = \{ 8 , 1 6 , 2 4 \}$ . Results are shown in Table 3. LoRA-SB consistently outperforms LoRA-XS across all settings. Additionally, LoRA-SB $r = 2 4$ ) outperforms LoRA-based methods $( r = 8 )$ ) with $\mathbf { 3 9 x }$ lesser trainable parameters.
+
+# 4 ANALYSIS
+
+# Optimal Initialization is Important!
+
+To isolate the impact of initialization, we take truncated SVD on various matrices, including Kaiming initialization (15) and $\Delta W _ { a v g }$ with varying levels of Gaussian noise, as shown in Table 4. By applying truncated SVD, we ensure optimal gradient approximation, leading to initialization matrices $B _ { \mathrm { i n i t } }$ and $A _ { \mathrm { i n i t } }$ that form orthonormal bases in $\mathbb { R } ^ { m }$ and $\mathbb { R } ^ { n }$ , respectively. This results in $B ^ { T } B = A A ^ { T } = I$ , allowing us to isolate the effect of initialization. The results clearly demonstrate the significance of initialization, our approach consistently outperforms other variants.
+
+# Why Do We Use ${ \bf 0 . 1 \% }$ of the Dataset Size for Initialization?
+
+We selected the $0 . 1 \%$ initialization dataset-size heuristic based on experiments that suggested it provides a good tradeoff between quality and efficiency. Specifically, we conducted ablations varying the number of samples used for initialization when fine-tuning Mistral-7B and Gemma-2 9B on $5 0 \mathrm { k }$ samples from MetaMathQA. The results (Table 5) show that once the sample count exceeds a modest threshold (25 samples or $0 . 0 5 \%$ ), performance quickly plateaus, indicating that the learned subspace is already sufficiently representative. Using $0 . 1 \%$ of the training data (50 samples) consistently exceeds this threshold across tasks and models, while incurring negligible training time overhead.
+
+Table 4: Comparison of initialization strategies using Mistral-7B on GSM8K and MATH. All methods ensure optimal gradient approximation, with differences arising solely from the initialization.   
+
+<table><tr><td rowspan="2">Initialization Method</td><td colspan="2">Accuracy (↑)</td></tr><tr><td>GSM8K</td><td>MATH</td></tr><tr><td>trunc_SVD (Kaiming)</td><td>00.00</td><td>00.00</td></tr><tr><td>(∆Wavg + Nµ=10−2) trunc_SVD</td><td>00.00</td><td>00.00</td></tr><tr><td>trunc_SVD (∆Wavg + Nµ=10−3)</td><td>58.83</td><td>14.76</td></tr><tr><td>trunc_SVD (∆Wag +N µ=10−4)</td><td>60.19</td><td>15.96</td></tr><tr><td>trunc_SVD (∆Wavg +N µ=10−5</td><td>60.65</td><td>15.98</td></tr><tr><td>LoRA-SB; ; trunc_SVD (∆Wavg)</td><td>63.38</td><td>17.44</td></tr></table>
+
+Table 5: Performance effect of number of samples used for initialization.   
+
+<table><tr><td rowspan="2"># Samples</td><td colspan="2">Mistral-7B</td><td colspan="2">Gemma-2 9B</td></tr><tr><td>GSM8K (↑)</td><td>MATH (↑)</td><td>GSM8K (↑)</td><td>MATH (↑)</td></tr><tr><td>1</td><td>62.13</td><td>15.55</td><td>76.03</td><td>35.77</td></tr><tr><td>5</td><td>62.78</td><td>16.86</td><td>77.49</td><td>37.24</td></tr><tr><td>25</td><td>63.28</td><td>17.30</td><td>78.18</td><td>37.70</td></tr><tr><td>50</td><td>63.38</td><td>17.44</td><td>78.40</td><td>37.70</td></tr><tr><td>100</td><td>63.34</td><td>17.25</td><td>78.22</td><td>37.45</td></tr><tr><td>200</td><td>63.45</td><td>17.36</td><td>78.43</td><td>37.87</td></tr><tr><td>500</td><td>63.40</td><td>17.52</td><td>78.54</td><td>37.63</td></tr></table>
+
+# Optimal Gradient Approximation is Important!
+
+We aim to examine the effect of optimal gradient approximation. Specifically, we want $B _ { \mathrm { i n i t } } R _ { \mathrm { i n i t } } A _ { \mathrm { i n i t } } \approx \Delta W _ { a v g }$ without enforcing $B ^ { T } \bar { B } = A A ^ { T } = I$ . We achieve this through:
+
+$$
+\begin{array} { r } { U , S , V ^ { T } \gets \mathbf { S V D } ( \Delta W _ { a v g } ) } \\ { B _ { \mathrm { i n i t } } \gets U [ 1 : r ] S [ 1 : r , 1 : r ] , A _ { \mathrm { i n i t } } \gets V [ 1 : r ] , R _ { \mathrm { i n i t } } \gets I } \end{array}
+$$
+
+This ensures that $B _ { \mathrm { i n i t } } R _ { \mathrm { i n i t } } A _ { \mathrm { i n i t } } \approx \Delta W _ { a v g }$ , but only $A A ^ { T } = I$ , while $B ^ { T } B \ne I$ . The setup is suboptimal for gradient approximation since we do not explicity use the closed-form solution derived in Theorem 3. We compare the resulting loss curves against LoRA-SB (which uses optimal gradient approximation) for Mistral-7B, as shown in Figure 3 in Appendix E. Although both start similarly due to effective initialization, LoRA-SB converges to significantly better values, demonstrating the advantage of optimal gradient approximation. Furthermore, LoRA-SB achieves higher accuracies on GSM8K and MATH, with scores of 63.38 and 17.44 compared to 55.87 and 12.74, respectively.
+
+# Training Time and Inference.
+
+We provide detailed benchmarks of training time and inference performance in Appendix F and G, respectively. As shown, the initialization step in LoRA-SB introduces only a negligible training-time overhead compared to LoRA $( \approx 1 . 1 \% - 1 . 3 \% )$ ).
+
+# 5 CONCLUSION
+
+In this work, we introduced LoRA-SB, which bridges the gap between low-rank PEFT and full FT. This is enabled by our initialization strategy, which approximates the first step of full FT and ensures that the most relevant subspaces for task-specific adaptation are captured. We achieve optimal gradient scaling and preserve update directions throughout training. Our approach ensures scaling factor independence by approximating the full FT gradient, thereby eliminating potential instability issues. Through extensive experiments, we demonstrate that our method outperforms LoRA (and baselines) using upto $\mathbf { 9 0 x }$ less parameters, and comprehensively outperforms LoRA-XS.
+
+# 6 ACKNOWLEDGEMENTS
+
+This research was supported by funding from Mohamed bin Zayed University of Artificial Intelligence (MBZUAI) and ADIA Lab.
+
+# REFERENCES
+
+[1] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774, 2023.   
+[2] Klaudia Bałazy, Mohammadreza Banaei, Karl Aberer, and Jacek Tabor. Lora-xs: Low-rank adaptation with extremely small number of parameters. (arXiv:2405.17604), October 2024. arXiv:2405.17604 [cs].   
+[3] Yonatan Bisk, Rowan Zellers, Jianfeng Gao, Yejin Choi, et al. Piqa: Reasoning about physical commonsense in natural language. In Proceedings of the AAAI conference on artificial intelligence, volume 34, pages 7432–7439, 2020.   
+[4] Sebastien Bubeck, Varun Chandrasekaran, Ronen Eldan, Johannes Gehrke, Eric Horvitz, Ece ´ Kamar, Peter Lee, Yin Tat Lee, Yuanzhi Li, Scott Lundberg, et al. Sparks of artificial general intelligence: Early experiments with gpt-4. arXiv preprint arXiv:2303.12712, 2023.   
+[5] Daniel Cer, Mona Diab, Eneko Agirre, Inigo Lopez-Gazpio, and Lucia Specia. Semeval-2017 task 1: Semantic textual similarity-multilingual and cross-lingual focused evaluation. arXiv preprint arXiv:1708.00055, 2017.   
+[6] Christopher Clark, Kenton Lee, Ming-Wei Chang, Tom Kwiatkowski, Michael Collins, and Kristina Toutanova. Boolq: Exploring the surprising difficulty of natural yes/no questions. arXiv preprint arXiv:1905.10044, 2019.   
+[7] Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot, Ashish Sabharwal, Carissa Schoenick, and Oyvind Tafjord. Think you have solved question answering? try arc, the ai2 reasoning challenge. arXiv preprint arXiv:1803.05457, 2018.   
+[8] Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. Training verifiers to solve math word problems, 2021. [9] Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and Luke Zettlemoyer. Qlora: Efficient finetuning of quantized llms. (arXiv:2305.14314), May 2023. arXiv:2305.14314 [cs].   
+[10] Ning Ding, Yujia Qin, Guang Yang, Fuchao Wei, Zonghan Yang, Yusheng Su, Shengding Hu, Yulin Chen, Chi-Min Chan, Weize Chen, Jing Yi, Weilin Zhao, Xiaozhi Wang, Zhiyuan Liu, Hai-Tao Zheng, Jianfei Chen, Yang Liu, Jie Tang, Juanzi Li, and Maosong Sun. Parameterefficient fine-tuning of large-scale pre-trained language models. Nature Machine Intelligence, 5(3):220–235, March 2023.   
+[11] Bill Dolan and Chris Brockett. Automatically constructing a corpus of sentential paraphrases. In Third international workshop on paraphrasing (IWP2005), 2005.   
+[12] Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783, 2024.   
+[13] Carl Eckart and Gale Young. The approximation of one matrix by another of lower rank. Psychometrika, 1(3):211–218, 1936.   
+[14] Yaru Hao, Haoyu Song, Li Dong, Shaohan Huang, Zewen Chi, Wenhui Wang, Shuming Ma, and Furu Wei. Language models are general-purpose interfaces. (arXiv:2206.06336), June 2022. arXiv:2206.06336 [cs].   
+[15] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Delving deep into rectifiers: Surpassing human-level performance on imagenet classification, 2015.   
+[16] Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, and Jacob Steinhardt. Measuring mathematical problem solving with the math dataset, 2021.   
+[17] Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. Lora: Low-rank adaptation of large language models. (arXiv:2106.09685), October 2021. arXiv:2106.09685 [cs].   
+[18] Zhiqiang Hu, Lei Wang, Yihuai Lan, Wanyu Xu, Ee-Peng Lim, Lidong Bing, Xing Xu, Soujanya Poria, and Roy Ka-Wei Lee. Llm-adapters: An adapter family for parameter-efficient fine-tuning of large language models, 2023.   
+[19] Albert Q. Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford, Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel, Guillaume Lample, Lucile Saulnier, Lelio Renard Lavaud, Marie-Anne Lachaux, Pierre Stock, Teven Le Scao, Thibaut ´ Lavril, Thomas Wang, Timothee Lacroix, and William El Sayed. Mistral 7b, 2023. ´   
+[20] Damjan Kalajdzievski. A rank stabilization scaling factor for fine-tuning with lora. (arXiv:2312.03732), November 2023. arXiv:2312.03732 [cs].   
+[21] Alexander Kirillov, Eric Mintun, Nikhila Ravi, Hanzi Mao, Chloe Rolland, Laura Gustafson, Tete Xiao, Spencer Whitehead, Alexander C. Berg, Wan-Yen Lo, Piotr Dollar, and Ross B. ´ Girshick. Segment anything. 2023 IEEE/CVF International Conference on Computer Vision (ICCV), pages 3992–4003, 2023.   
+[22] Dawid J. Kopiczko, Tijmen Blankevoort, and Yuki M. Asano. Vera: Vector-based random matrix adaptation. (arXiv:2310.11454), January 2024. arXiv:2310.11454 [cs].   
+[23] Brian Lester, Rami Al-Rfou, and Noah Constant. The power of scale for parameter-efficient prompt tuning. (arXiv:2104.08691), September 2021. arXiv:2104.08691 [cs].   
+[24] Xiang Lisa Li and Percy Liang. Prefix-tuning: Optimizing continuous prompts for generation. (arXiv:2101.00190), January 2021. arXiv:2101.00190 [cs].   
+[25] Vladislav Lialin, Namrata Shivagunde, Sherin Muckatira, and Anna Rumshisky. Relora: High-rank training through low-rank updates. (arXiv:2307.05695), December 2023. arXiv:2307.05695 [cs].   
+[26] Shih-Yang Liu, Chien-Yi Wang, Hongxu Yin, Pavlo Molchanov, Yu-Chiang Frank Wang, Kwang-Ting Cheng, and Min-Hung Chen. Dora: Weight-decomposed low-rank adaptation. (arXiv:2402.09353), July 2024. arXiv:2402.09353 [cs].   
+[27] Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov. Roberta: A robustly optimized bert pretraining approach, 2019.   
+[28] Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization, 2019.   
+[29] Kai Lv, Yuqing Yang, Tengxiao Liu, Qinghui Gao, Qipeng Guo, and Xipeng Qiu. Full parameter fine-tuning for large language models with limited resources, 2024.   
+[30] Fanxu Meng, Zhaohui Wang, and Muhan Zhang. Pissa: Principal singular values and singular vectors adaptation of large language models. (arXiv:2404.02948), May 2024. arXiv:2404.02948 [cs].   
+[31] Todor Mihaylov, Peter Clark, Tushar Khot, and Ashish Sabharwal. Can a suit of armor conduct electricity? a new dataset for open book question answering. arXiv preprint arXiv:1809.02789, 2018.
+
+[32] Leon Mirsky. Symmetric gauge functions and unitarily invariant norms. The quarterly journal of mathematics, 11(1):50–59, 1960.
+
+[33] Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, et al. Pytorch: An imperative style, high-performance deep learning library. Advances in neural information processing systems, 32, 2019.
+
+[34] Jonas Pfeiffer, Aishwarya Kamath, Andreas Ruckl ¨ e, Kyunghyun Cho, and Iryna Gurevych. ´ Adapterfusion: Non-destructive task composition for transfer learning. (arXiv:2005.00247), January 2021. arXiv:2005.00247 [cs].
+
+[35] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, Gretchen Krueger, and Ilya Sutskever. Learning transferable visual models from natural language supervision. In International Conference on Machine Learning, 2021.
+
+[36] Pranav Rajpurkar, Robin Jia, and Percy Liang. Know what you don’t know: Unanswerable questions for squad. arXiv preprint arXiv:1806.03822, 2018.
+
+[37] Adithya Renduchintala, Tugrul Konuk, and Oleksii Kuchaiev. Tied-lora: Enhancing parameter efficiency of lora with weight tying. (arXiv:2311.09578), April 2024. arXiv:2311.09578 [cs].
+
+[38] Keisuke Sakaguchi, Ronan Le Bras, Chandra Bhagavatula, and Yejin Choi. Winogrande: An adversarial winograd schema challenge at scale. Communications of the ACM, 64(9):99–106, 2021.
+
+[39] Maarten Sap, Hannah Rashkin, Derek Chen, Ronan LeBras, and Yejin Choi. Socialiqa: Commonsense reasoning about social interactions. arXiv preprint arXiv:1904.09728, 2019.
+
+[40] Raghav Singhal, Kaustubh Ponkshe, and Praneeth Vepakomma. Exact aggregation for federated and efficient fine-tuning of foundation models. arXiv preprint arXiv:2410.09432, 2024.
+
+[41] Richard Socher, Alex Perelygin, Jean Wu, Jason Chuang, Christopher D Manning, Andrew Y Ng, and Christopher Potts. Recursive deep models for semantic compositionality over a sentiment treebank. In Proceedings of the 2013 conference on empirical methods in natural language processing, pages 1631–1642, 2013.
+
+[42] Youbang Sun, Zitao Li, Yaliang Li, and Bolin Ding. Improving lora in privacy-preserving federated learning, 2024.
+
+[43] Gemma Team, Morgane Riviere, Shreya Pathak, Pier Giuseppe Sessa, Cassidy Hardin, Surya Bhupatiraju, Leonard Hussenot, Thomas Mesnard, Bobak Shahriari, Alexandre Ram ´ e,´ et al. Gemma 2: Improving open language models at a practical size. arXiv preprint arXiv:2408.00118, 2024.
+
+[44] Chunlin Tian, Zhan Shi, Zhijiang Guo, Li Li, and Chengzhong Xu. Hydralora: An asymmetric lora architecture for efficient fine-tuning. (arXiv:2404.19245), May 2024. arXiv:2404.19245 [cs].
+
+[45] Shaowen Wang, Linxi Yu, and Jian Li. Lora-ga: Low-rank adaptation with gradient approximation. (arXiv:2407.05000), July 2024. arXiv:2407.05000 [cs].
+
+[46] Zhengbo Wang, Jian Liang, Ran He, Zilei Wang, and Tieniu Tan. Lora-pro: Are low-rank adapters properly optimized? (arXiv:2407.18242), October 2024. arXiv:2407.18242 [cs].
+
+[47] Alex Warstadt, Amanpreet Singh, and Samuel R. Bowman. Neural network acceptability judgments. Transactions of the Association for Computational Linguistics, 7:625–641, 2019.
+
+[48] Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement Delangue, Anthony Moi, Pierric Cistac, Tim Rault, Remi Louf, Morgan Funtowicz, et al. Transformers: State- ´ of-the-art natural language processing. In Proceedings of the 2020 conference on empirical methods in natural language processing: system demonstrations, pages 38–45, 2020.
+
+[49] Zhengxuan Wu, Aryaman Arora, Zheng Wang, Atticus Geiger, Dan Jurafsky, Christopher D. Manning, and Christopher Potts. Reft: Representation finetuning for language models. (arXiv:2404.03592), May 2024. arXiv:2404.03592 [cs].   
+[50] Longhui Yu, Weisen Jiang, Han Shi, Jincheng Yu, Zhengying Liu, Yu Zhang, James T. Kwok, Zhenguo Li, Adrian Weller, and Weiyang Liu. Metamath: Bootstrap your own mathematical questions for large language models, 2024.   
+[51] Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali Farhadi, and Yejin Choi. Hellaswag: Can a machine really finish your sentence? arXiv preprint arXiv:1905.07830, 2019.   
+[52] Qingru Zhang, Minshuo Chen, Alexander Bukharin, Nikos Karampatziakis, Pengcheng He, Yu Cheng, Weizhu Chen, and Tuo Zhao. Adalora: Adaptive budget allocation for parameterefficient fine-tuning. (arXiv:2303.10512), December 2023. arXiv:2303.10512 [cs].   
+[53] Jiawei Zhao, Zhenyu Zhang, Beidi Chen, Zhangyang Wang, Anima Anandkumar, and Yuandong Tian. Galore: Memory-efficient llm training by gradient low-rank projection. (arXiv:2403.03507), June 2024. arXiv:2403.03507 [cs].
+
+# Appendix
+
+CONTENTS
+
+A Related Work 14
+
+# B Proofs 15
+
+B.1 Proof of Lemma 1 15   
+B.2 Proof of Lemma 2 . 15   
+B.3 Proof of Theorem 3 16   
+B.4 Proof of Theorem 4 16   
+B.5 Proof of Theorem 5 17   
+B.6 Proof of Theorem 6 17
+
+# Simulating the First Step of Full Fine-Tuning Under AdamW 18
+
+D Algorithm 19   
+E Optimal Gradient Approximation is Important! 19   
+F Training Time Overhead vs LoRA-XS 19   
+G Inference Overhead vs LoRA 20   
+H Experiment Details 20   
+I Dataset Details 21   
+J Use of Large Language Models 22
+
+# A RELATED WORK
+
+Parameter-Efficient Fine-Tuning (PEFT). PEFT methods have become essential for adapting large pre-trained models under computational constraints. Early techniques like AdapterFusion (34) and Prefix-Tuning (24) enabled task-specific adaptation with minimal parameter updates. Advances like soft prompts (23) further reduced trainable parameter counts while maintaining strong performance. Recent approaches have explored operating directly on model representations (49).
+
+Low-Rank Decomposition Methods. LoRA (17) demonstrated that weight updates during FT could be efficiently approximated using low-rank matrices, drastically reducing parameter counts. Building on this insight, variants such as QLoRA (9) and AdaLoRA (52) extended the paradigm through quantization and adaptive allocation strategies. The applicability of low-rank techniques has also been explored in pretraining with GaLore (53) and ReLoRA (25), highlighting the versatility of low-rank adaptation methods. LoRA-based methods have also been applied in other domains, such as efficient federated FT (42; 40).
+
+Enhancing LoRA Performance. Recent efforts have focused on optimizing LoRA’s performance. PiSSA (30) demonstrated improvements by initializing matrices with principal components of pretrained weights. LoRA-Pro (46) and LoRA-GA (45) improved gradient approximation, aligning low-rank updates more closely with full FT. Methods like DoRA (26) and rsLoRA (20) introduced decomposition-based and scaling stabilization techniques to enhance learning stability and expand LoRA’s utility.
+
+Improving Efficiency in LoRA Variants. Efficiency-focused innovations have pushed LoRA toward more parameter savings. LoRA-XS (2) achieves this by inserting a small trainable weight matrix into frozen low-rank matrices. VeRA (22) shares low-rank matrices across layers, relying on scaling vectors for task-specific adaptation. Tied-LoRA (37) leverages weight tying to reduce parameter usage at higher ranks, while HydraLoRA (44) introduces an asymmetric architecture for improvement.
+
+# B PROOFS
+
+In all the proofs below, we will use the notations defined in Section 2.
+
+# B.1 PROOF OF LEMMA 1
+
+Lemma. Let $\Delta W$ be an update learned with LoRA-XS. Then, the set of all possible ∆W , say $\mathcal { W } _ { L o R A - X S }$ , is given as:
+
+$$
+\begin{array} { r } { \mathcal { W } _ { L o R A - X S } = \{ M \in \mathbb { R } ^ { m \times n } | C o l ( M ) \subseteq C o l ( B ) \wedge R o w ( M ) \subseteq R o w ( A ) \} , } \end{array}
+$$
+
+where $C o l ( M )$ and $R o w ( M )$ are column and row spaces of matrix $M$ respectively.
+
+Proof. Since $\Delta W = B R A$ , we have
+
+$$
+\begin{array} { r } { \operatorname { C o l } ( \Delta W ) = \{ y \in \mathbb { R } ^ { m } \mid y = B R A x , x \in \mathbb { R } ^ { n } \} \implies } \\ { \operatorname { C o l } ( \Delta W ) = \{ y \in \mathbb { R } ^ { m } \mid y = B z , z \in \operatorname { C o l } ( R A ) \} \subseteq \operatorname { C o l } ( B ) . } \end{array}
+$$
+
+That is, we proved that
+
+$$
+\mathbf { C o l } ( \Delta W ) \subseteq \mathbf { C o l } ( B ) .
+$$
+
+Following similar arguments, one can also show $\mathtt { R o w } ( \Delta W ) \subseteq \mathtt { R o w } ( A )$
+
+# B.2 PROOF OF LEMMA 2
+
+Lemma. The gradient of the loss with respect to matrix $R$ can be expressed in terms of the gradient with respect to the weight matrix $W$ as:
+
+$$
+g _ { L o R A - X S } ^ { R } = s B ^ { \top } g A ^ { \top } .
+$$
+
+$L$ $g$ $g _ { \mathrm { L o R A - X S } } ^ { R }$
+
+$$
+g : = \frac { \partial L } { \partial W } \quad \& \quad g _ { \mathrm { L o R A - X S } } ^ { R } : = \frac { \partial L } { \partial R } .
+$$
+
+The chain rule gives
+
+$$
+{ \frac { \partial L } { \partial R } } = { \frac { \partial L } { \partial W } } { \frac { \partial W } { \partial R } } \implies { \frac { \partial L } { \partial R } } = { \frac { \partial L } { \partial W } } { \frac { \partial W } { \partial X } } { \frac { \partial X } { \partial R } } \quad { \mathrm { ~ f o r ~ } } X = R A
+$$
+
+We know that for $W = s B X$ :
+
+$$
+{ \frac { \partial L } { \partial W } } { \frac { \partial W } { \partial X } } = s B ^ { \top } g \implies { \frac { \partial L } { \partial R } } = s B ^ { \top } g { \frac { \partial X } { \partial R } }
+$$
+
+Let $s B ^ { \intercal } g = y$ . We know that when $X = R A$ :
+
+$$
+y { \frac { \partial X } { \partial R } } = y A ^ { \top } \implies { \frac { \partial L } { \partial R } } = y A ^ { \top } = s B ^ { \top } g A ^ { \top }
+$$
+
+$$
+\boxed { g _ { \mathrm { L o R A - X S } } ^ { R } = s B ^ { \top } g A ^ { \top } }
+$$
+
+Theorem. For full-rank $A$ and $B$ matrices, the optimal solution for the objective $m i n _ { g ^ { R } } | | \tilde { g } - g | | _ { F } ^ { 2 }$ , such that $\tilde { g } = s B g ^ { R } A$ , is: $g ^ { R } = { \frac { 1 } { s ^ { 2 } } } ( B ^ { \top } B ) ^ { - 1 } g _ { L o R A - X S } ^ { R } ( A A ^ { \top } ) ^ { - 1 }$
+
+Proof. Since we already defined the equivalent gradient $\tilde { g } : = s B g ^ { R } A$ , the minimization problem can be denoted as:
+
+$$
+\underset { g ^ { R } } { \arg \operatorname* { m i n } } F = \| s B g ^ { R } A - g \| _ { F } ^ { 2 }
+$$
+
+For differentiable $F$ ,
+
+$$
+{ \frac { \partial F } { \partial g ^ { R } } } = 0 \implies 2 ( \widetilde g - g ) \cdot { \frac { \partial \widetilde g } { \partial g ^ { R } } } = 0 \implies 2 ( s B g ^ { R } A - g ) \cdot { \frac { \partial ( s B g ^ { R } A ) } { \partial g ^ { R } } } = 0
+$$
+
+Using the same trick from before and substituting $g ^ { R } A = X$ , we get:
+
+$$
+2 s B ^ { \mathsf { T } } ( s B g ^ { R } A - g ) A ^ { \mathsf { T } } = 0 \implies B ^ { \mathsf { T } } ( s B g ^ { R } A - g ) A ^ { \mathsf { T } } = 0 \implies B ^ { \mathsf { T } } s B g ^ { R } A A ^ { \mathsf { T } } = B ^ { \mathsf { T } } g A ^ { \mathsf { T } }
+$$
+
+From Lemma 2, we get:
+
+$$
+B ^ { \top } g A ^ { \top } = g _ { \mathrm { L o R A - X S } } ^ { R } / s \implies B ^ { \top } s B g ^ { R } A A ^ { \top } = g _ { \mathrm { L o R A - X S } } ^ { R } / s \implies B ^ { \top } B g ^ { R } A A ^ { \top } = g _ { \mathrm { L o R A - X S } } ^ { R } / s _ { \bot } ^ { 2 }
+$$
+
+Now since $B$ and $A$ are full rank, multiplying both sides by $( B ^ { \top } B ) ^ { - 1 }$ and $( A A ^ { \top } ) ^ { - 1 }$ on the left and right side respectively gives:
+
+$$
+( B ^ { \top } B ) ^ { - 1 } ( B ^ { \top } B g ^ { R } A A ^ { \top } ) ( A A ^ { \top } ) ^ { - 1 } = ( B ^ { \top } B ) ^ { - 1 } g _ { \mathrm { L o R A - X S } } ^ { R } ( A A ^ { \top } ) ^ { - 1 } / s ^ { 2 }
+$$
+
+$$
+\mathrm { T h e r e f o r e , } \quad \left. g ^ { R } = { \frac { 1 } { s ^ { 2 } } } ( B ^ { \top } B ) ^ { - 1 } g _ { \mathrm { L o R A - X S } } ^ { R } ( A A ^ { \top } ) ^ { - 1 } \right.
+$$
+
+# B.4 PROOF OF THEOREM 4
+
+Theorem. Consider the update for matrix $R$ using the solution derived in Theorem 3:
+
+$$
+R  R - \eta g ^ { R }
+$$
+
+where $\eta > 0$ is the (sufficiently small) learning rate. This update guarantees a reduction in the loss $\Delta L _ { \mathrm { { \scriptsize { \cdot } } } }$ , given by:
+
+$$
+\begin{array} { r } { \Delta L : = L ( W _ { 0 } + s B ( R - \eta g ^ { R } ) A ) - L ( W _ { 0 } + s B R A ) = - \eta \langle g _ { L o R A - X S } ^ { R } , g ^ { R } \rangle _ { F } + o ( \eta ) \le 0 . } \end{array}
+$$
+
+Proof. Assuming that $L$ is differentiable, we use Taylor’s theorem and get
+
+$$
+\begin{array} { l } { \Delta L : = L ( W _ { 0 } + s B ( R - \eta g ^ { R } ) A ) - L ( W _ { 0 } + s B R A ) } \\ { \displaystyle \quad = \left. \frac { \partial L } { \partial R } , - \eta g ^ { R } \right. _ { F } + o ( \eta ) } \\ { \displaystyle \quad = - \frac { \eta } { s ^ { 2 } } \langle g _ { \mathrm { L o R A - X S } } ^ { R } , ( B ^ { \top } B ) ^ { - 1 } g _ { \mathrm { L o R A - X S } } ^ { R } ( A A ^ { \top } ) ^ { - 1 } \rangle _ { F } + o ( \eta ) , } \end{array}
+$$
+
+the last step we for small enough so used the definition of , it is sufficient to show $g _ { \mathrm { L o R A - X S } } ^ { R }$ and the result of Theorem 3. To prove $\Delta L \leq 0$ $\eta$
+
+$$
+\langle g _ { \mathrm { L o R A - X S } } ^ { R } , ( B ^ { \top } B ) ^ { - 1 } g _ { \mathrm { L o R A - X S } } ^ { R } ( A A ^ { \top } ) ^ { - 1 } \rangle _ { F } \geq 0 .
+$$
+
+Next, we note that matrices $B ^ { \intercal } B \in \mathbb { R } ^ { r \times r }$ and $A A ^ { \top } \in \mathbb { R } ^ { r \times r }$ are positive definite since they are positive semi-definite and matrices $B$ and $A$ are full-rank (i.e., with rank $r$ ) matrices, which means that $B ^ { \top } B$ and $A A ^ { \top }$ have non-zero eigenvalues. Therefore, $( B ^ { \top } B ) _ { \mathrm { ~ - ~ } } ^ { - 1 }$ and $( A A ^ { \top } ) ^ { - 1 }$ are also positive definite, implying that there exist matrices $X$ and $Y$ such that $( \overset { \cdot } { B } ^ { \top } B ) ^ { - 1 } = Y \overset { \cdot } { Y } ^ { \top }$ and $( A A ^ { \dagger } ) ^ { - 1 } = X X ^ { \top }$ (e.g., one can find such matrices using Cholesky decomposition). Then, we have
+
+$$
+\begin{array} { r l r } & { } & { \langle g _ { \mathrm { L o R A - X S } } ^ { R } , ( B ^ { \top } B ) ^ { - 1 } g _ { \mathrm { L o R A - X S } } ^ { R } ( A A ^ { \top } ) ^ { - 1 } \rangle _ { F } = \langle g _ { \mathrm { L o R A - X S } } ^ { R } , Y Y ^ { \top } g _ { \mathrm { L o R A - X S } } ^ { R } X X ^ { \top } \rangle _ { F } } \\ & { } & { = \langle Y ^ { \top } g _ { \mathrm { L o R A - X S } } ^ { R } X , Y ^ { \top } g _ { \mathrm { L o R A - X S } } ^ { R } X \rangle _ { F } } \\ & { } & { = \| Y ^ { \top } g _ { \mathrm { L o R A - X S } } ^ { R } X \| _ { F } ^ { 2 } \geq 0 . \qquad } \end{array}
+$$
+
+This concludes the proof.
+
+For our specific initialization where $( B ^ { \top } B ) = I , ( A A ^ { \top } ) = I$ , and $s = 1$ , the result simplifies to:
+
+$$
+\begin{array} { r } { \Delta L = - \eta \langle g _ { \mathrm { L o R A - X S } } ^ { R } , g _ { \mathrm { L o R A - X S } } ^ { R } \rangle _ { F } + o ( \eta ) \leq 0 . } \end{array}
+$$
+
+# B.5 PROOF OF THEOREM 5
+
+Theorem. The equivalent gradient $\tilde { g }$ is hyperparameter s independent when
+
+$$
+\tilde { g } = s B g ^ { R } A \quad b u t n o t w h e n \quad \tilde { g } = s B g _ { L o R A - X S } ^ { R } A .
+$$
+
+Proof. Let $g$ be the full fine-tuning gradient. We want to prove that $\tilde { g }$ does not depend on $s$ , so we try to express it in terms of $g$ which does not depend on the LoRA-XS training process or reparameterization.
+
+1) For $\tilde { g } = s B g ^ { R } A$ :
+
+$$
+g ^ { R } = \frac { 1 } { s ^ { 2 } } ( B ^ { \top } B ) ^ { - 1 } g _ { \mathrm { L o R A - X S } } ^ { R } ( A A ^ { \top } ) ^ { - 1 } \implies \tilde { g } = \frac { s } { s ^ { 2 } } B ( B ^ { \top } B ^ { - 1 } ) g _ { \mathrm { L o R A - X S } } ^ { R } ( A A ^ { \top } ) ^ { - 1 } A
+$$
+
+Now since $g _ { \mathrm { L o R A - X S } } ^ { R } = s B ^ { \top } g A ^ { \top }$
+
+$$
+\tilde { g } = \frac { 1 } { s } B ( B ^ { \top } B ^ { - 1 } ) s B ^ { \top } g A ^ { \top } ( A A ^ { \top } ) ^ { - 1 } A = B ( B ^ { \top } B ^ { - 1 } ) B ^ { \top } g A ^ { \top } ( A A ^ { \top } ) ^ { - 1 } A .
+$$
+
+which is $s$ -independent.
+
+2) For $\tilde { g } = s B g _ { \mathrm { L o R A - X S } } ^ { R } A$
+
+$$
+g _ { \mathrm { { L o R A - X S } } } ^ { R } = s B ^ { \top } g A ^ { \top } \implies \tilde { g } = s B ( s B ^ { \top } g A ^ { \top } ) A \implies \tilde { g } = s ^ { 2 } B B ^ { \top } g A ^ { \top } A
+$$
+
+which is not $s$ -independent.
+
+# B.6 PROOF OF THEOREM 6
+
+Theorem. If $A _ { i n i t }$ and $B _ { i n i t }$ are initialized using LoRA-SB for the first step of SGD optimizer, then the update given by LoRA-SB, $\Delta ( B _ { i n i t } R _ { i n i t } A _ { i n i t } )$ , is the best low-rank approximation of full fine-tuning update, $\Delta W$ .
+
+Proof. Consider a gradient descent step with learning rate $\eta$ and updates for $R$ :
+
+$$
+\Delta R = - \eta \nabla _ { R } \mathcal { L } ( R ) \implies B \Delta R A = - \eta B \nabla _ { R } \mathcal { L } ( R ) A .
+$$
+
+To measure its approximation quality of update of the weights in full finetuning:
+
+$$
+\Delta W = - \eta \nabla _ { W } { \mathcal { L } } ( W _ { 0 } ) .
+$$
+
+We use Frobenius norm of the difference between these two updates as a criterion:
+
+$$
+\lVert B \Delta R A - \eta \nabla \mathcal { L } _ { W } ( W _ { 0 } ) \rVert _ { F } = \eta \lVert B \nabla _ { R } \mathcal { L } ( R ) A - \nabla \mathcal { L } _ { W } ( W _ { 0 } ) \rVert _ { F } .
+$$
+
+We have shown before that:
+
+$$
+\nabla _ { \boldsymbol { R } } \mathcal { L } = \boldsymbol { B } ^ { \top } \nabla _ { W } \mathcal { L } \boldsymbol { A } ^ { \top } .
+$$
+
+The problem now becomes:
+
+$$
+\operatorname* { m i n } _ { A _ { \mathrm { i n t } } , B _ { \mathrm { i n t } } } \| B ^ { \top } ( B ^ { \top } \nabla _ { W } \mathcal { L } A ^ { \top } ) A - \nabla _ { W } \mathcal { L } \| _ { F } \quad \mathrm { w h e r e } \ \nabla _ { W } \mathcal { L } = U S V ^ { \top } .
+$$
+
+Using our initialization, we get:
+
+$$
+\| B B ^ { \top } \nabla _ { W } \mathcal { L } A ^ { \top } A - \nabla _ { W } \mathcal { L } \| _ { F } = \| U _ { I R } U _ { I R } ^ { \top } U S V ^ { \top } V _ { I R } V _ { I R } ^ { \top } - U S V ^ { \top } \| _ { F } .
+$$
+
+Moreover, we also have
+
+$$
+U _ { I R } U _ { I R } ^ { \top } U S V ^ { \top } V _ { I R } V _ { I R } ^ { \top } = \sum _ { i = 1 } ^ { r } \sigma _ { i } u _ { i } v _ { i } ^ { \top } .
+$$
+
+The rank of $W ^ { \prime }$ such that
+
+$$
+\begin{array} { r } { W ^ { \prime } = U _ { I R } U _ { I R } ^ { \top } U S V ^ { \top } V _ { I R } V _ { I R } ^ { \top } } \end{array}
+$$
+
+is $\leq r$ , since the corresponding ranks of $B _ { \mathrm { i n i t } }$ and $A _ { \mathrm { i n i t } }$ is $r$ . Using the Eckart-Young Theorem, we find the optimal low-rank solution as:
+
+$$
+\boldsymbol { W } ^ { \prime * } = \operatorname * { a r g m i n } _ { \mathrm { \ r { r a n k } } ( \boldsymbol { W } ^ { \prime } ) = \boldsymbol { r } } \| \boldsymbol { W } ^ { \prime } - \nabla _ { \boldsymbol { W } } \mathcal { L } \| _ { F } = \sum _ { i = 1 } ^ { r } \sigma _ { i } u _ { i } v _ { i } ^ { \top } .
+$$
+
+Since we also get an identical expression, our solution is optimal.
+
+# C SIMULATING THE FIRST STEP OF FULL FINE-TUNING UNDER ADAMW
+
+Our initialization is designed to approximate the first update step that would occur during full finetuning using the AdamW optimizer, which is also used in LoRA-SB training. AdamW computes the parameter update using both first and second moment estimates of the gradient. At the first step, these moments are initialized to zero, so the update becomes:
+
+$$
+\theta _ { 1 } = \theta _ { 0 } - \alpha \cdot \frac { g _ { 1 } } { \sqrt { g _ { 1 } ^ { 2 } + \epsilon } } \approx - \alpha \cdot \mathrm { s i g n } ( g _ { 1 } )
+$$
+
+where $g _ { 1 }$ is the gradient at the first step, $\epsilon$ is a small constant for numerical stability, and $\alpha$ is the learning rate. Due to zero-initialization and bias correction, the direction of the update is approximately the element-wise sign of the gradient.
+
+To simulate this behavior in our low-rank initialization, we use:
+
+$$
+\Delta W _ { \mathrm { a v g } } = - \eta \cdot \mathrm { s i g n } \left( \sum _ { i = 1 } ^ { n } \nabla _ { W } \mathcal { L } ( W _ { 0 } , x _ { i } ) \right)
+$$
+
+This reflects the direction of the first AdamW step averaged over a mini-batch. By using the sign of the gradient sum, we ensure our initialization aligns with the dynamics of AdamW, leading to a consistent and faithful approximation of full fine-tuning updates within the low-rank subspace.
+
+# D ALGORITHM
+
+We provide a pseudo-code implementation of our method in Algorithm 1.
+
+# Algorithm 1 LoRA-SB, PyTorch-like
+
+1: def initSB(model, D)   
+2: # Estimate gradient with n samples   
+3: $\Delta W _ { \mathrm { a v g } } $ est grad(model, D, n)   
+4: # Initialize B, R, A   
+5: $( B , R , A ) $ trunc SVD( $\Delta W _ { \mathrm { a v g } }$ )   
+6: # Convert to LoRA-SB model   
+7: sb model $\gets$ lora SB(model, B, R, A)   
+8: return sb model   
+9:   
+10: # Load pre-trained model   
+11: model $\gets$ AutoModel(base model)   
+12: # Initialize LoRA-SB with D   
+13: sb model initSB(model, D)   
+14: # Train, only R trainable   
+15: trainer Trainer(sb model,...)   
+16: trainer.train()
+
+# E OPTIMAL GRADIENT APPROXIMATION IS IMPORTANT!
+
+As discussed in Section 4, optimal gradient approximation plays a key role in the effectiveness of LoRA-SB. In Figure 3, we compare the loss curves of models trained with and without this component on Mistral-7B. While both variants begin with similar performance due to effective initialization, LoRA-SB with optimal gradient approximation converges to substantially lower loss values, highlighting its contribution to improved optimization.
+
+![](images/figures/lora-sb-fig-0003.jpg)  
+Figure 3: Training loss for Mistral-7B, highlighting the impact of optimal gradient approximation.
+
+# F TRAINING TIME OVERHEAD VS LORA-XS
+
+As previously mentioned, we compute the update approximation using only $1 / 1 0 0 0$ of the total training samples for each dataset. Table 6 presents the associated training time overhead for these computations, compared to LoRA-XS. The results show that the additional overhead is negligible, adding just 2–4 minutes compared to the total training time of 3–5 hours per epoch $( \approx 1 . 1 \%$ to $1 . 3 \%$ ). Additionally, the update computation is performed only once, at the beginning of the first epoch, prior to training. Notably, the initialization step is highly efficient, as we directly compute the truncated
+
+SVD using optimized PyTorch libraries (torch.svd lowrank). For reference, this computation takes less than one second for each of the entire LLMs used in our experiments.
+
+Table 6: Training time overhead due to the initialization for various models on their respective tasks.   
+
+<table><tr><td>Model</td><td>Overhead</td><td>Training Time/Epoch</td></tr><tr><td>Mistral-7B</td><td>0:02:01</td><td>3:03:57</td></tr><tr><td>Gemma-2 9B</td><td>0:03:46</td><td>4:13:24</td></tr><tr><td>Llama-3.2 3B</td><td>0:03:54</td><td>4:54:31</td></tr></table>
+
+# G INFERENCE OVERHEAD VS LORA
+
+LoRA-SB introduces a minimal inference cost overhead due to the insertion of the $r \times r$ matrix $R$ between $B$ and $A$ , and the need for higher ranks to achieve comparable performance to LoRA. We benchmark the inference-time FLOPs and MACs across various models and find that the overhead is negligible. This comparison is presented in Table 7, showing that the additional overhead of LoRA-SB is negligible.
+
+Table 7: Inference cost comparison between LoRA-SB and LoRA across various models for a sequence length of 256. The minimum rank at which LoRA-SB matches or exceeds LoRA’s performance is highlighted in bold.   
+
+<table><tr><td>Model</td><td>Method</td><td>Rank</td><td>MACs</td><td>FLOPs</td></tr><tr><td rowspan="3">RoBERTa-large</td><td>LoRA</td><td>8</td><td>77.86 G</td><td>155.79 G</td></tr><tr><td>LoRA-SB</td><td>16</td><td>78.42 G</td><td>156.91 G</td></tr><tr><td>LoRA-SB</td><td>24</td><td>78.97 G</td><td>158.01 G</td></tr><tr><td rowspan="3">LlaMA-3.2 3B</td><td>LoRA</td><td>32</td><td>0.84 T</td><td>1.67 T</td></tr><tr><td>LoRA-SB</td><td>64</td><td>0.85 T</td><td>1.70 T</td></tr><tr><td>LoRA-SB</td><td>96</td><td>0.86 T</td><td>1.72 T</td></tr><tr><td rowspan="3">Mistral 7B</td><td>LoRA</td><td>32</td><td>1.84 T</td><td>3.69 T</td></tr><tr><td>LoRA-SB</td><td>64</td><td>1.86 T</td><td>3.73 T</td></tr><tr><td>LoRA-SB</td><td>92</td><td>1.88 T</td><td>3.77 T</td></tr><tr><td rowspan="3">Gemma-2 9B</td><td>LoRA</td><td>32</td><td>3.89 T</td><td>7.77 T</td></tr><tr><td>LoRA-SB</td><td>64</td><td>3.93 T</td><td>7.86 T</td></tr><tr><td>LoRA-SB</td><td>96</td><td>3.97 T</td><td>7.94 T</td></tr></table>
+
+# H EXPERIMENT DETAILS
+
+We use PyTorch (33) and the HuggingFace Transformers library (48) for our implementations. We run all experiments on a single NVIDIA A6000 GPU and report results as the average of three random seeds. To save memory, we initialize base models in torch.bfloat16 precision. We trained all models using the AdamW optimizer (28). We compute the update approximation using only $\mathbf { 1 / 1 0 0 0 }$ of each dataset’s total number of samples. The samples are randomly selected from the training set in each run.
+
+For arithmetic and commonsense reasoning tasks, we set up Mistral-7B, Gemma-2 9B, and Llama-3.2 3B with hyperparameters and configurations listed in Table 8. We adopted most settings from previous studies (18) but conducted our own learning rate sweep. Following LoRA-XS guidelines, we set $\alpha = r$ for their baseline configuration.
+
+For the GLUE benchmark using RoBERTa-large, you can find the hyperparameter details in Table 9. We mostly adhered to the original configurations from the LoRA paper (17) but adjusted the learning rate through a sweep. In line with LoRA-XS settings, we fixed $\alpha$ at 16 for their baseline.
+
+For all tasks, we followed the baseline configurations provided in the PiSSA (30), rsLoRA (20), DoRA (26), and LoRA-Pro (46) papers for our comparisons.
+
+Table 8: Hyperparameter settings for training Mistral-7B and Gemma-2 9B on MetaMathQA, and Llama-3.2 3B on COMMONSENSE170K.   
+
+<table><tr><td></td><td>Mistral-7B / Gemma-2 9B</td><td>Llama-3.2 3B</td></tr><tr><td>Optimizer</td><td>AdamW</td><td>AdamW</td></tr><tr><td>Batch size</td><td>1</td><td>6</td></tr><tr><td>Max. Seq. Len</td><td>512</td><td>256</td></tr><tr><td>Grad Acc. Steps</td><td>32</td><td>24</td></tr><tr><td>Epochs</td><td>1</td><td>2</td></tr><tr><td>Dropout</td><td>0</td><td>0.05</td></tr><tr><td>Learning Rate</td><td>1 × 10−4</td><td>2 × 10−3</td></tr><tr><td>LR Scheduler</td><td>Cosine</td><td>Linear</td></tr><tr><td>Warmup Ratio</td><td>0.02</td><td>0.02</td></tr></table>
+
+Table 9: Hyperparameter settings for RoBERTa-large on GLUE.   
+
+<table><tr><td></td><td>CoLA</td><td>RTE</td><td>MRPC</td><td>SST-2</td><td>QNLI</td><td>STS-B</td></tr><tr><td rowspan="3">Optimizer Batch size Max Seq. Len.</td><td rowspan="3">30</td><td colspan="4">AdamW</td><td rowspan="3">30</td></tr><tr><td colspan="3">128</td></tr><tr><td>30</td><td>256 15</td><td>15</td></tr><tr><td>Epochs Dropout</td><td colspan="4">30</td><td></td></tr><tr><td>Learning Rate</td><td colspan="4">0 1 × 10−3</td><td></td></tr><tr><td></td><td colspan="4"></td></tr><tr><td>LR Scheduler</td><td colspan="4">Linear</td></tr><tr><td></td><td colspan="4"></td></tr><tr><td>Warmup Ratio</td><td colspan="4">0.06</td></tr></table>
+
+# I DATASET DETAILS
+
+The MetaMathQA dataset (50) creates mathematical questions by rephrasing existing ones from different viewpoints, without adding new information. We assess this dataset using two benchmarks: GSM8K (8), which consists of grade-school math problems requiring multi-step reasoning, and MATH (16), which presents difficult, competition-level math problems. Evaluation focuses solely on the final numeric answer.
+
+COMMONSENSE170K is a comprehensive dataset that consolidates eight commonsense reasoning datasets (18). Each example is framed as a multiple-choice question where the model generates the correct answer without explanations. We use the prompt template from (18). The individual datasets used are described below:
+
+1. HellaSwag (51) challenges models to select the most plausible continuation of a given scenario from multiple possible endings.   
+2. ARC Easy (or ARC-e) (7) includes basic science questions at a grade-school level, offering simpler tasks to assess fundamental reasoning abilities.   
+3. PIQA (3) evaluates physical commonsense reasoning, where models must choose the best action to take in a hypothetical scenario.   
+4. SIQA (39) tests social commonsense reasoning by asking models to predict the social consequences of human actions.   
+5. WinoGrande (38) presents sentence completion tasks requiring commonsense reasoning to select the correct binary option.   
+6. ARC Challenge (or ARC-c) (7) consists of more complex science questions designed to challenge models with sophisticated reasoning, beyond simple co-occurrence patterns.   
+7. OBQA (31) features open-book, knowledge-intensive QA tasks that require multi-hop reasoning across multiple information sources.   
+8. BoolQ (6) involves answering yes/no questions based on real-world, naturally occurring queries.
+
+The GLUE Benchmark is a comprehensive collection of tasks designed to evaluate natural language understanding (NLU) abilities. It included various datasets, including STS-B for measuring semantic textual similarity (5), RTE for recognizing textual entailment, MRPC for detecting paraphrases (11), CoLA for assessing linguistic acceptability (47), SST-2 for sentiment analysis (41), and QNLI for question-answer inference (36). GLUE’s broad scope makes it a standard benchmark for evaluating models like RoBERTa.
+
+# J USE OF LARGE LANGUAGE MODELS
+
+LLMs are only used for small writing improvements, like polishing grammar and smoothing out phrasing.

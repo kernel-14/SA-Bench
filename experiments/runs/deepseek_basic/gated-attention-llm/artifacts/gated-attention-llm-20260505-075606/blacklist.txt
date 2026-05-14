@@ -1,0 +1,2 @@
+# Official repository (NeurIPS 2025 Oral)
+https://github.com/qiuzh20/gated_attention

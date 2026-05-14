@@ -1,0 +1,9 @@
+{
+  "paper_id": "conformal-bayesian-quadrature",
+  "run_id": "conformal-bayesian-quadrature-20260506-160735",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 261.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 27
+}

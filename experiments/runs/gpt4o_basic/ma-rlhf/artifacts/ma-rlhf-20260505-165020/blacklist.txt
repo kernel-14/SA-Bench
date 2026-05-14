@@ -1,0 +1,2 @@
+# Official repository (ICLR 2025, Baidu)
+https://github.com/ernie-research/MA-RLHF

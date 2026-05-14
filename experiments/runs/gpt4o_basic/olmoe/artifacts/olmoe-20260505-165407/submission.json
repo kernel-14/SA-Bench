@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced OLMoE core contributions within the allocated time:\n1. Implemented token-based Mixture-of-Experts architecture with auxiliary losses.\n2. Addressed preprocessing requirements (e.g., n-gram and quality filters).\n3. Detailed pretraining configurations.\n4. Created a well-structured repository with README.\nNext priorities would involve adaptation setup and additional result evaluations.",
+  "steps": 22,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/olmoe/olmoe-20260505-165407/workspace/repo"
+}

@@ -1,0 +1,9 @@
+{
+  "paper_id": "generator-augmented-flows",
+  "run_id": "generator-augmented-flows-20260506-194000",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 254.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 12
+}

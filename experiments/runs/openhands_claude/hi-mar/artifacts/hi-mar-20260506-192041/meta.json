@@ -1,0 +1,9 @@
+{
+  "paper_id": "hi-mar",
+  "run_id": "hi-mar-20260506-192041",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 788.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 33
+}

@@ -1,0 +1,156 @@
+{
+  "case_id": "neural-operator-flow-matching-pde",
+  "run_id": "neural-operator-flow-matching-pde-20260505-165346",
+  "model_name": "gpt-4o",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 497460,
+    "total_output_tokens": 4914,
+    "total_tokens": 502374,
+    "estimated_cost_usd": 1.5661,
+    "elapsed_seconds": 170.5,
+    "steps": 23,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 1.52,
+        "input_tokens": 1214,
+        "output_tokens": 29
+      },
+      {
+        "step": 2,
+        "elapsed_s": 2.02,
+        "input_tokens": 1261,
+        "output_tokens": 32
+      },
+      {
+        "step": 3,
+        "elapsed_s": 2.63,
+        "input_tokens": 3049,
+        "output_tokens": 32
+      },
+      {
+        "step": 4,
+        "elapsed_s": 3.63,
+        "input_tokens": 4371,
+        "output_tokens": 32
+      },
+      {
+        "step": 5,
+        "elapsed_s": 2.15,
+        "input_tokens": 6326,
+        "output_tokens": 32
+      },
+      {
+        "step": 6,
+        "elapsed_s": 3.37,
+        "input_tokens": 10813,
+        "output_tokens": 32
+      },
+      {
+        "step": 7,
+        "elapsed_s": 8.53,
+        "input_tokens": 13216,
+        "output_tokens": 378
+      },
+      {
+        "step": 8,
+        "elapsed_s": 13.43,
+        "input_tokens": 20271,
+        "output_tokens": 404
+      },
+      {
+        "step": 9,
+        "elapsed_s": 5.43,
+        "input_tokens": 20985,
+        "output_tokens": 109
+      },
+      {
+        "step": 10,
+        "elapsed_s": 8.97,
+        "input_tokens": 21636,
+        "output_tokens": 179
+      },
+      {
+        "step": 11,
+        "elapsed_s": 7.53,
+        "input_tokens": 26134,
+        "output_tokens": 236
+      },
+      {
+        "step": 12,
+        "elapsed_s": 12.43,
+        "input_tokens": 26389,
+        "output_tokens": 570
+      },
+      {
+        "step": 13,
+        "elapsed_s": 7.71,
+        "input_tokens": 28024,
+        "output_tokens": 136
+      },
+      {
+        "step": 14,
+        "elapsed_s": 10.2,
+        "input_tokens": 28178,
+        "output_tokens": 422
+      },
+      {
+        "step": 15,
+        "elapsed_s": 7.26,
+        "input_tokens": 29297,
+        "output_tokens": 129
+      },
+      {
+        "step": 16,
+        "elapsed_s": 11.38,
+        "input_tokens": 29444,
+        "output_tokens": 303
+      },
+      {
+        "step": 17,
+        "elapsed_s": 8.0,
+        "input_tokens": 30276,
+        "output_tokens": 136
+      },
+      {
+        "step": 18,
+        "elapsed_s": 10.86,
+        "input_tokens": 30432,
+        "output_tokens": 530
+      },
+      {
+        "step": 19,
+        "elapsed_s": 5.41,
+        "input_tokens": 31903,
+        "output_tokens": 108
+      },
+      {
+        "step": 20,
+        "elapsed_s": 11.72,
+        "input_tokens": 32029,
+        "output_tokens": 558
+      },
+      {
+        "step": 21,
+        "elapsed_s": 7.2,
+        "input_tokens": 33564,
+        "output_tokens": 102
+      },
+      {
+        "step": 22,
+        "elapsed_s": 11.49,
+        "input_tokens": 33683,
+        "output_tokens": 371
+      },
+      {
+        "step": 23,
+        "elapsed_s": 7.27,
+        "input_tokens": 34965,
+        "output_tokens": 54
+      }
+    ]
+  }
+}

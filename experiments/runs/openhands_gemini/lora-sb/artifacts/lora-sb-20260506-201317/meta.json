@@ -1,0 +1,9 @@
+{
+  "paper_id": "lora-sb",
+  "run_id": "lora-sb-20260506-201317",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 220.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 11
+}

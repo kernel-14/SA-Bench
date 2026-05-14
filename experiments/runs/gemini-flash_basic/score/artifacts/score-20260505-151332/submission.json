@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Submitted the SCoRe reproduction with symbolic implementation of the two-stage RL training, reward shaping, and evaluation metrics, along with a detailed README.md.",
+  "steps": 24,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/score/score-20260505-151332/workspace/repo"
+}

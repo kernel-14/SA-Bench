@@ -1,0 +1,10 @@
+## config.yaml
+training:
+  learning_rate: 0.01        # Default learning rate (specified for synthetic data based task optimization)
+  batch_size: 32             # Batch size for data processing, estimated from standard practices
+  epochs: 10                 # Number of iterations, unclear from the paper (use minimal for synthetic examples testing)
+
+experiment:
+  alpha: 0.4                 # Threshold demonstration
+  beta: 0.95    # Rely contexted. Explicit synthetic binary class confligned distipherals out אותו balancing scenario concerns .
+ scale-loss-meta@1 standalone effort)). While 

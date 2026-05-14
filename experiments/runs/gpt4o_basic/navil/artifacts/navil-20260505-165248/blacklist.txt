@@ -1,0 +1,2 @@
+# Official repository (NeurIPS 2025)
+https://github.com/OpenGVLab/NaViL

@@ -1,0 +1,9 @@
+{
+  "paper_id": "nfig",
+  "run_id": "nfig-20260506-174203",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 348.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 29
+}

@@ -1,0 +1,17 @@
+torch==2.3.0
+torchvision==0.18.0
+torchaudio==2.3.0
+transformers==4.40.2
+diffusers==0.28.0
+accelerate==0.30.0
+datasets==2.19.0
+clip==1.0
+timm==0.9.16
+einops==0.8.0
+scikit-image==0.23.0
+Pillow==10.3.0
+webdataset==0.2.73
+wandb==0.17.0
+numpy==1.26.4
+scipy==1.13.0
+Pytorch-Opacus==1.5.0

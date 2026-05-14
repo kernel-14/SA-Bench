@@ -1,0 +1,9 @@
+{
+  "paper_id": "ca2-vdm",
+  "run_id": "ca2-vdm-20260507-220715",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 200,
+  "elapsed_s": 704.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 45
+}

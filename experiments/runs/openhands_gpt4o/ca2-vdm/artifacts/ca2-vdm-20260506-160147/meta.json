@@ -1,0 +1,9 @@
+{
+  "paper_id": "ca2-vdm",
+  "run_id": "ca2-vdm-20260506-160147",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 348.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 30
+}

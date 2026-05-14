@@ -1,0 +1,7 @@
+
+torch==2.3.0
+transformers==4.40.2
+datasets==2.19.0
+accelerate==0.29.3
+scikit-learn==1.4.2
+peft==0.10.0

@@ -1,0 +1,10 @@
+
+torch
+numpy
+Pillow
+torchvision
+lion-pytorch
+torchmetrics
+tqdm
+einops
+

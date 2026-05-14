@@ -1,0 +1,9 @@
+{
+  "paper_id": "mrq",
+  "run_id": "mrq-20260507-160009",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 1711.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 38
+}

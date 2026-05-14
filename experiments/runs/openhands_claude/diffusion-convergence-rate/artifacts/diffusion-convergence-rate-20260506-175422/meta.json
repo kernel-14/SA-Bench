@@ -1,0 +1,9 @@
+{
+  "paper_id": "diffusion-convergence-rate",
+  "run_id": "diffusion-convergence-rate-20260506-175422",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1966.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 43
+}

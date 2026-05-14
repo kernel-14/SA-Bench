@@ -1,0 +1,75 @@
+vae:
+  in_channels: 3
+  latent_channels: 16
+  base_channels: 128
+  channel_multipliers: [1, 2, 4, 4]
+  num_res_blocks: 2
+  temporal_downsample: [true, true, true]
+  spatial_downsample: [true, true, true]
+  kl_weight: 1.0e-6
+  dropout: 0.0
+
+dit:
+  num_layers: 24
+  hidden_size: 2048
+  num_heads: 32
+  head_dim: 64
+  ff_mult: 4.0
+  patch_size: 2
+  in_channels: 16
+  out_channels: 16
+  pooled_text_dim: 2048
+  context_dim: 4096
+  clip_dim: 768
+  rope_theta: 10000.0
+  max_seq_len: 4096
+  dropout: 0.0
+  qk_norm: true
+  use_swiglu: true
+
+pyramid:
+  num_stages: 3
+  spatial_downsample_factor: 2
+  corrective_gamma: -0.333333
+  coupled_sampling: true
+
+training:
+  stage1_steps: 50000
+  stage1_batch_size: 1536
+  stage1_lr: 1.0e-4
+  stage1_betas: [0.9, 0.999]
+  
+  stage2_steps: 200000
+  stage2_batch_size: 768
+  stage2_lr: 1.0e-4
+  stage2_betas: [0.9, 0.95]
+  
+  stage3_steps: 50000
+  stage3_batch_size: 384
+  stage3_lr: 5.0e-5
+  stage3_betas: [0.9, 0.95]
+  
+  weight_decay: 1.0e-4
+  eps: 1.0e-6
+  gradient_clip: 1.0
+  warmup_steps: 1000
+  mixed_precision: "bf16"
+  cfg_prob: 0.1
+  cfg_scale: 7.0
+  history_noise_max: 0.333333
+  max_frames: 241
+  latent_temporal_compression: 8
+  image_proportion: 0.125
+
+data:
+  image_size: 768
+  latent_size: 96
+  fps: 24
+  min_duration: 2.0
+  max_duration: 10.0
+  t5_model: "google/t5-v1_1-xxl"
+  clip_model: "openai/clip-vit-large-patch14"
+
+output_dir: "./outputs"
+seed: 42
+num_gpus: 128

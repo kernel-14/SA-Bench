@@ -1,0 +1,9 @@
+{
+  "paper_id": "navil",
+  "run_id": "navil-20260506-172723",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 500.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 39
+}

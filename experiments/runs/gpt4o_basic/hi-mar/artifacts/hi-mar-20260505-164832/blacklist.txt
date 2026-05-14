@@ -1,0 +1,2 @@
+# Official repository (ICML 2025)
+https://github.com/HiDream-ai/himar

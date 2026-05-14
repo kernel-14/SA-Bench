@@ -1,0 +1,10 @@
+.idea/
+*__pycache__/
+*.egg-info/
+tests/output/*
+tests/temp/*
+.DS_Store
+
+# ignore output dirs
+temp_dir/
+output_dir/

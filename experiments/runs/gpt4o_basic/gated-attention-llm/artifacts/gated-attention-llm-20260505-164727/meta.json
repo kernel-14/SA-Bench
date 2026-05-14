@@ -1,0 +1,126 @@
+{
+  "case_id": "gated-attention-llm",
+  "run_id": "gated-attention-llm-20260505-164727",
+  "model_name": "gpt-4o",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 259820,
+    "total_output_tokens": 2906,
+    "total_tokens": 262726,
+    "estimated_cost_usd": 0.8231,
+    "elapsed_seconds": 109.1,
+    "steps": 18,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 2.19,
+        "input_tokens": 1214,
+        "output_tokens": 29
+      },
+      {
+        "step": 2,
+        "elapsed_s": 2.11,
+        "input_tokens": 1261,
+        "output_tokens": 32
+      },
+      {
+        "step": 3,
+        "elapsed_s": 1.98,
+        "input_tokens": 3764,
+        "output_tokens": 32
+      },
+      {
+        "step": 4,
+        "elapsed_s": 2.22,
+        "input_tokens": 8913,
+        "output_tokens": 32
+      },
+      {
+        "step": 5,
+        "elapsed_s": 3.09,
+        "input_tokens": 11646,
+        "output_tokens": 32
+      },
+      {
+        "step": 6,
+        "elapsed_s": 12.52,
+        "input_tokens": 15074,
+        "output_tokens": 494
+      },
+      {
+        "step": 7,
+        "elapsed_s": 5.87,
+        "input_tokens": 15799,
+        "output_tokens": 109
+      },
+      {
+        "step": 8,
+        "elapsed_s": 4.74,
+        "input_tokens": 16011,
+        "output_tokens": 34
+      },
+      {
+        "step": 9,
+        "elapsed_s": 7.31,
+        "input_tokens": 16062,
+        "output_tokens": 304
+      },
+      {
+        "step": 10,
+        "elapsed_s": 7.13,
+        "input_tokens": 16901,
+        "output_tokens": 97
+      },
+      {
+        "step": 11,
+        "elapsed_s": 4.3,
+        "input_tokens": 17109,
+        "output_tokens": 38
+      },
+      {
+        "step": 12,
+        "elapsed_s": 11.69,
+        "input_tokens": 17168,
+        "output_tokens": 579
+      },
+      {
+        "step": 13,
+        "elapsed_s": 5.02,
+        "input_tokens": 18812,
+        "output_tokens": 104
+      },
+      {
+        "step": 14,
+        "elapsed_s": 3.17,
+        "input_tokens": 19025,
+        "output_tokens": 37
+      },
+      {
+        "step": 15,
+        "elapsed_s": 10.04,
+        "input_tokens": 19082,
+        "output_tokens": 371
+      },
+      {
+        "step": 16,
+        "elapsed_s": 5.23,
+        "input_tokens": 20098,
+        "output_tokens": 83
+      },
+      {
+        "step": 17,
+        "elapsed_s": 11.92,
+        "input_tokens": 20280,
+        "output_tokens": 418
+      },
+      {
+        "step": 18,
+        "elapsed_s": 8.47,
+        "input_tokens": 21601,
+        "output_tokens": 81
+      }
+    ]
+  }
+}

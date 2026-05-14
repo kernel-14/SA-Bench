@@ -1,0 +1,9 @@
+{
+  "paper_id": "olmoe",
+  "run_id": "olmoe-20260506-211710",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 806.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 37
+}

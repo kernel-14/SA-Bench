@@ -1,0 +1,196 @@
+## Code: config.yaml
+# Global experiment settings
+experiment:
+  name: "universal_neural_operators_reproduction"
+  seed: 42 # For reproducibility, if not specified in paper, use a common default
+  device: "cuda" # or "cpu"
+
+# Data generation and dataset management settings
+data:
+  base_dir: "data/"
+  spatial_resolution: 64 # Not explicitly stated, common default
+  temporal_resolution: 20 # Not explicitly stated, common default
+  time_steps: ... # Number of time steps to simulate for each PDE, not specified
+  train_ratio: 0.8 # Common split
+  val_ratio: 0.1 # Common split
+  test_ratio: 0.1 # Common split
+  # Normalization parameters are determined dynamically by DatasetManager per dataset
+
+  # Configuration for each PDE problem for data generation
+  pde_configs:
+    # Scenario 1: Out-of-sample parameter values
+    burgers:
+      equation_type: "Burgers"
+      domain: [0.0, 1.0] # Not specified, common default
+      t_span: [0.0, 1.0] # Not specified, common default
+      initial_condition_config:
+        type: "sine_wave" # Example, not specified
+        amplitude_range: [0.5, 1.5] # Example, not specified
+      param_ranges: # For pre-training and fine-tuning scenarios
+        viscosity:
+          pretrain: [0.01, 0.05] # Example, not specified
+          finetune: [0.005, 0.009] # Example, not specified
+      num_samples_pretrain: 1000 # Example, not specified
+      num_samples_finetune: 200 # Example, not specified
+
+    gray_scott:
+      equation_type: "GrayScott"
+      domain: [0.0, 1.0] # Not specified, common default
+      t_span: [0.0, 20.0] # Example, not specified
+      initial_condition_config:
+        type: "random_perturbation" # Example, not specified
+      param_ranges: # For pre-training and fine-tuning scenarios
+        feed_rate:
+          pretrain: [0.02, 0.06] # Example, not specified
+          finetune: [0.01, 0.019] # Example, not specified
+        kill_rate:
+          pretrain: [0.05, 0.07] # Example, not specified
+          finetune: [0.08, 0.09] # Example, not specified
+      num_samples_pretrain: 1000 # Example, not specified
+      num_samples_finetune: 200 # Example, not specified
+
+    navier_stokes:
+      equation_type: "NavierStokes"
+      domain: [[0.0, 1.0], [0.0, 1.0]] # Not specified, common default
+      t_span: [0.0, 5.0] # Example, not specified
+      initial_condition_config:
+        type: "random_vortex" # Example, not specified
+      param_ranges: # For pre-training and fine-tuning scenarios
+        reynolds_number:
+          pretrain: [100, 500] # Example, not specified
+          finetune: [50, 90] # Example, not specified
+      num_samples_pretrain: 1000 # Example, not specified
+      num_samples_finetune: 200 # Example, not specified
+
+    # Scenario 2: Input function set extension
+    heat:
+      equation_type: "Heat"
+      domain: [0.0, 1.0]
+      t_span: [0.0, 1.0]
+      initial_condition_config:
+        type: "gaussian_bump"
+      param_ranges:
+        diffusion_coeff: 0.1 # Constant for this scenario
+      num_samples_pretrain: 1000
+
+    heat_convection:
+      equation_type: "Heat_Convection"
+      domain: [0.0, 1.0]
+      t_span: [0.0, 1.0]
+      initial_condition_config:
+        type: "gaussian_bump"
+      param_ranges:
+        diffusion_coeff: 0.1
+        convection_coeff: [0.5, 1.5] # New parameter for fine-tuning
+      num_samples_finetune: 200
+
+    reaction_diffusion:
+      equation_type: "ReactionDiffusion" # Base RD for pre-training
+      domain: [0.0, 1.0]
+      t_span: [0.0, 10.0]
+      initial_condition_config:
+        type: "random_spots"
+      param_ranges:
+        D_u: 0.001
+        D_v: 0.0005
+        k: 0.05
+      num_samples_pretrain: 1000
+
+    reaction_diffusion_advection:
+      equation_type: "ReactionDiffusion_Advection" # RD with advection for fine-tuning
+      domain: [0.0, 1.0]
+      t_span: [0.0, 10.0]
+      initial_condition_config:
+        type: "random_spots"
+      param_ranges:
+        D_u: 0.001
+        D_v: 0.0005
+        k: 0.05
+        advection_velocity: [0.1, 0.3] # New parameter for fine-tuning
+      num_samples_finetune: 200
+
+    # Scenario 3: General multi-physics learning (PDEBench based)
+    advection_pdebench:
+      equation_type: "PDEBench_Advection"
+      pdebench_id: "advection-diffusion-reaction_1D_varying-coefficient_NA_NA_100_NA" # Example ID
+      num_samples_pretrain: 500 # Example, not specified
+
+    burgers_pdebench:
+      equation_type: "PDEBench_Burgers"
+      pdebench_id: "Burgers_1D_varying-coefficient_NA_NA_100_NA" # Example ID
+      num_samples_pretrain: 500 # Example, not specified
+
+    reaction_diffusion_pdebench:
+      equation_type: "PDEBench_ReactionDiffusion"
+      pdebench_id: "reaction-diffusion_2D_NA_NA_NA_NA_100" # Example ID
+      num_samples_finetune: 200 # Example, not specified
+
+
+# Model Architecture Configurations
+# These will define the structure of Lifting, Core Operator, and Projection
+model:
+  input_dim: ... # Will be determined dynamically by dataset (e.g., [x,t] + initial_cond + params)
+  output_dim: 1 # Assuming scalar output (e.g., u(x,t))
+  hidden_dim: 64 # Not specified, common default for FNO, etc.
+  num_mlp_layers: 2 # For Lifting/Projection adapters, not specified
+  activation: "gelu" # Not specified, common default
+
+  # Base FNO configuration (used in FNO, MambaFNO, PerceiverFNO)
+  fno_config:
+    num_fourier_modes: [16, 16] # Not specified, common for 2D, e.g., 16 or 20
+    num_layers: 4 # Not specified, common default
+    mlp_width: 128 # Not specified, common default
+
+  # Mamba FNO specific configuration
+  mamba_config:
+    dim: 64 # Should match hidden_dim
+    d_state: 16 # Not specified, common default for Mamba
+    d_conv: 4 # Not specified, common default for Mamba
+    expand: 2 # Not specified, common default for Mamba
+
+  # Perceiver FNO specific configuration
+  perceiver_config:
+    num_latents: 64 # Not specified, common default
+    latent_dim: 128 # Not specified, common default
+    num_blocks: 2 # Number of Perceiver blocks, not specified
+    num_heads: 8 # Not specified, common default
+    inner_fno_config: # FNO configuration used within Perceiver to generate K/V
+      num_fourier_modes: [8, 8] # Not specified, smaller than main FNO
+      num_layers: 2
+      mlp_width: 64
+
+  # Swin-v2 specific configuration (placeholders, adaptation to PDE data needs care)
+  swin_v2_config:
+    patch_size: [4, 4] # Not specified, example for spatial data
+    embed_dim: 96 # Not specified
+    depths: [2, 2, 6, 2] # Not specified
+    num_heads: [3, 6, 12, 24] # Not specified
+    window_size: [7, 7] # Not specified
+
+  # CoDA-NO specific configuration
+  codano_config:
+    num_attention_heads: 8 # Not specified
+    num_layers: 4 # Not specified
+
+# Training settings
+training:
+  optimizer: "Adam" # Not specified, common default
+  learning_rate: 0.001 # Not specified, common default
+  batch_size: 32 # Not specified, common default
+  epochs_pretrain: 500 # Not specified, example
+  epochs_finetune: 100 # Not specified, example, significantly less than pretrain
+  weight_decay: 0.00001 # Not specified, common default
+  lr_scheduler:
+    type: "CosineAnnealingLR" # Not specified
+    params:
+      T_max: 500 # Should match epochs_pretrain or epochs_finetune
+  gradient_clip_val: 1.0 # Not specified, common practice for stability
+  early_stopping_patience: 20 # Not specified, common default
+  pretrain_save_path: "checkpoints/pretrain_core.pth"
+  finetune_save_path: "checkpoints/finetune_model_{pde_name}.pth"
+  scratch_save_path: "checkpoints/scratch_model_{pde_name}.pth"
+
+# Evaluation settings
+evaluation:
+  metrics: ["mse", "nmae"]
+  output_dir: "results/"

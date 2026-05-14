@@ -1,0 +1,11 @@
+## config.yaml
+training:
+  supervised_finetuning:
+    learning_rate: 
+      - tl_dr: 5e-5  # Default learning rate for TL;DR dataset
+      - anthropic_hh_rlhf: 1-e6 # support learning
+      -heli5:-
+
+For instance Token sentences manipulation Whitespace Observationsitalic Tokens:" ppov_GP.
+ Summary conclusions following
+ ...

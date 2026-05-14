@@ -1,0 +1,215 @@
+## config.yaml
+global:
+  output_dir: "./outputs"
+  logging_dir: "./logs"
+  seed: 42
+  precision: "bfloat16" # Common for LLMs, paper doesn't specify but implies high performance hardware.
+  deepspeed_config_path: "configs/deepspeed_config.json" # Assumed path for DeepSpeed configuration
+
+model_configs:
+  gemma_2b:
+    name: "google/gemma-2b"
+    type: "causal_lm" # Used for SFT and Policy models
+  gemma_7b:
+    name: "google/gemma-7b"
+    type: "causal_lm"
+  gemma_27b:
+    name: "google/gemma-2-27b" # Assuming this name or similar
+    type: "causal_lm"
+  codegemma_2b:
+    name: "google/codegemma-1.1-2b-it" # Assumed name for instructional tuned model
+    type: "causal_lm"
+  codegemma_7b:
+    name: "google/codegemma-1.1-7b-it" # Assumed name for instructional tuned model
+    type: "causal_lm"
+  llama_3_2_3b: # From Appendix C.4
+    name: "meta-llama/Llama-3-2-3B-Instruct" # Assumed name
+    type: "causal_lm"
+  reward_model_base: # Reward model can be initialized from SFT, so it would also be a causal_lm initially, then possibly converted to sequence classification or value head.
+    name: "google/gemma-2b" # Placeholder, actual base comes from SFT model
+    type: "sequence_classification" # Or a causal_lm with a value head
+
+
+data_configs:
+  base_data_path: "./data"
+  tldr_summarization:
+    train_file: "tldr_summarization_train.jsonl"
+    eval_file: "tldr_summarization_eval.jsonl"
+    prompt_template: "POST Subreddit: {post}\nSummary:" # Example, precise template for SFT/PPO needs verification
+  hh_rlhf:
+    train_file: "hh_rlhf_train.jsonl"
+    eval_file: "hh_rlhf_eval.jsonl"
+    prompt_template: "Human: {query}\nAssistant:" # Example chat template
+  webgpt_comparison:
+    train_file: "webgpt_comparison_train.jsonl"
+    eval_file: "webgpt_comparison_eval.jsonl"
+    prompt_template: "Question: {question}\nAnswer:" # Example QA template
+  apps_code_gen:
+    train_file: "apps_train.jsonl"
+    eval_file: "apps_eval.jsonl"
+    prompt_template: "Problem: {problem}\nCode:" # Example, based on Hendrycks et al. (2021)
+  sft_data_ratio: 0.2 # 20%
+  rm_data_ratio: 0.4 # 40% (except APPS)
+  ppo_data_ratio: 0.4 # 40% (except APPS: 80%)
+
+
+sft_config:
+  default:
+    batch_size: 512
+    epochs: 3
+    learning_rate: 5e-5
+    lr_scheduler_type: "cosine"
+    warmup_ratio: 0.1
+    max_seq_length: 1024 # Assumed max sequence length for SFT inputs
+  model_overrides:
+    gemma_2b:
+      # Default values used
+    gemma_7b:
+      batch_size: 128
+      learning_rate: 2e-5
+    gemma_27b:
+      batch_size: 128
+      learning_rate: 5e-6
+    codegemma_2b:
+      batch_size: 16
+      epochs: 1
+      learning_rate: 5e-6
+      warmup_ratio: 0.0
+    codegemma_7b:
+      batch_size: 32
+      epochs: 1
+      learning_rate: 2e-6
+      warmup_ratio: 0.0
+  task_overrides:
+    webgpt: # applies to Gemma-2B
+      batch_size: 64
+      learning_rate: 1e-4
+    webgpt_gemma_7b: # Specific override for Gemma-7B on WebGPT
+      epochs: 5
+
+
+rm_config:
+  default:
+    batch_size: 64
+    epochs: 1
+    learning_rate: 1e-5
+    lr_scheduler_type: "cosine"
+    warmup_ratio: 0.1
+    loss_type: "ranking_loss" # -log(sigmoid(r_phi(y+) - r_phi(y-)))
+  model_overrides:
+    gemma_2b:
+      # Default values used
+    gemma_7b:
+      learning_rate: 1e-6
+    gemma_27b:
+      batch_size: 128
+      learning_rate: 8e-6
+  task_overrides:
+    webgpt: # applies to Gemma-2B
+      batch_size: 32
+      learning_rate: 2e-5
+    tldr_gemma_7b: # Specific override for Gemma-7B on TL;DR
+      batch_size: 128
+    hh_rlhf_gemma_7b: # Specific override for Gemma-7B on HH-RLHF
+      batch_size: 64
+    webgpt_gemma_7b: # Specific override for Gemma-7B on WebGPT
+      epochs: 32
+    apps: # RM stage omitted for APPS
+      skip_training: True
+
+
+ppo_config:
+  default:
+    batch_size: 256 # refers to number of prompt sequences
+    policy_learning_rate: 1.5e-5
+    critic_learning_rate: 1.5e-5
+    epochs: 1 # Outer loop epochs (how many times to iterate over PPO data)
+    ppo_epochs: 1 # Inner PPO epochs (how many gradient steps per rollout)
+    rollout_per_epoch: 1 # Number of rollouts to collect experience per epoch
+    clip_ratio: 0.2
+    gae_lambda: 0.95
+    gae_gamma: 1.0 # Discount factor for future rewards
+    kl_coefficient: 0.05
+    max_prompt_length: 512
+    max_response_length: 512
+    warmup_steps: 200
+    temperature_sampling: 0.8
+    top_p: 1.0
+    top_k: 50
+  model_overrides:
+    gemma_2b:
+      # Default values used
+    gemma_7b:
+      policy_learning_rate: 1e-6
+      critic_learning_rate: 1e-6
+    gemma_27b:
+      policy_learning_rate: 7e-7
+      critic_learning_rate: 1e-6
+    codegemma_2b:
+      batch_size: 16
+      policy_learning_rate: 5e-7
+      critic_learning_rate: 5e-5
+      warmup_steps: 0
+      temperature_sampling: 1.0
+      top_k: 5
+    codegemma_7b:
+      batch_size: 16
+      policy_learning_rate: 5e-7
+      critic_learning_rate: 5e-5
+      warmup_steps: 20
+      temperature_sampling: 1.0
+      top_k: 5
+    llama_3_2_3b: # Appendix C.4
+      policy_learning_rate: 5e-6
+      critic_learning_rate: 1e-5
+      kl_coefficient: 0.1
+  task_overrides:
+    webgpt: # applies to Gemma-2B
+      epochs: 4
+      kl_coefficient: 0.05 # Revert to default as no specific override for 2B
+    webgpt_gemma_7b: # Specific override for Gemma-7B on WebGPT
+      epochs: 4
+      kl_coefficient: 0.1
+    tldr_gemma_7b: # Specific override for Gemma-7B on TL;DR
+      kl_coefficient: 0.01 # Explicitly mentioned for stability
+
+
+macro_action_config:
+  # Default macro action parameters
+  # The default configuration typically used for reported results (e.g., fixed n-gram with n=5)
+  default_termination_method: "fixed_n_gram"
+  default_n_gram_n: 5 # Default is often 5 or 10 based on ablation studies
+  default_value_aggregation_method: "equal_assignment" # Default for all experiments (Appendix D.1)
+
+  # Specific termination method parameters
+  fixed_n_gram:
+    n_values: [3, 5, 10, "infinity"] # Ablation values, 'infinity' implies full sequence
+  randomized_n_gram:
+    list_of_lengths: [2, 3, 5, 10]
+    repeat_times: 3 # Repeat list 3 times then shuffle
+  parsing_based:
+    cutoff: 5 # C=5 for leaf tokens
+    parser_model: "en_core_web_sm" # spaCy model for constituent parsing (or custom LLM-based)
+  perplexity_based:
+    # No specific hyperparameters other than relying on SFT model logits
+
+  # Specific value aggregation parameters (Appendix D.1)
+  value_aggregation:
+    equal_assignment: {} # No specific parameters
+    unit_assignment: {} # No specific parameters
+    position_decayed_assignment: {} # No specific parameters
+
+
+evaluation_config:
+  eval_batch_size: 8 # Not explicitly stated, a reasonable default
+  rm_eval_samples: 2000 # 2k for TL;DR, HH-RLHF (WebGPT uses default validation set)
+  gpt4_human_eval_samples: 50 # 50 instances for pairwise eval
+  gpt4_model_name: "gpt-4o-05-13"
+  gpt4_temperature: 0.0 # For deterministic comparisons
+  gpt4_prompts_dir: "./evaluation_prompts" # Directory for GPT-4 prompt templates (Appendix F.1)
+  human_eval_annotators_7b: 3 # For 7B models
+  human_eval_annotators_others: 1 # For 2B models
+  pass_at_k_metrics: [1, 5] # For APPS dataset
+  sampling_ablation:
+    temperatures: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+    best_of_n_samples: [4, 8, 16, 32]

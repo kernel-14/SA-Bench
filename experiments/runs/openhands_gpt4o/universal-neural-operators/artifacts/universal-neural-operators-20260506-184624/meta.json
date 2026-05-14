@@ -1,0 +1,9 @@
+{
+  "paper_id": "universal-neural-operators",
+  "run_id": "universal-neural-operators-20260506-184624",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 222.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 28
+}

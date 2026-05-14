@@ -1,0 +1,25 @@
+## config.yaml
+
+# Hyperparameters for the randomised midpoint schedule
+schedule:
+  K: 10               # Number of rounds
+  c0: 2.0             # Exponent for initial alpha window (must satisfy c1 > 3*c0)
+  c1: 8.0             # Factor controlling the per-step alpha change
+  schedule_seed: 12345 # Seed for uniform sampling of alpha_bar per T
+
+# Experiment settings
+experiment:
+  # Target data configurations (d: dimension, k: number of non‑zero variance entries)
+  d_k_pairs:
+    - [10, 10]
+    - [100, 10]
+    - [500, 100]
+  sigma_seed: 42             # Seed for generating the diagonal covariance entries
+  T_values: [100, 200, 500, 1000, 2000, 5000]  # Total discretisation steps (must be multiples of K/2 = 5)
+
+# Visualisation
+visualisation:
+  log_log: true
+  reference_slope: -3.0      # Expected KL divergence slope w.r.t. T
+  figure_format: "png"
+  dpi: 150

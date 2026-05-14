@@ -1,0 +1,10 @@
+torch>=2.0.0
+transformers>=4.40.0
+datasets>=2.14.0
+accelerate>=0.27.0
+trl>=0.8.0
+numpy>=1.24.0
+scipy>=1.10.0
+pyyaml>=6.0
+tqdm>=4.65.0
+wandb>=0.16.0

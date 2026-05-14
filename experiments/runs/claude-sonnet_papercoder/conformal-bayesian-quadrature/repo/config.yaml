@@ -1,0 +1,122 @@
+## config.yaml
+## Configuration for reproducing "Conformal Prediction as Bayesian Quadrature"
+## All values are taken directly from the paper. No values are fabricated.
+
+experiment:
+  ## Number of random trials for all experiments (Section 5)
+  M: 10000
+  ## Random seed for reproducibility
+  seed: 42
+  ## Number of parallel jobs (-1 uses all available cores)
+  n_jobs: -1
+  ## Output directory for results, tables, and figures
+  output_dir: "results/"
+
+cbq:
+  ## Number of Monte Carlo samples for L+ estimation in decision rule (Section 5)
+  n_mc_samples: 1000
+  ## Number of Monte Carlo samples for Figure 4 density plots (Section 5.1)
+  n_mc_figure: 100000
+
+## Experiment 1: Synthetic Binomial Data (Section 5.1)
+exp1_synthetic_binomial:
+  ## Number of calibration samples per trial (Section 5.1)
+  n_cal: 10
+  ## Binomial averaging parameter K (Section 5.1)
+  K: 4
+  ## Target risk level alpha (Section 5.1)
+  alpha: 0.4
+  ## Confidence level beta for CBQ-HPD decision rule (Section 5)
+  beta: 0.95
+  ## Upper bound on losses (Section 5.1, loss is normalized to [0,1])
+  B: 1.0
+  ## Target failure rate = 1 - beta (Section 5)
+  target_failure_rate: 0.05
+  ## Lambda grid for infimum search over [0, 1]
+  lambda_grid:
+    start: 0.0
+    stop: 1.0
+    num: 500
+  ## Lambda values used for Figure 4 L+ density plots (Section 5.1)
+  figure4_lambdas: [0.7, 0.8, 0.9]
+  ## Risk threshold: true risk = 1 - lambda, exceeds alpha=0.4 iff lambda < 0.6
+  risk_threshold: 0.6
+
+## Experiment 2: Synthetic Heteroskedastic Data (Section 5.2)
+exp2_synthetic_heteroskedastic:
+  ## Number of calibration samples per trial (Section 5.2)
+  n_cal: 200
+  ## X distribution: X ~ Uniform[x_low, x_high] (Section 5.2)
+  x_low: 0.0
+  x_high: 4.0
+  ## Y | X ~ N(0, X^2) (Section 5.2)
+  ## Target miscoverage level alpha, i.e. target 90% coverage (Section 5.2)
+  alpha: 0.1
+  ## Confidence level beta for CBQ-HPD decision rule (Section 5)
+  beta: 0.95
+  ## Upper bound on 0-1 miscoverage loss (Section 5.2)
+  B: 1.0
+  ## Maximum allowable risk failure rate = 1 - beta (Section 5.2)
+  target_failure_rate: 0.05
+  ## Lambda grid: must extend beyond RCPS solution (~7.15 based on Table 2 mean PI/2)
+  lambda_grid:
+    start: 0.0
+    stop: 20.0
+    num: 1000
+  ## Number of quadrature points for numerical integration of true risk
+  n_quad_true_risk: 1000
+
+## Experiment 3: False Negative Rate on MS-COCO (Section 5.3)
+exp3_mscoco:
+  ## Number of calibration examples per split (Section 5.3)
+  n_cal: 1000
+  ## Number of test examples per split (Section 5.3)
+  n_test: 3952
+  ## Target FNR level alpha, mirrors Angelopoulos & Bates (2023) Section 5.1
+  alpha: 0.1
+  ## Confidence level beta for CBQ-HPD decision rule (Section 5)
+  beta: 0.95
+  ## Upper bound on FNR loss (FNR is in [0,1])
+  B: 1.0
+  ## Maximum allowable risk failure rate = 1 - beta (Section 5.3)
+  target_failure_rate: 0.05
+  ## Lambda grid for score threshold in [0, 1]
+  ## Higher lambda = smaller prediction sets = higher FNR
+  lambda_grid:
+    start: 0.0
+    stop: 1.0
+    num: 500
+  ## Paths to precomputed MS-COCO softmax scores and binary labels
+  ## Download from: https://github.com/aangelopoulos/conformal-risk-control
+  scores_path: "data/mscoco/scores.npy"
+  labels_path: "data/mscoco/labels.npy"
+
+## Baseline: RCPS with Hoeffding UCB (Bates et al., 2021)
+## Referenced in Section 5 as an additional baseline
+rcps:
+  ## delta = 1 - beta = 0.05, the failure probability for the Hoeffding UCB
+  delta: 0.05
+  ## Hoeffding UCB form: R_hat(lambda) + sqrt(log(1/delta) / (2*n)) <= alpha
+  ucb_type: "hoeffding"
+
+## Evaluation settings
+evaluation:
+  ## Confidence level for Clopper-Pearson binomial proportion CIs
+  ## Paper reports 95% CIs in all tables (Tables 1, 2, 3)
+  ci_confidence: 0.95
+
+## Plotting settings
+plotting:
+  ## Figure DPI for saved figures
+  dpi: 150
+  ## Number of histogram bins for Figure 3
+  hist_bins: 50
+  ## Figure 3: histogram transparency
+  hist_alpha: 0.7
+  ## File names for output figures
+  figure3_path: "results/fig3_lambda_histograms.png"
+  figure4_path: "results/fig4_L_plus_density.png"
+  ## Table output paths
+  table1_path: "results/table1_synthetic_binomial.csv"
+  table2_path: "results/table2_synthetic_heteroskedastic.csv"
+  table3_path: "results/table3_mscoco.csv"

@@ -1,0 +1,41 @@
+## config.yaml
+
+environment:
+  name: DMC  # Options: 'DMC', 'Gym'
+  task: quadruped-walk  # Example task; can be changed to e.g., 'cheetah-run', 'finger-turn-hard'
+  pixel_based: false  # Set to true for pixel-based tasks
+
+replay_buffer:
+  max_size: 1000000  # Replay buffer size for both real and synthetic transitions
+
+training:
+  rl_algorithm: "REDQ"  # Options: 'SAC', 'REDQ'
+  learning_rate: 0.0003  # Standard learning rate for agent training
+  discount_factor: 0.99  # Gamma for reward discounting
+  batch_size: 256
+  epochs: 1000  # Iterations for training
+  update_to_data_ratio: 20  # UTD ratio for REDQ (updates per environment step)
+  synthetic_to_real_ratio: 0.5  # Mixing ratio of synthetic and real transitions
+
+generative_model:
+  model_type: "diffusion"  # Diffusion-based conditional generative model
+  training_steps: 10000  # Number of training steps per inner loop
+  guidance_scale: 5.0  # Classifier-free guidance scale for conditioning
+  noise_schedule: "linear"  # Example, needs clarification from the paper
+  latent_dim: 128  # Dimensionality of the generative model's latent space
+
+curiosity_module:
+  encoder_layers: 3  # Number of CNN layers for feature encoding
+  latent_dim: 64  # Dimension of feature embeddings
+  forward_dynamics_hidden: 128  # Hidden size of the forward dynamics MLP
+  relevance_function: "curiosity"  # Other options: 'return', 'td-error', 'rnd'
+
+evaluation:
+  num_seeds: 5  # Number of random seeds for experiments
+  eval_episodes: 10  # Number of episodes to evaluate the trained policy
+  metrics: ["average_return", "sample_efficiency", "dormant_ratio"]
+
+output:
+  logs_dir: "./logs"  # Directory for saving training logs
+  checkpoints_dir: "./checkpoints"  # Directory for saving model checkpoints
+  visualizations_dir: "./visualizations"  # Directory for saving evaluation visuals

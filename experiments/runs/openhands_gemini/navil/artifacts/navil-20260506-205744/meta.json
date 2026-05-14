@@ -1,0 +1,9 @@
+{
+  "paper_id": "navil",
+  "run_id": "navil-20260506-205744",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 292.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 14
+}

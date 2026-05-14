@@ -1,0 +1,2 @@
+# Official repository (Meta FAIR, Apache 2.0)
+https://github.com/facebookresearch/sam2

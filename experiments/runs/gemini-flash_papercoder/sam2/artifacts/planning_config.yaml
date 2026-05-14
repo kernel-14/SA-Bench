@@ -1,0 +1,203 @@
+## Code: config.yaml
+# Main configuration file for SAM 2 reproduction.
+
+# Paths and Data
+paths:
+  # Base directory for all data (datasets, checkpoints, logs)
+  data_dir: "data/"
+  # Directory for SA-1B dataset
+  sa1b_dir: "sa1b/"
+  # Directory for SA-V dataset (manual and auto splits)
+  sav_dir: "sav/"
+  # Directory for Open-Source VOS datasets (DAVIS, MOSE, YouTubeVOS)
+  vos_dir: "vos/"
+  # Directory for model checkpoints
+  checkpoint_dir: "checkpoints/"
+  # Directory for logging training progress
+  log_dir: "logs/"
+
+# Model Configuration
+model:
+  name: "SAM2"
+  image_encoder:
+    # Hiera-B+ by default as per paper, but also T, S, L options.
+    # Specific Hiera configuration (e.g., depths, heads) would come from the Hiera library.
+    type: "Hiera-B+"
+    # Pre-trained MAE Hiera weights (path to .pth file)
+    pretrained_path: "hiera_bplus_mae_weights.pth" # Placeholder
+    # Whether to freeze image encoder during fine-tuning stage
+    freeze_during_finetune: True
+    # Global attention block configuration for Hiera. (T, S, B+, L)
+    # T: 5-7-9, S: 7-10-13, B+: 12-16-20, L: 23-33-43
+    global_attn_blocks: [12, 16, 20] # For Hiera-B+
+  memory_attention:
+    num_layers: 4 # L transformer blocks, default = 4
+    # Hidden dimension, derived from image encoder features
+    hidden_dim: 256 # Assuming this is the feature dimension after FPN
+    num_heads: 8 # Placeholder, usually derived from hidden_dim
+    # Positional encoding for memory attention
+    use_2d_rope: True # 2d spatial Rotary Positional Embedding
+  mask_decoder:
+    # Design largely follows SAM's decoder
+    transformer_layers: 2 # Placeholder, typically 2 in SAM
+    num_mask_tokens: 3 # Output for binary mask, IoU, occlusion
+    # Additional head for occlusion prediction
+    use_occlusion_head: True
+    # Multi-mask prediction capability
+    predict_multiple_masks: True
+  memory_bank:
+    # Max number of recent (unprompted) frames to store memories. Default N=6.
+    max_recent_frames: 6
+    # Max number of prompted frames to store memories. Default not explicitly stated.
+    # Assuming training-based number of prompted frames (up to 2 for 8-frame sequence).
+    max_prompted_frames: 2 # This is an assumption based on training scheme
+    memory_feature_dim: 64 # Projected memory features dimension
+    object_pointer_dim: 256 # From mask decoder output tokens
+
+# Training Configuration
+training:
+  # Pre-training on SA-1B (approximate values where specified)
+  pretrain:
+    enabled: True
+    dataset_name: "SA-1B"
+    steps: 90000 # ~90k
+    resolution: 1024 # Square image size
+    precision: "bfloat16"
+    optimizer: "AdamW"
+    optimizer_momentum: [0.9, 0.999] # beta1, beta2
+    gradient_clipping:
+      type: "l2"
+      max_norm: 0.1
+    weight_decay: 0.1
+    learning_rate: 0.0004 # 4e-4
+    lr_schedule: "reciprocal_sqrt"
+    lr_schedule_timescale: 1000
+    warmup_iters: 1000
+    cooldown_iters: 5000
+    # Layer-wise decay based on image encoder type
+    layer_wise_decay: 0.9 # For Hiera-B+
+    augmentation:
+      horizontal_flip: True
+      resize_to_square: 1024
+    batch_size: 256 # 256
+    drop_path: 0.2 # For Hiera-B+
+    max_masks_per_image: 64
+    num_correction_points: 7 # 7 correction clicks
+    losses:
+      mask_focal_weight: 20
+      mask_dice_weight: 1
+      iou_l1_weight: 1
+      occlusion_ce_weight: 1 # Default, not specified for pre-training but used in full training
+
+  # Full Training (joint image and video)
+  full_train:
+    enabled: True
+    datasets: ["SA-V", "Internal", "SA-1B_subset", "DAVIS", "MOSE", "YouTubeVOS"] # Naming conventions for datasets
+    # Approximate sampling probabilities for data sources (example, need to be derived)
+    # The paper mentions 'sampling probabilities proportional to the size of each data source'
+    # and then gives example proportions in D.2, let's use the 'our mix' for released model:
+    # SA-1B_subset: ~15.5% (original ~15.2%)
+    # SA-V: ~49.5% (original ~70%)
+    # Internal: ~15.1% (original ~14.8%)
+    # DAVIS: ~1.3%
+    # MOSE: ~9.4%
+    # YouTubeVOS: ~9.2%
+    dataset_sampling_weights:
+      SA-1B_subset: 0.155
+      SA-V: 0.495
+      Internal: 0.151
+      DAVIS: 0.013
+      MOSE: 0.094
+      YouTubeVOS: 0.092
+    num_epochs: 50 # Placeholder, steps are given, not epochs, e.g. 200k iterations mentioned in ablation
+    resolution: 1024 # Final model uses 1024x1024
+    precision: "bfloat16"
+    optimizer: "AdamW"
+    optimizer_momentum: [0.9, 0.999]
+    gradient_clipping:
+      type: "l2"
+      max_norm: 0.1
+    weight_decay: 0.1
+    learning_rate: 0.0004 # Same as pre-training, but potentially adjusted for fine-tuning
+    lr_schedule: "reciprocal_sqrt"
+    lr_schedule_timescale: 1000 # Same as pre-training
+    warmup_iters: 1000 # Same as pre-training
+    cooldown_iters: 5000 # Same as pre-training
+    layer_wise_decay: 0.9 # For Hiera-B+
+    batch_size: 1 # Video tasks use batch_size=1, need careful handling for mixed batches
+    # Per-data-source batch sizes (if needed, otherwise will use global batch_size=1)
+    # This is an assumption based on 'different batch size for each data source to maximize compute utilization'
+    # Batch size of 1 for video, likely larger for image (SA-1B) like 256 from pre-train.
+    sa1b_batch_size: 256
+    video_batch_size: 1
+    # Interactive simulation for training
+    seq_len: 8 # Sample sequences of 8 frames
+    max_prompted_frames_per_seq: 2 # Randomly select up to 2 frames to prompt
+    initial_prompt_strategy: # Probabilities for initial prompt on first frame
+      gt_mask: 0.5
+      positive_click: 0.25
+      bounding_box: 0.25
+    corrective_click_sampling_gt_prob: 0.1 # 10% prob to sample clicks from GT regardless of model pred
+    max_masklets_per_seq: 3 # Restrict max 3 randomly chosen masklets per 8-frame seq
+    reverse_temporal_order_prob: 0.5 # 50% prob to reverse video sequence
+    drop_path: 0.2 # For Hiera-B+
+    losses:
+      mask_focal_weight: 20
+      mask_dice_weight: 1
+      iou_l1_weight: 1
+      occlusion_ce_weight: 1
+    # Augmentations for video training
+    augmentation:
+      horizontal_flip: True
+      random_affine: True
+      random_color_jitter: True
+      random_grayscale: True
+      mosaic_transform_prob: 0.1 # 10% probability
+
+  # Fine-tuning for long videos
+  finetune:
+    enabled: True
+    dataset_name: "Challenging_SA-V_Internal" # Top 50% most edited masklets + OSS VOS
+    seq_len: 16 # Sample 16-frame sequences
+    iterations: 50000 # 50k iterations
+    learning_rate_multiplier: 0.5 # Half of original LR
+    freeze_image_encoder: True
+
+# Evaluation Configuration
+evaluation:
+  metric: "J&F" # Primary metric for video tasks
+  image_metric: "mIoU" # Primary metric for image tasks
+  speed_metric: "FPS" # For benchmarking
+  # Interactive evaluation settings
+  interactive:
+    num_clicks: 3 # N_click = 3 clicks per frame
+    max_interacted_frames: 8 # N_frame = 1 to 8 interacted frames
+    # Annotation time assumptions (for interactive metrics)
+    T_loc: 1 # sec to locate object
+    T_click: 1.5 # sec to add click
+    T_exam_300frame: 30 # sec to examine 300-frame video
+  # Semi-supervised VOS evaluation settings
+  semisupervised_vos:
+    prompt_types: ["1-click", "3-click", "5-click", "bounding_box", "ground_truth_mask"]
+    # Baselines to compare against if implemented (e.g., SAM+XMem++, SAM+Cutie)
+    baselines: ["SAM+XMem++", "SAM+Cutie"] # Requires separate implementation/checkpoints for these
+  # Image segmentation evaluation settings
+  image_segmentation:
+    prompt_types: ["1-click", "5-click"]
+
+# Hardware and Distributed Training
+system:
+  device: "cuda" # 'cuda' or 'cpu'
+  num_gpus: 1 # Number of GPUs to use. Paper uses 256 A100 for main training.
+  # For distributed training (if num_gpus > 1)
+  world_size: 1
+  rank: 0
+  dist_url: "env://"
+  dist_backend: "nccl"
+  num_workers: 8 # Dataloader workers
+
+# Logging and Checkpointing
+logging:
+  log_interval: 100 # Log every N steps
+  eval_interval: 5000 # Evaluate every N steps
+  checkpoint_interval: 10000 # Save checkpoint every N steps

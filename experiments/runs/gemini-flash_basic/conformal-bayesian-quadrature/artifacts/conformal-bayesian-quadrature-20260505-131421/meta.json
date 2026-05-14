@@ -1,0 +1,186 @@
+{
+  "case_id": "conformal-bayesian-quadrature",
+  "run_id": "conformal-bayesian-quadrature-20260505-131421",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 922004,
+    "total_output_tokens": 32369,
+    "total_tokens": 954373,
+    "estimated_cost_usd": 3.2515,
+    "elapsed_seconds": 526.8,
+    "steps": 28,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 10.26,
+        "input_tokens": 1199,
+        "output_tokens": 231
+      },
+      {
+        "step": 2,
+        "elapsed_s": 7.71,
+        "input_tokens": 1327,
+        "output_tokens": 92
+      },
+      {
+        "step": 3,
+        "elapsed_s": 8.16,
+        "input_tokens": 4396,
+        "output_tokens": 212
+      },
+      {
+        "step": 4,
+        "elapsed_s": 3.97,
+        "input_tokens": 6943,
+        "output_tokens": 331
+      },
+      {
+        "step": 5,
+        "elapsed_s": 6.14,
+        "input_tokens": 9740,
+        "output_tokens": 101
+      },
+      {
+        "step": 6,
+        "elapsed_s": 8.99,
+        "input_tokens": 14305,
+        "output_tokens": 1247
+      },
+      {
+        "step": 7,
+        "elapsed_s": 113.27,
+        "input_tokens": 14429,
+        "output_tokens": 6767
+      },
+      {
+        "step": 8,
+        "elapsed_s": 6.67,
+        "input_tokens": 18443,
+        "output_tokens": 1278
+      },
+      {
+        "step": 9,
+        "elapsed_s": 10.14,
+        "input_tokens": 21868,
+        "output_tokens": 117
+      },
+      {
+        "step": 10,
+        "elapsed_s": 69.28,
+        "input_tokens": 21960,
+        "output_tokens": 1201
+      },
+      {
+        "step": 11,
+        "elapsed_s": 17.68,
+        "input_tokens": 26530,
+        "output_tokens": 1676
+      },
+      {
+        "step": 12,
+        "elapsed_s": 14.94,
+        "input_tokens": 28922,
+        "output_tokens": 1449
+      },
+      {
+        "step": 13,
+        "elapsed_s": 9.82,
+        "input_tokens": 32314,
+        "output_tokens": 1360
+      },
+      {
+        "step": 14,
+        "elapsed_s": 16.52,
+        "input_tokens": 35706,
+        "output_tokens": 126
+      },
+      {
+        "step": 15,
+        "elapsed_s": 7.65,
+        "input_tokens": 35751,
+        "output_tokens": 1304
+      },
+      {
+        "step": 16,
+        "elapsed_s": 13.63,
+        "input_tokens": 39149,
+        "output_tokens": 1246
+      },
+      {
+        "step": 17,
+        "elapsed_s": 2.64,
+        "input_tokens": 42565,
+        "output_tokens": 147
+      },
+      {
+        "step": 18,
+        "elapsed_s": 5.55,
+        "input_tokens": 42610,
+        "output_tokens": 406
+      },
+      {
+        "step": 19,
+        "elapsed_s": 16.13,
+        "input_tokens": 42670,
+        "output_tokens": 689
+      },
+      {
+        "step": 20,
+        "elapsed_s": 5.5,
+        "input_tokens": 43792,
+        "output_tokens": 116
+      },
+      {
+        "step": 21,
+        "elapsed_s": 26.52,
+        "input_tokens": 43912,
+        "output_tokens": 2960
+      },
+      {
+        "step": 22,
+        "elapsed_s": 6.31,
+        "input_tokens": 49634,
+        "output_tokens": 121
+      },
+      {
+        "step": 23,
+        "elapsed_s": 19.41,
+        "input_tokens": 49729,
+        "output_tokens": 2367
+      },
+      {
+        "step": 24,
+        "elapsed_s": 4.5,
+        "input_tokens": 54337,
+        "output_tokens": 148
+      },
+      {
+        "step": 25,
+        "elapsed_s": 77.06,
+        "input_tokens": 54452,
+        "output_tokens": 3029
+      },
+      {
+        "step": 26,
+        "elapsed_s": 4.98,
+        "input_tokens": 59393,
+        "output_tokens": 68
+      },
+      {
+        "step": 27,
+        "elapsed_s": 22.89,
+        "input_tokens": 59444,
+        "output_tokens": 3440
+      },
+      {
+        "step": 28,
+        "elapsed_s": 10.18,
+        "input_tokens": 66484,
+        "output_tokens": 140
+      }
+    ]
+  }
+}

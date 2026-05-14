@@ -1,0 +1,9 @@
+{
+  "paper_id": "generator-augmented-flows",
+  "run_id": "generator-augmented-flows-20260506-163450",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 379.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 29
+}

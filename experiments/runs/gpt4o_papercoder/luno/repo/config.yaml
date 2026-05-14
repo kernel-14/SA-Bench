@@ -1,0 +1,49 @@
+## config.yaml
+training:
+  learning_rate: 1e-3  # Learning rate based on cosine decay scheduler
+  batch_size: 1  # Training is conducted on one trajectory per epoch
+  epochs_low_data: 100  # Epochs for low-data regime training (25 trajectories)
+  epochs_ood: 1000  # Epochs for OOD regime training (1000 trajectories)
+
+optimizer:
+  type: adamw  # AdamW optimizer used in training
+  weight_decay: 1e-4  # Weight decay regularization parameter
+
+scheduler:
+  type: cosine_decay  # Learning rate scheduler described in the paper
+  warmup_steps: 10  # Warm-up for the optimizer
+
+model:
+  fno:
+    modes: 12  # Number of Fourier modes per spatial dimension
+    hidden_dimensions: 18  # Dimensions of hidden layers
+    num_blocks: 4  # Number of Fourier Neural Operator blocks
+
+data:
+  low_data:
+    trajectories: 25  # Number of training trajectories
+    test_trajectories: 250  # Number of test trajectories
+    grid_resolution: 256  # Spatial resolution for the low-data regime
+    temporal_resolution: 59  # Number of time steps sub-sampled
+  ood:
+    trajectories_base: 1000  # Number of training trajectories for base OOD dataset
+    test_trajectories_per_case: 250  # Per OOD variation (Pos, Flip, etc.)
+    grid_resolution: 100  # Spatial resolution for OOD scenario
+    temporal_resolution: 59  # Number of sampled time steps
+    perturbations:
+      velocity_flip: true  # Whether velocity-switch is a perturbation
+      heat_source_sink: true  # Presence of triangular heat sources and sinks
+
+evaluation:
+  metrics:
+    - rmse  # Root Mean Squared Error (RMSE)
+    - marginal_nll  # Marginal Negative Log-Likelihood (NLL)
+    - chi_squared  # χ²-statistic for uncertainty calibration
+  visualizations:
+    save_plots: true  # Visualize predictive uncertainty (mean, bands, etc.)
+
+linearization:
+  gp_samples: 200  # Number of samples used for GP-based uncertainty evaluation
+  low_rank_covariance: true  # Whether to use low-rank approximations
+  jacobian_inputs_batch: 1000  # Number of trajectories used in GGN in OOD regime
+  rank_approximation: 500  # Number of largest eigenvalues in the GGN approximation

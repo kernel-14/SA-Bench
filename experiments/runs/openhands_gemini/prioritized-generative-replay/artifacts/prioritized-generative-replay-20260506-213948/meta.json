@@ -1,0 +1,9 @@
+{
+  "paper_id": "prioritized-generative-replay",
+  "run_id": "prioritized-generative-replay-20260506-213948",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 454.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 23
+}

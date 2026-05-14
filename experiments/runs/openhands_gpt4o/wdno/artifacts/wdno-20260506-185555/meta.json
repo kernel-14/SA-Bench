@@ -1,0 +1,9 @@
+{
+  "paper_id": "wdno",
+  "run_id": "wdno-20260506-185555",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 362.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 32
+}

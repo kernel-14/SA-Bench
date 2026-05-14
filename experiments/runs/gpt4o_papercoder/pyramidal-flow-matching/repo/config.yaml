@@ -1,0 +1,48 @@
+## config.yaml
+training:
+  learning_rate: 0.0001  # Learning rate for initial training stages
+  batch_size: 768  # Batch size, changes based on the stage
+  epochs: 250000  # Total number of training steps across all stages
+  warmup_steps: 1000  # Warm-up steps used for all training stages
+  weight_decay: 0.0001  # Weight decay for optimization
+  gradient_clipping: 1.0  # Gradient clipping threshold
+  precision: bfloat16  # Numerical precision for efficient training
+  optimizer: AdamW  # Optimizer used
+
+dataset:
+  image_datasets:
+    LAION-5B_path: "/path/to/LAION-5B"
+    CC-12M_path: "/path/to/CC-12M"
+    SA-1B_path: "/path/to/SA-1B"
+    JourneyDB_path: "/path/to/JourneyDB"
+  video_datasets:
+    WebVid-10M_path: "/path/to/WebVid-10M"
+    OpenVid-1M_path: "/path/to/OpenVid-1M"
+    OpenSoraPlan_path: "/path/to/OpenSoraPlan"
+  synthetic_data: "/path/to/synthetic_data"
+  video_duration:
+    short: 2  # Short videos for initial training stages (in seconds)
+    long: 5  # Long videos for fine-tuning (in seconds)
+
+model:
+  vae:
+    latent_dim: 512  # Dimensionality of latent space
+    downsampling_ratio: [8, 8, 8]  # Spatial and temporal compression factors
+  flow_matching:
+    num_stages: 3  # Number of pyramid stages in spatial dimension
+    noise_level: [0, 0.33]  # Range of corruptive noise for autoregressive pyramid conditions
+
+evaluation:
+  benchmarks:
+    VBench_path: "/path/to/VBench"
+    EvalCrafter_path: "/path/to/EvalCrafter"
+  clip_score: True  # Whether to compute CLIP score during evaluation
+  fid_score: True  # Whether to compute FID during evaluation
+  human_study: True  # Whether to conduct user study for generated video
+
+resources:
+  gpus: 128  # Number of NVIDIA A100 GPUs
+  time_per_stage:
+    stage_1: "12 hours"  # Approximate training duration for image stages
+    stage_2: "90 hours"  # Approximate training duration for short videos
+    stage_3: "60 hours"  # Approximate fine-tuning duration for long videos

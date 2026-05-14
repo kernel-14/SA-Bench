@@ -1,0 +1,9 @@
+{
+  "paper_id": "mrq",
+  "run_id": "mrq-20260506-204729",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 615.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 23
+}

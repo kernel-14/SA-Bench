@@ -1,0 +1,455 @@
+## config.yaml
+## Master configuration file for SC-FNO experiments.
+## All hyperparameters are sourced directly from the paper (Tables C.7, C.8, B.6).
+## Values marked with [DEFAULT] are not specified in the paper and use reasonable defaults.
+
+## ---------------------------------------------------------------------------
+## Global settings
+## ---------------------------------------------------------------------------
+seed: 42
+device: "cuda"  ## falls back to cpu if cuda unavailable
+output_dir: "outputs"
+log_dir: "outputs/logs"
+checkpoint_dir: "outputs/checkpoints"
+results_dir: "outputs/results"
+figures_dir: "outputs/figures"
+
+## ---------------------------------------------------------------------------
+## Shared model architecture (Table C.7 — identical across all cases)
+## ---------------------------------------------------------------------------
+model:
+  width: 20                  ## number of channels in hidden layers (Table C.7)
+  n_fourier_layers: 4        ## number of Fourier layers (Table C.7)
+  activation: "gelu"         ## [DEFAULT] activation function between FNO blocks
+
+## ---------------------------------------------------------------------------
+## Shared training settings (Table C.7)
+## ---------------------------------------------------------------------------
+training:
+  lr: 0.001                  ## learning rate (Table C.7)
+  n_epochs: 500              ## number of training epochs (Table C.7)
+  optimizer: "adam"          ## [DEFAULT] optimizer type
+  scheduler: "cosine"        ## [DEFAULT] lr scheduler; cosine annealing over n_epochs
+  ## Loss weights — not specified in paper; defaulting to equal weighting
+  loss_weights:
+    c1: 1.0                  ## weight for L_u (data loss)
+    c2: 1.0                  ## weight for L_s (sensitivity loss)
+    c3: 1.0                  ## weight for L_eq (PINN equation loss)
+  ## Fraction of spatial-temporal grid points sampled per epoch for L_s
+  ## Not specified in paper; [DEFAULT] 10% of grid or max 256 points
+  sensitivity_sample_fraction: 0.10
+  sensitivity_sample_max: 256
+
+## ---------------------------------------------------------------------------
+## Shared inversion settings (Section 3.1 — exact values not given in paper)
+## ---------------------------------------------------------------------------
+inversion:
+  lr: 0.01                   ## [DEFAULT] inversion optimizer learning rate
+  n_steps: 2000              ## [DEFAULT] number of gradient descent steps
+  optimizer: "adam"          ## [DEFAULT]
+
+## ---------------------------------------------------------------------------
+## Data split ratios (Section 3.1)
+## ---------------------------------------------------------------------------
+data:
+  train_fraction: 0.70       ## 70% training (Section 3.1)
+  val_fraction: 0.15         ## 15% validation (Section 3.1)
+  test_fraction: 0.15        ## 15% test (Section 3.1)
+  ## Gradient computation method: "ad" (automatic differentiation) or "fd" (finite difference)
+  gradient_method: "ad"
+  ## Finite difference step size (Section 3.5, Table D.13)
+  fd_order: 4                ## 4th-order finite difference (Section 3.5)
+  fd_h: 1.0e-4               ## [DEFAULT] perturbation step size for FD
+
+## ---------------------------------------------------------------------------
+## Perturbation robustness experiment (Section 3.2)
+## ---------------------------------------------------------------------------
+perturbation:
+  lambda_values: [0.1, 0.2, 0.3, 0.4]   ## perturbation ratios tested (Section 3.2)
+
+## ---------------------------------------------------------------------------
+## ODE1: Composite Harmonic Oscillator (Appendix B, Table B.6, Table C.7, C.8)
+## ---------------------------------------------------------------------------
+ode1:
+  equation: "ode1"
+  description: "Composite Harmonic Oscillator with analytical solution"
+
+  data:
+    n_samples: 2000            ## Table C.8
+    save_path: "data/datasets/ode1.pt"
+    gradient_method: "ad"      ## analytical solution available for validation
+
+  ## Parameter ranges — uniform distribution U(a, b) (Table B.6)
+  params:
+    alpha: [1.0, 3.0]          ## Table B.6
+    beta:  [1.0, 3.0]          ## Table B.6
+    gamma: [0.0, 1.0]          ## Table B.6
+  n_params: 3
+
+  ## Discretization
+  discretization:
+    t_start: 0.0
+    t_end: 1.0
+    N: 100                     ## total time steps (Section 3, Experiments)
+    M: 10                      ## input time steps (Table B.6)
+
+  ## Model architecture (Table C.7)
+  model:
+    dim: 1                     ## 1D in time
+    modes_t: 8                 ## Fourier modes for time dimension (Table C.7)
+    modes_x: 8                 ## second mode dimension (Table C.7)
+    n_learnable_params: 17921  ## Table C.7
+
+  ## Training (Table C.7, C.8)
+  training:
+    batch_size: 16             ## Table C.8
+    avg_time_per_epoch_fno: 1.10       ## seconds, Table C.8
+    avg_time_per_epoch_scfno: 1.94     ## seconds, Table C.8
+    avg_time_per_epoch_fnopinn: 1.53   ## seconds, Table C.8
+    avg_time_per_epoch_scfnopinn: 2.46 ## seconds, Table C.8
+
+## ---------------------------------------------------------------------------
+## ODE2: Duffing Oscillator (Appendix B, Table B.6, Table C.7, C.8)
+## ---------------------------------------------------------------------------
+ode2:
+  equation: "ode2"
+  description: "Duffing Oscillator — nonlinear driven oscillator"
+
+  data:
+    n_samples: 2000            ## Table C.8
+    save_path: "data/datasets/ode2.pt"
+    gradient_method: "ad"
+
+  ## Parameter ranges (Table B.6)
+  params:
+    alpha: [0.02, 0.06]        ## stiffness (Table B.6)
+    beta:  [0.01, 0.03]        ## nonlinear stiffness (Table B.6)
+    gamma: [20.0, 60.0]        ## driving amplitude (Table B.6)
+    delta: [0.5,  1.5]         ## damping (Table B.6)
+    omega: [0.2,  0.6]         ## driving frequency (Table B.6)
+    epsilon: [0.0, 0.2]        ## initial position x(0) (Table B.6)
+    zeta:    [0.0, 0.2]        ## initial velocity ẋ(0) (Table B.6)
+  n_params: 7
+
+  ## Discretization
+  discretization:
+    t_start: 0.0
+    t_end: 1.0
+    N: 100                     ## total time steps (Section 3, Experiments)
+    M: 10                      ## input time steps (Table B.6)
+
+  ## Model architecture (Table C.7)
+  model:
+    dim: 1
+    modes_t: 8                 ## Table C.7
+    modes_x: 8                 ## Table C.7
+    n_learnable_params: 17921  ## Table C.7
+
+  ## Training (Table C.8)
+  training:
+    batch_size: 16             ## Table C.8
+    avg_time_per_epoch_fno: 1.58       ## seconds, Table C.8
+    avg_time_per_epoch_scfno: 2.13     ## seconds, Table C.8
+    avg_time_per_epoch_fnopinn: 1.76   ## seconds, Table C.8
+    avg_time_per_epoch_scfnopinn: 2.86 ## seconds, Table C.8
+
+## ---------------------------------------------------------------------------
+## PDE1: Generalized Nonlinear Damped Wave Equation (Appendix B, Tables B.6, C.7, C.8)
+## ---------------------------------------------------------------------------
+pde1:
+  equation: "pde1"
+  description: "Generalized Nonlinear Damped Wave Equation"
+
+  data:
+    n_samples: 2000            ## Table C.8
+    save_path: "data/datasets/pde1.pt"
+    gradient_method: "ad"
+
+  ## Parameter ranges (Table B.6)
+  params:
+    c:     [0.0,  0.25]        ## wave speed (Table B.6)
+    alpha: [0.0,  0.10]        ## damping coefficient (Table B.6)
+    beta:  [0.0,  0.25]        ## stiffness (Table B.6)
+    gamma: [0.0,  0.25]        ## forcing amplitude (Table B.6)
+    omega: [0.0,  0.25]        ## forcing frequency (Table B.6)
+  n_params: 5
+
+  ## Discretization (Section 3, Experiments)
+  discretization:
+    t_start: 0.0
+    t_end: 1.0
+    N: 30                      ## temporal steps (Section 3)
+    M: 5                       ## input time steps (Table B.6)
+    x_start: 0.0
+    x_end: 1.0
+    Sx: 20                     ## spatial grid points (Section 3)
+
+  ## Model architecture (Table C.7)
+  model:
+    dim: 2                     ## 2D input: (x, t)
+    modes_t: 8                 ## Table C.7
+    modes_x: 8                 ## Table C.7
+    n_learnable_params: 107897 ## Table C.7
+
+  ## Training (Table C.8)
+  training:
+    batch_size: 4              ## Table C.8
+    avg_time_per_epoch_fno: 35.24      ## seconds, Table C.8
+    avg_time_per_epoch_scfno: 53.32    ## seconds, Table C.8
+    avg_time_per_epoch_fnopinn: 52.13  ## seconds, Table C.8
+    avg_time_per_epoch_scfnopinn: 82.13 ## seconds, Table C.8
+
+  ## Memory usage (Section 4, Further Discussion)
+  memory:
+    fno_mb: 722                ## MB, Section 4
+    scfno_mb: 764              ## MB, Section 4
+
+## ---------------------------------------------------------------------------
+## PDE2: Forced Burgers' Equation (Appendix B, Tables B.6, C.7, C.8)
+## ---------------------------------------------------------------------------
+pde2:
+  equation: "pde2"
+  description: "Forced Burgers Equation"
+  zoned: false                 ## set true for high-dimensional parameter experiment
+
+  data:
+    n_samples: 2000            ## Table C.8
+    save_path: "data/datasets/pde2.pt"
+    gradient_method: "ad"
+
+  ## Parameter ranges (Table B.6)
+  params:
+    alpha: [0.1,  1.0]         ## advection coefficient (Table B.6)
+    gamma: [0.025, 0.25]       ## viscosity (Table B.6)
+    delta: [0.1,  0.5]         ## forcing amplitude (Table B.6)
+    omega: [0.01, 0.1]         ## forcing frequency (Table B.6)
+  n_params: 4
+
+  ## Discretization (Section 3, Experiments)
+  discretization:
+    t_start: 0.0
+    t_end: 3.14159265358979    ## t ∈ [0, π] (Section 3, Appendix B)
+    N: 30                      ## temporal steps (Section 3)
+    M: 5                       ## input time steps (Table B.6)
+    x_start: 0.0
+    x_end: 1.0
+    Sx: 40                     ## spatial grid points (Section 3)
+
+  ## Initial condition parameters (Appendix B)
+  initial_condition:
+    x0: 0.5                    ## Gaussian center (Appendix B)
+    sigma: 0.3                 ## Gaussian width (Appendix B)
+  boundary_conditions: "periodic"  ## u(0,t) = u(1,t) (Appendix B)
+
+  ## Model architecture (Table C.7)
+  model:
+    dim: 2
+    modes_t: 8                 ## Table C.7
+    modes_x: 8                 ## Table C.7
+    n_learnable_params: 107897 ## Table C.7
+
+  ## Training (Table C.8)
+  training:
+    batch_size: 4              ## Table C.8
+    avg_time_per_epoch_fno: 32.66      ## seconds, Table C.8
+    avg_time_per_epoch_scfno: 44.92    ## seconds, Table C.8
+    avg_time_per_epoch_fnopinn: 39.11  ## seconds, Table C.8
+    avg_time_per_epoch_scfnopinn: 73.06 ## seconds, Table C.8
+
+## ---------------------------------------------------------------------------
+## PDE2 Zoned: High-dimensional Burgers' (Section 3.4, Table C.8)
+## ---------------------------------------------------------------------------
+pde2_zoned:
+  equation: "pde2"
+  description: "Forced Burgers Equation with spatially-varying (zoned) parameters"
+  zoned: true
+
+  data:
+    ## Two sample sizes tested (Section 3.4, Table 4)
+    n_samples_list: [100, 500]
+    save_path_100: "data/datasets/pde2_zoned_100.pt"
+    save_path_500: "data/datasets/pde2_zoned_500.pt"
+    gradient_method: "ad"
+
+  ## Zoned parameter setup (Section 3.4)
+  zoning:
+    n_zones: 40                ## one zone per spatial grid point (Section 3.4)
+    ## Each zone has its own alpha (advection) and delta (forcing amplitude)
+    ## Plus 2 global parameters: gamma (viscosity) and omega (forcing frequency)
+    ## Total parameters: 2 * 40 + 2 = 82 (Section 3.4)
+    n_params_total: 82
+
+  ## Per-zone parameter ranges (same as standard PDE2, Table B.6)
+  params:
+    alpha_per_zone: [0.1, 1.0]
+    delta_per_zone: [0.1, 0.5]
+    gamma_global:   [0.025, 0.25]
+    omega_global:   [0.01, 0.1]
+
+  ## Discretization — same as standard PDE2
+  discretization:
+    t_start: 0.0
+    t_end: 3.14159265358979
+    N: 30
+    M: 5
+    x_start: 0.0
+    x_end: 1.0
+    Sx: 40
+
+  initial_condition:
+    x0: 0.5
+    sigma: 0.3
+  boundary_conditions: "periodic"
+
+  ## Model architecture (Table C.7 — same as PDE2)
+  model:
+    dim: 2
+    modes_t: 8
+    modes_x: 8
+    n_learnable_params: 107897
+
+  ## Training (Table C.8)
+  training:
+    batch_size: 1              ## Table C.8
+    avg_time_per_epoch_fno_n100: 5.37   ## seconds, Table C.8
+    avg_time_per_epoch_scfno_n100: 7.23 ## seconds, Table C.8
+    avg_time_per_epoch_fno_n500: 8.09   ## seconds, Table C.8
+    avg_time_per_epoch_scfno_n500: 11.23 ## seconds, Table C.8
+
+## ---------------------------------------------------------------------------
+## PDE3: Navier-Stokes Stream Function-Vorticity (Appendix B, Tables B.6, C.7, C.8)
+## ---------------------------------------------------------------------------
+pde3:
+  equation: "pde3"
+  description: "Navier-Stokes stream function-vorticity formulation"
+
+  data:
+    n_samples: 1000            ## Table C.8
+    save_path: "data/datasets/pde3.pt"
+    gradient_method: "ad"
+
+  ## Parameter ranges (Table B.6)
+  params:
+    alpha: [3.14159265358979, 15.70796326794897]  ## [π, 5π] (Table B.6)
+    beta:  [3.14159265358979, 15.70796326794897]  ## [π, 5π] (Table B.6)
+  n_params: 2
+
+  ## Physical constants (Appendix B)
+  physics:
+    Re: 1000                   ## Reynolds number (Appendix B)
+
+  ## Discretization (Section 3, Experiments)
+  discretization:
+    t_start: 0.0
+    t_end: 3.0                 ## t ∈ [0, 3] (Section 3)
+    ## Output is vorticity at final time t=3 only (Section 3)
+    output_single_timestep: true
+    M: 1                       ## initial condition only (Table B.6)
+    x_start: 0.0
+    x_end: 1.0
+    Sx: 64                     ## spatial grid x (Section 3)
+    Sy: 64                     ## spatial grid y (Section 3)
+
+  ## Model architecture (Table C.7)
+  model:
+    dim: 2                     ## 2D spatial: (x, y)
+    modes_x: 8                 ## Table C.7
+    modes_y: 8                 ## Table C.7
+    n_learnable_params: 209397 ## Table C.7
+
+  ## Training (Table C.8)
+  training:
+    batch_size: 4              ## Table C.8
+    avg_time_per_epoch_fno: 47.16      ## seconds, Table C.8
+    avg_time_per_epoch_scfno: 109.43   ## seconds, Table C.8
+
+## ---------------------------------------------------------------------------
+## PDE4: Allen-Cahn Equation (Appendix B, Tables B.6, C.7, C.8)
+## ---------------------------------------------------------------------------
+pde4:
+  equation: "pde4"
+  description: "Allen-Cahn phase-field equation with bifurcation behavior"
+
+  data:
+    ## Two sample sizes tested (Table 3, Section 3.2)
+    n_samples_list: [100, 500]
+    save_path_100: "data/datasets/pde4_100.pt"
+    save_path_500: "data/datasets/pde4_500.pt"
+    gradient_method: "ad"
+
+  ## Parameter ranges (Table B.6)
+  params:
+    c:     [0.1,  0.9]         ## initial condition amplitude (Table B.6)
+    alpha: [0.01, 1.0]         ## linear term coefficient (Table B.6)
+    beta:  [0.01, 1.0]         ## cubic term coefficient (Table B.6)
+    omega: [5.0,  10.0]        ## initial condition frequency (Table B.6)
+    epsilon: [0.01, 1.0]       ## diffusion coefficient (Table B.6)
+  n_params: 5
+
+  ## Discretization (Section 3, Experiments)
+  discretization:
+    t_start: 0.0
+    t_end: 1.0
+    N: 30                      ## temporal steps (Section 3)
+    M: 5                       ## input time steps (Table B.6)
+    x_start: 0.0
+    x_end: 1.0
+    Sx: 40                     ## spatial grid points (Section 3)
+
+  boundary_conditions: "periodic"  ## Appendix B
+
+  ## Model architecture (Table C.7)
+  model:
+    dim: 2
+    modes_t: 8                 ## Table C.7
+    modes_x: 8                 ## Table C.7
+    n_learnable_params: 107897 ## Table C.7
+
+  ## Training (Table C.8)
+  training:
+    batch_size: 1              ## Table C.8
+    avg_time_per_epoch_fno: 11.54      ## seconds, Table C.8
+    avg_time_per_epoch_scfno: 19.12    ## seconds, Table C.8
+
+## ---------------------------------------------------------------------------
+## Data scaling experiment settings (Section 3.3, Figure 4)
+## ---------------------------------------------------------------------------
+data_scaling:
+  ## Sample sizes to evaluate (Section 3.3)
+  sample_sizes: [100, 200, 500, 1000, 2000]
+  equation: "pde1"             ## primary equation for scaling experiment (Figure 4)
+
+## ---------------------------------------------------------------------------
+## AD vs FD comparison experiment (Section 3.5, Table 5, Table D.13)
+## ---------------------------------------------------------------------------
+fd_comparison:
+  equations: ["ode1", "pde1"]  ## equations used in Table 5
+  ## Reference runtime from Table D.13 (ODE1, 2000 samples, V100 GPU)
+  reference_runtime:
+    ad_seconds: 252.54         ## Table D.13
+    fd_seconds: 1907.32        ## Table D.13
+
+## ---------------------------------------------------------------------------
+## Model variants to compare in all experiments
+## ---------------------------------------------------------------------------
+variants:
+  - name: "fno"
+    use_sensitivity: false
+    use_pinn: false
+  - name: "sc_fno"
+    use_sensitivity: true
+    use_pinn: false
+  - name: "fno_pinn"
+    use_sensitivity: false
+    use_pinn: true
+  - name: "sc_fno_pinn"
+    use_sensitivity: true
+    use_pinn: true
+
+## ---------------------------------------------------------------------------
+## PINN loss settings (Section 2.2)
+## ---------------------------------------------------------------------------
+pinn:
+  alpha_weight: 1.0            ## weight for IC and BC terms in L_Eq (Section 2.2)
+  ## [DEFAULT] number of collocation points; paper does not specify
+  n_colloc: 256

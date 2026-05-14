@@ -1,0 +1,205 @@
+## config.yaml
+# MA-RLHF: Reinforcement Learning from Human Feedback with Macro Actions
+# Master configuration file. Task-specific overrides are in configs/*.yaml.
+# All hyperparameters are sourced directly from the paper (Table 5, Appendix B).
+
+defaults:
+  task: tldr
+  stage: all  # one of: sft, rm, ppo, eval, all
+  seed: 42
+  output_dir: ./outputs
+  log_interval: 10
+  eval_interval: 200
+  save_interval: 500
+
+## ---------------------------------------------------------------------------
+## Model
+## ---------------------------------------------------------------------------
+model:
+  base_model: google/gemma-2b
+  tokenizer: google/gemma-2b
+  # Supported: google/gemma-2b, google/gemma-7b, google/gemma-2-27b
+  #            google/codegemma-2b, google/codegemma-7b-it
+
+## ---------------------------------------------------------------------------
+## Dataset
+## ---------------------------------------------------------------------------
+dataset:
+  name: openai/summarize_from_feedback  # HuggingFace dataset id
+  task: tldr  # one of: tldr, hh_rlhf, webgpt, apps
+  # Data split ratios (must sum to 1.0); APPS uses 0.2 / 0.0 / 0.8
+  split:
+    sft_ratio: 0.20
+    rm_ratio: 0.40
+    ppo_ratio: 0.40
+    seed: 42
+
+## ---------------------------------------------------------------------------
+## Stage 1 — Supervised Fine-Tuning (SFT)
+## Default values are for Gemma-2B on TL;DR / HH-RLHF / WebGPT.
+## Per-task overrides are in configs/*.yaml.
+## ---------------------------------------------------------------------------
+sft:
+  batch_size: 512          # 64 for WebGPT, 512 for TL;DR / HH-RLHF (Gemma-2B)
+  epochs: 3                # 3 for TL;DR/27B, 5 for WebGPT-7B, 1 for others
+  learning_rate: 5.0e-5    # 1e-4 for WebGPT-2B, 5e-5 for TL;DR/HH-RLHF-2B
+  lr_scheduler: cosine
+  warmup_ratio: 0.1
+  max_prompt_length: 512
+  max_response_length: 512
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+
+## ---------------------------------------------------------------------------
+## Stage 2 — Reward Modeling (RM)
+## Skipped entirely for APPS (no preference pairs available).
+## ---------------------------------------------------------------------------
+rm:
+  batch_size: 64           # 32 for WebGPT-2B, 64 for TL;DR/HH-RLHF-2B
+  epochs: 1                # 32 for WebGPT-7B, 1 for all others
+  learning_rate: 1.0e-5    # 2e-5 for WebGPT-2B, 1e-5 for TL;DR/HH-RLHF-2B
+  lr_scheduler: cosine
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  # Set to true to skip RM stage (used for APPS)
+  skip: false
+
+## ---------------------------------------------------------------------------
+## Stage 3 — PPO / MA-PPO
+## Default values are for Gemma-2B. Per-model overrides in configs/*.yaml.
+## ---------------------------------------------------------------------------
+ppo:
+  batch_size: 256          # 16 for CodeGemma-2B/7B
+  policy_lr: 1.5e-5        # Gemma-2B default; see per-config for 7B/27B
+  critic_lr: 1.5e-5        # Gemma-2B default; 5e-5 for CodeGemma
+  epochs: 1                # 4 for WebGPT; 1 for all others
+  ppo_epochs: 1            # Inner PPO update epochs per rollout batch
+  rollout: 1               # Number of rollouts per prompt
+  clip_ratio: 0.2          # epsilon in PPO clipped objective
+  gae_lambda: 0.95         # lambda for Generalized Advantage Estimation
+  gae_gamma: 1.0           # gamma (discount factor); 1.0 per paper
+  kl_coeff: 0.05           # beta; 0.01 for Gemma-7B on TL;DR (unstable at 0.05)
+  max_prompt_length: 512   # 600 for CodeGemma
+  max_response_length: 512
+  warmup_steps: 200        # 20 for CodeGemma; 0 for Gemma-27B
+  temperature: 0.8         # 1.0 for CodeGemma
+  top_p: 1.0
+  top_k: 50                # 5 for CodeGemma
+  total_steps: 4600        # TL;DR default; varies per task (see configs/)
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  # Intra-macro discount factor rho (set to 1 in all experiments)
+  rho: 1.0
+
+## ---------------------------------------------------------------------------
+## Macro Action Configuration
+## ---------------------------------------------------------------------------
+macro_action:
+  # Termination strategy: fixed_ngram | randomized_ngram | parsing | ppl
+  termination: fixed_ngram
+
+  # --- Fixed n-gram ---
+  # n=1 reduces MA-PPO to vanilla PPO (standard token-level RLHF).
+  # n=inf treats the entire sequence as one macro action (REINFORCE/RLOO).
+  # Best overall: n=5 (TL;DR GPT-4), n=10 (HH-RLHF RM), n=inf (TL;DR RM).
+  n_gram: 5
+
+  # --- Randomized n-gram ---
+  # Lengths are drawn from this list, repeated `randomized_repeat` times,
+  # then shuffled. Remainder tokens are treated as one large macro action.
+  randomized_lengths: [2, 3, 5, 10]
+  randomized_repeat: 3
+
+  # --- Parsing-based ---
+  # DFS cutoff: nodes with fewer than `parse_cutoff` leaf tokens end a macro action.
+  parse_cutoff: 5
+
+  # --- Perplexity-based ---
+  # Macro action terminates when adding the next token increases perplexity.
+  # Perplexity is computed from reference model logits (no extra forward pass).
+  # No additional hyperparameters required.
+
+  # Value function aggregation within a macro action.
+  # Options: equal | unit | position_decayed
+  # equal: mean of token values (default, best RM scores per paper)
+  # unit: value of last token only (best consistency/fluency per GPT-4)
+  # position_decayed: harmonic-weighted sum (earlier tokens weighted more)
+  sigma_type: equal
+
+## ---------------------------------------------------------------------------
+## Evaluation
+## ---------------------------------------------------------------------------
+eval:
+  # RM score evaluation
+  rm_eval_samples: 2000    # 2k for TL;DR and HH-RLHF; full val set for WebGPT
+
+  # GPT-4 pairwise evaluation
+  gpt4_eval_samples: 50    # Drawn from the rm_eval_samples pool
+  gpt4_model: gpt-4o-2024-05-13
+  openai_api_key: ""       # Set via environment variable OPENAI_API_KEY
+
+  # Best-of-N rejection sampling (Section 4.4 / Figure 8)
+  best_of_n_sizes: [4, 8, 16, 32]
+  best_of_n_temperatures: [0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+
+  # Sampling temperature robustness sweep (Appendix D.4 / Figure 21)
+  temperature_sweep: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+
+  # Code generation (APPS)
+  pass_at_k_values: [1, 5]
+  code_exec_timeout: 10.0  # seconds per test case
+
+  # Human evaluation
+  human_eval_samples: 50
+  # Number of annotators: 3 for 7B models, 1 for all others (Appendix F.2)
+  num_annotators: 1
+
+## ---------------------------------------------------------------------------
+## Ablations (Section 4.3)
+## ---------------------------------------------------------------------------
+ablation:
+  # n-gram sweep: n in {1, 3, 5, 10, inf} (Figure 6, 7)
+  ngram_values: [1, 3, 5, 10, null]  # null represents infinity
+
+  # Termination strategy sweep (Figure 5)
+  termination_strategies: [fixed_ngram, randomized_ngram, parsing, ppl]
+
+  # Value function sigma sweep (Figure 19)
+  sigma_types: [equal, unit, position_decayed]
+
+## ---------------------------------------------------------------------------
+## Infrastructure / DeepSpeed
+## ---------------------------------------------------------------------------
+distributed:
+  # ZeRO stage: 2 for 2B/7B models, 3 for 27B
+  zero_stage: 2
+  # Enable CPU offload for ZeRO-3 (27B models)
+  cpu_offload: false
+  # Gradient checkpointing to reduce memory
+  gradient_checkpointing: false
+  # Mixed precision: fp16 or bf16
+  dtype: bf16
+
+## ---------------------------------------------------------------------------
+## Logging
+## ---------------------------------------------------------------------------
+logging:
+  use_wandb: true
+  wandb_project: ma-rlhf
+  wandb_entity: ""
+  use_tensorboard: true
+  tensorboard_dir: ./runs
+  # Log L2 norms of advantages and Q-values (Figure 11)
+  log_l2_norms: true
+  # Log RM score distribution histograms (Figure 3, 10, 14, 16)
+  log_score_distribution: true

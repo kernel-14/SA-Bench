@@ -1,0 +1,9 @@
+{
+  "paper_id": "petl-visual-recognition",
+  "run_id": "petl-visual-recognition-20260506-180358",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 199.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 14
+}

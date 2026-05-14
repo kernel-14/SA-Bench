@@ -1,0 +1,31 @@
+# config.yaml
+# Configuration for reproducing "Instance-dependent Convergence Theory for Diffusion Models"
+# All parameters are derived from the paper's Appendix A: "Numerical experiments"
+# and Section 2.2 "Sampling algorithm"
+experiment:
+  # Iteration parameters for the sampler
+  K_rounds: 10 # Number of rounds, fixed in Appendix A
+  T_total_range: [100, 200, 400, 800, 1600, 3200, 6400, 12800] # Example range for T, based on plot scale
+  
+  # Problem dimension parameters
+  d_values: [10, 100, 500] # Data dimensions, from Figure 2 captions
+  k_values: [10, 10, 100] # Number of non-zero diagonal entries for Sigma0, from Figure 2 captions
+                        # Note: d_values and k_values should be matched for experiments, e.g., (10,10), (100,10), (500,100)
+
+  # Simulation and Evaluation parameters
+  num_samples_per_run: 5000 # Number of Y_K samples to generate for empirical mean/covariance estimation
+  
+  # Constants for randomized schedule (from Lemma 5 and Lemma 7 analysis)
+  # c_R is implicitly 1 for this numerical example.
+  c0: 12.0 # Constant for alpha_hat definition. Derived from c_R + 10 = 1 + 10 = 11, choose a bit larger.
+  c1: 61.0 # Constant for alpha_hat definition. Derived from > 5 * c0 = 5 * 12 = 60, choose a bit larger.
+
+  # Output settings
+  output_dir: "results" # Directory to save plots and raw results
+  rng_seed: 42 # Random seed for reproducibility
+
+# The paper does not specify traditional neural network training parameters like
+# learning rate, batch size, or epochs for score function estimation,
+# as the numerical experiments assume access to the *exact* score function.
+# Therefore, this section is intentionally left empty.
+training: {} 

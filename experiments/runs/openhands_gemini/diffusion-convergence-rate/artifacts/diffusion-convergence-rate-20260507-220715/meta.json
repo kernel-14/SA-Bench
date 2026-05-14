@@ -1,0 +1,9 @@
+{
+  "paper_id": "diffusion-convergence-rate",
+  "run_id": "diffusion-convergence-rate-20260507-220715",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 200,
+  "elapsed_s": 366.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 12
+}

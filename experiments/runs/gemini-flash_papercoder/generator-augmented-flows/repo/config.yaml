@@ -1,0 +1,64 @@
+## config.yaml
+# Main training configuration
+training:
+  # Learning rate search space for CIFAR-10, fixed for others
+  learning_rate: 0.00008 # Default to 0.00008 as it's common across datasets or a good mid-point
+  batch_size: 128 # Default to 128 (CelebA, LSUN Church). CIFAR-10/ImageNet use 512, will be overridden.
+  training_steps: 150000 # Default to 150k (CelebA, LSUN Church, ImageNet). CIFAR-10 uses 100k, will be overridden.
+  optimizer: "lion" # Lion optimizer
+  ema_decay: 0.9999 # Common practice, not explicitly stated in paper
+  seed: 42 # For reproducibility, not specified in paper
+  log_interval_steps: 1000 # Log training progress every N steps
+  eval_interval_steps: 10000 # Perform evaluation every N steps (paper implies evaluation during training)
+  save_interval_steps: 10000 # Save model checkpoints every N steps
+  checkpoint_dir: "./checkpoints" # Directory to save model checkpoints
+
+# Dataset configuration
+dataset:
+  name: "cifar10" # Default dataset
+  resolution: 32 # Default resolution. CelebA/LSUN Church use 64, will be overridden.
+  num_workers: 8 # Number of data loading workers
+  pin_memory: True # For faster data transfer to GPU
+
+# Model architecture configuration (SongUNet based on Karras et al. (2022) implementation)
+model:
+  img_channels: 3 # RGB images
+  model_channels: 128 # Base number of channels
+  dropout_rate: 0.0 # Default to 0.0 based on ablations for iCT-GC
+  embedding_type: "positional" # Time embedding type
+  # CIFAR-10 specific (will be overridden by main.py for other datasets)
+  num_blocks: [3] # For 32x32, simplified as [3] means (3,3,3) for [1,2,2]
+  channel_mult: [1, 2, 2] # Multipliers for channel_mult: [res1, res2, res3]
+  attn_resolutions: [] # No attention for CIFAR-10 32x32
+
+# Noise schedule configuration (Karras et al., 2022)
+noise_schedule:
+  rho: 7.0
+  sigma_0: 0.002 # Smallest noise level
+  sigma_T: 80.0 # Largest noise level (called sigma_1 in tables)
+
+# Progressive timestep scheduling (Song and Dhariwal, 2024)
+timestep_scheduling:
+  s0: 10 # Initial number of timesteps
+  s1: 1280 # Final number of timesteps
+
+# Timestep sampling probability configuration
+timestep_sampling:
+  p_mean: -1.1
+  p_std: 2.0
+
+# Generator-Augmented Flow (GC) specific parameters
+gc:
+  mu: 0.5 # Joint learning factor. Paper recommends ~0.3 for ECT, 0.5 for iCT.
+
+# Evaluation metrics configuration
+evaluation:
+  fid_num_samples: 50000 # Number of samples for FID/KID/IS
+  eval_runs: 5 # Number of evaluation runs to compute confidence intervals
+  real_samples_path: null # Path to pre-generated real image features for FID/KID (optional)
+
+# Hardware configuration
+hardware:
+  device: "cuda" # Use 'cuda' for GPU, 'cpu' for CPU
+  distributed: False # Whether to use distributed training (True/False)
+  num_gpus: 1 # Number of GPUs to use if distributed is True

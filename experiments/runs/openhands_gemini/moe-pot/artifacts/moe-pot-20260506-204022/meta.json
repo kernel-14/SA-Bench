@@ -1,0 +1,9 @@
+{
+  "paper_id": "moe-pot",
+  "run_id": "moe-pot-20260506-204022",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 427.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 22
+}

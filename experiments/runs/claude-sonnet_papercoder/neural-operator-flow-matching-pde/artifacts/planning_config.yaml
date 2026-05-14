@@ -1,0 +1,372 @@
+## config.yaml
+## Master configuration file for reproducing:
+## "Bridging Neural Operator and Flow Matching for a Generative PDE Foundation Model"
+## All values are taken directly from the paper. Estimated values are marked with [ESTIMATED].
+
+## ---------------------------------------------------------------------------
+## Dataset configuration
+## ---------------------------------------------------------------------------
+data:
+  ## Unified format for all sub-datasets
+  target_spatial_size: 128
+  target_channels: 3
+  trajectory_length: 4          ## 4 consecutive frames per training sample
+  storage_precision: float16    ## float16 HDF5 storage as stated in paper
+  total_size_gb: 233
+  total_trajectories: 2500000   ## ~2.5M trajectories
+
+  ## Sub-dataset names and trajectory counts (from paper Appendix A.2)
+  datasets:
+    fno_v5:
+      trajectory_count: 15400
+      original_format: "c1p64"
+      preprocessing: "upsample_to_p128_zero_pad_channels"
+    fno_v4:
+      trajectory_count: 368000
+      original_format: "c1p64"
+      preprocessing: "upsample_to_p128_zero_pad_channels"
+    fno_v3:
+      trajectory_count: 184000
+      original_format: "c1p64"
+      preprocessing: "upsample_to_p128_zero_pad_channels"
+    pa_ns:
+      trajectory_count: 48000
+      original_format: "c3p128"
+      preprocessing: "compress_60gb_to_25gb"
+    pa_nsc:
+      trajectory_count: 120000
+      original_format: "c3p128"
+      preprocessing: "compress_60gb_to_25gb"
+    pa_swe:
+      trajectory_count: 470000
+      original_format: "c3p128"
+      preprocessing: "compress_76gb_to_62gb"
+    pb_cns_low:
+      trajectory_count: 299000   ## half of 598k total PB-CNS [ESTIMATED split]
+      original_format: "c5p128"
+      preprocessing: "filter_to_3_fields_compress_551gb_to_65gb"
+    pb_cns_high:
+      trajectory_count: 299000   ## half of 598k total PB-CNS [ESTIMATED split]
+      original_format: "c5p128"
+      preprocessing: "filter_to_3_fields_compress_551gb_to_65gb"
+    pb_swe:
+      trajectory_count: 77600
+      original_format: "c1p128"
+      preprocessing: "zero_pad_channel3_compress_6gb_to_0p3gb"
+    w_gs:
+      trajectory_count: 92200
+      original_format: "c2p128"
+      preprocessing: "zero_pad_channel3_compress_153gb_to_5p3gb"
+    w_am:
+      trajectory_count: 13400
+      original_format: "c3p256"
+      preprocessing: "downsample_to_p128_compress_51gb_to_1p1gb"
+    w_swe:
+      trajectory_count: 96400
+      original_format: "c3p256_512"
+      preprocessing: "downsample_to_p128_filter_fields_compress_186gb_to_9p3gb"
+    w_rb:
+      trajectory_count: 266600
+      original_format: "c3p512x128"
+      preprocessing: "downsample_to_p128_compress_342gb_to_26gb"
+    w_sf:
+      trajectory_count: 175600
+      original_format: "c3p128"
+      preprocessing: "filter_fields_compress_547gb_to_14gb"
+    w_tr:
+      trajectory_count: 7000
+      original_format: "c3p128x384"
+      preprocessing: "downsample_to_p128_compress_6p9gb_to_0p5gb"
+    w_ve:
+      trajectory_count: 5300
+      original_format: "c3p512"
+      preprocessing: "downsample_to_p128_compress_66gb_to_0p5gb"
+
+  ## Train/val/test split strategy
+  split:
+    strategy: "original_or_ratio"   ## use original splits; fallback to ratio
+    fallback_ratio: [0.8, 0.1, 0.1]
+
+  ## Equal-probability sampling across datasets (following DPOT)
+  sampling: "equal_probability"
+
+  ## Fine-tuning dataset (Kolmogorov turbulence Re=222)
+  finetune:
+    name: "kolmogorov_re222"
+    fields: ["u", "v"]
+    train_trajectories: 200
+    test_trajectories: 500
+    doi: "10.48420/29329565.v1"
+
+
+## ---------------------------------------------------------------------------
+## P2VAE model configurations
+## ---------------------------------------------------------------------------
+p2vae:
+  ## Architecture (SD-VAE style, from paper Section 4.1)
+  architecture: "sd_vae"
+  in_channels: 3
+  out_channels: 3
+  latent_channels: 16           ## compress c3p128 -> c16p16
+  latent_size: 16               ## 16x16 spatial latent grid
+  compression_ratio: 12         ## 12x spatial compression (128/16 = 8 spatial, but paper states 12x)
+  channel_multipliers: [1, 2, 4, 4]   ## standard SD-VAE channel multipliers [ESTIMATED]
+  num_res_blocks: 2             ## standard SD-VAE res blocks per stage [ESTIMATED]
+  attention_resolutions: [16]   ## apply attention at 16x16 resolution [ESTIMATED]
+  dropout: 0.0                  ## [ESTIMATED]
+
+  ## KL regularization weight (from paper Section 4.1)
+  kl_weight: 1.0e-3             ## beta = 1e-3
+
+  ## Two model sizes (from paper Section 4.1)
+  variants:
+    p2vae_16m:
+      base_dim: 64              ## base_dim=64 for 16M variant (paper Section 4.1)
+      param_count_approx: "16M"
+    p2vae_87m:
+      base_dim: 128             ## base_dim=128 for 87M variant (paper Section 4.1)
+      param_count_approx: "87M"
+
+  ## Training hyperparameters (from paper Section 4.1)
+  training:
+    total_steps: 100000         ## 100k steps (paper Section 4.1)
+    optimizer: "adamw"
+    beta1: 0.9                  ## paper Section 4.1
+    beta2: 0.995                ## paper Section 4.1
+    weight_decay: 1.0e-4        ## paper Section 4.1
+    base_lr: 1.0e-4             ## base LR for batch_size=256 (paper Section 4.1)
+    base_batch_size: 256        ## reference batch size for LR scaling
+    lr_schedule: "cosine"
+    warmup_ratio: 0.1           ## 10% linear warmup (paper Section 4.1)
+    min_lr_ratio: 0.0           ## [ESTIMATED]
+    gradient_clip: 1.0          ## [ESTIMATED]
+
+  ## Hardware
+  hardware:
+    num_gpus: 4                 ## 4 H-100 GPU node (paper Section 4.1)
+    gpu_type: "H100"
+    training_strategy: "ddp"   ## Data Distributed Parallel
+    precision: "float16"        ## AMP training
+
+
+## ---------------------------------------------------------------------------
+## FMT model configurations
+## ---------------------------------------------------------------------------
+fmt:
+  ## Architecture (SiT with Llama-2 style components, from paper Section 4.1)
+  architecture: "sit"
+  patch_size: 1                 ## patch_size=1: each latent spatial location is one token
+  head_dim: 64                  ## multi-head attention head dim=64 (paper Section 4.1)
+  mlp_ratio: 4.0                ## SwiGLU hidden dim = embed_dim * mlp_ratio [ESTIMATED]
+  attention: "flash_attn_v2"    ## FlashAttention v2 (paper Section 4.1)
+  norm_type: "rmsnorm"          ## RMSNorm from Llama-2 (paper Section 4.1)
+  ffn_type: "swiglu"            ## SwiGLU from Llama-2 (paper Section 4.1)
+  conditioning: "adaln_zero"    ## AdaLN-Zero from DiT (paper Section 4.1)
+
+  ## GRU for diffusion forcing (from paper Section 4.1)
+  gru:
+    type: "gru_cell"            ## GRU (paper Section 4.1)
+    ## hidden_size = embed_dim (shared with SiT embedding dim, paper Section 4.1)
+    compress_to_single_token: true   ## cross-attention compression (paper Section 4.1)
+
+  ## Temporal pyramid downsampling factors (from paper Section 3.3)
+  temporal_pyramid:
+    downsample_factors: [8, 4, 2, 1]   ## frame 0->2x2, 1->4x4, 2->8x8, 3->16x16
+    token_counts: [4, 16, 64, 256]     ## total 340 tokens
+    total_tokens: 340
+    efficiency_gain: 15         ## 15x vs vanilla video diffusion (paper Section 4.2)
+    downsample_method: "avg_pool2d"    ## [ESTIMATED]
+
+  ## Three model size variants (from paper Section 4.1)
+  variants:
+    fmt_s:
+      embed_dim: 256            ## paper Section 4.1
+      depth: 6                  ## [ESTIMATED] to reach ~6M params
+      num_heads: 4              ## head_dim=64 -> 256/64=4 heads
+      param_count_approx: "6M"
+    fmt_b:
+      embed_dim: 512            ## paper Section 4.1
+      depth: 12                 ## [ESTIMATED] to reach ~42M params
+      num_heads: 8              ## head_dim=64 -> 512/64=8 heads
+      param_count_approx: "42M"
+    fmt_l:
+      embed_dim: 768            ## paper Section 4.1
+      depth: 24                 ## [ESTIMATED] to reach ~138M params
+      num_heads: 12             ## head_dim=64 -> 768/64=12 heads
+      param_count_approx: "138M"
+
+  ## Flow marching algorithm parameters (from paper Section 3.1)
+  flow_marching:
+    ## Bridge parameter k: k=1 -> neural operator, k=0 -> flow matching
+    k_train: "uniform_0_1"      ## k ~ Uniform(0,1) during training
+    t_train: "uniform_0_1"      ## t ~ Uniform(0,1) during training
+    ## k-free objective: network takes (x_t^k, t) only, not k
+    k_free_objective: true
+    ## Preconditioned loss: ||(1-t)*g - (x1 - x_t^k)||^2
+    loss_preconditioning: true
+
+  ## Inference settings (from paper Section 3.4)
+  inference:
+    euler_steps: 100            ## N=100 discretization steps (paper Section 3.4)
+    dt: 0.01                    ## dt = 1/100 = 0.01 (paper Section 3.4)
+    ## Deterministic prediction: all k=1
+    deterministic_k_vals: [1.0, 1.0, 1.0, 1.0]
+    ## Generative sampling: k_0=k_1=k_2=1, k_3 < 1
+    generative_k_history: [1.0, 1.0, 1.0]   ## k for frames 0,1,2
+    ## k_3 is tunable at inference time
+
+  ## Training hyperparameters (from paper Section 4.1)
+  training:
+    total_steps: 100000         ## 100k steps (paper Section 4.1)
+    optimizer: "adamw"
+    beta1: 0.9                  ## paper Section 4.1
+    beta2: 0.95                 ## paper Section 4.1 (different from P2VAE's 0.995)
+    weight_decay: 0.01          ## paper Section 4.1
+    base_lr: 1.0e-4             ## base LR for batch_size=256 (paper Section 4.1)
+    base_batch_size: 256        ## reference batch size for LR scaling
+    lr_schedule: "cosine"
+    warmup_ratio: 0.1           ## 10% linear warmup (paper Section 4.1)
+    min_lr_ratio: 0.0           ## [ESTIMATED]
+    gradient_clip: 1.0          ## [ESTIMATED]
+    ## P2VAE weights are frozen during FMT training
+    freeze_p2vae: true
+
+  ## Hardware (same as P2VAE)
+  hardware:
+    num_gpus: 4
+    gpu_type: "H100"
+    training_strategy: "ddp"
+    precision: "float16"
+
+
+## ---------------------------------------------------------------------------
+## Fine-tuning configuration (REPA-E style, from paper Section 4.4)
+## ---------------------------------------------------------------------------
+finetune:
+  model: "fmt_b"                ## FMT-B-42M used for fine-tuning (paper Section 4.4)
+  total_steps: 5000             ## 5k steps (paper Section 4.4)
+  train_trajectories: 200       ## 200 training trajectories (paper Section 4.4)
+  test_trajectories: 500        ## 500 test trajectories (paper Section 4.4)
+  lambda_vae: 1.0               ## lambda_VAE = 1 (paper Section 4.4)
+  ## Stop-gradient on latent y before CFM loss (REPA-E approach, paper Section 4.4)
+  stop_gradient_latent: true
+  ## Joint loss: L_CFM(theta, phi) + lambda_vae * L_VAE(omega)
+  joint_loss: true
+  optimizer: "adamw"            ## [ESTIMATED, same family as main training]
+  base_lr: 1.0e-4               ## [ESTIMATED]
+  weight_decay: 0.01            ## [ESTIMATED]
+  beta1: 0.9                    ## [ESTIMATED]
+  beta2: 0.95                   ## [ESTIMATED]
+  lr_schedule: "cosine"         ## [ESTIMATED]
+  warmup_ratio: 0.1             ## [ESTIMATED]
+
+
+## ---------------------------------------------------------------------------
+## Ensemble generation configuration (from paper Section 4.4)
+## ---------------------------------------------------------------------------
+ensemble:
+  batch_size: 32                ## 32-sample ensemble (paper Section 4.4)
+  ## k_3 values tested for ensemble variance plot (Figure 3 / Appendix A.4)
+  k3_values: [0.0, 0.3, 0.6, 0.9]
+  ## Source: PDEArena-NS, FMT-B-42M model (paper Section 4.4)
+  eval_dataset: "pa_ns"
+  eval_model: "fmt_b"
+
+
+## ---------------------------------------------------------------------------
+## Evaluation configuration
+## ---------------------------------------------------------------------------
+evaluation:
+  ## Metrics used in the paper (Section 4.1)
+  metrics:
+    - "l2_relative_error"       ## L2RE: common PDE foundation model metric
+    - "vrmse"                   ## Variance-normalized RMSE (from The Well benchmark)
+
+  ## Long-term rollout evaluation steps (Table 3)
+  rollout:
+    report_steps: [1, 5, 10]    ## Step 1, 5, 10 reported in Table 3
+    report_last: true           ## "Last step" reported in Table 3
+    report_average: true        ## "Average" reported in Table 3
+    datasets:
+      - "pa_ns"
+      - "pb_cns_low"
+      - "pb_cns_high"
+    ## Deterministic rollout: all k=1
+    k_vals: [1.0, 1.0, 1.0, 1.0]
+
+  ## Reconstruction evaluation (Table 1)
+  reconstruction:
+    datasets:
+      - "fno_v5"
+      - "fno_v4"
+      - "fno_v3"
+      - "pa_ns"
+      - "pa_nsc"
+      - "pa_swe"
+      - "pb_cns_low"
+      - "pb_cns_high"
+      - "pb_swe"
+      - "w_am"
+      - "w_gs"
+      - "w_swe"
+      - "w_rb"
+      - "w_sf"
+      - "w_tr"
+      - "w_ve"
+
+  ## Baseline models for comparison (Table 1, Table 3)
+  baselines:
+    table1:
+      - name: "UNet"
+        type: "single_dynamics"
+      - name: "FNO"
+        type: "single_dynamics"
+      - name: "DPOT-30M"
+        type: "pde_foundation_model"
+      - name: "MPP-116M"
+        type: "pde_foundation_model"
+      - name: "VICON-88M"
+        type: "pde_foundation_model"
+    table3:
+      - name: "VICON-88M"
+        type: "pde_foundation_model"
+
+
+## ---------------------------------------------------------------------------
+## Two-stage training recipe (from paper Section 4.1)
+## ---------------------------------------------------------------------------
+training_recipe:
+  stage1:
+    name: "train_p2vae"
+    description: "Train P2VAE autoencoder on all PDE datasets"
+    steps: 100000
+    models_to_train: ["p2vae_16m", "p2vae_87m"]
+  stage2:
+    name: "train_fmt"
+    description: "Train FMT on frozen P2VAE latents"
+    steps: 100000
+    models_to_train: ["fmt_s", "fmt_b", "fmt_l"]
+    p2vae_variant: "p2vae_16m"   ## FMT trained on 16M P2VAE (paper Section 4.1)
+    freeze_p2vae: true
+  stage3:
+    name: "finetune"
+    description: "Few-shot fine-tuning on Kolmogorov turbulence"
+    steps: 5000
+    model: "fmt_b"
+
+
+## ---------------------------------------------------------------------------
+## Logging and checkpointing
+## ---------------------------------------------------------------------------
+logging:
+  log_every_n_steps: 100        ## [ESTIMATED]
+  val_every_n_steps: 1000       ## [ESTIMATED]
+  save_every_n_steps: 10000     ## [ESTIMATED]
+  use_wandb: true
+  project_name: "generative_pde_foundation_model"
+
+checkpointing:
+  save_dir: "checkpoints"
+  keep_last_n: 3                ## [ESTIMATED]
+  save_best: true
+  best_metric: "val_l2re"

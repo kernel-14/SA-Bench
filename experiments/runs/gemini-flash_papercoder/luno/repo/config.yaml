@@ -1,0 +1,90 @@
+## config.yaml
+# Global experiment configuration
+experiment:
+  name: luno_reproduction
+  seed: 42 # For reproducibility
+  log_dir: ./logs
+  results_dir: ./results
+
+# Dataset configuration
+datasets:
+  low_data_1d:
+    pde_name: "Burgers" # Can be Burgers, Hyper Diffusion, Kuramoto-Sivashinsky (cons.)
+    dimensions: 1D
+    spatial_res: 256
+    temporal_res: 59 # From 200 time steps subsampled to 59
+    num_train_traj: 25
+    num_val_traj: 250
+    num_test_traj: 250
+  ood_2d:
+    pde_name: "Advection-Diffusion-Reaction"
+    dimensions: 2D
+    spatial_res: 100
+    temporal_res: 59 # From 200 time steps subsampled to 59
+    dt_solver: 5.0e-10 # Solver time step
+    diffusion_coefficient: 0.026
+    num_train_traj: 1000 # For Base OOD
+    num_val_traj: 250 # For Base OOD
+    num_test_pairs: 250 # For each OOD variant
+    ood_variants: ["Base", "Flip", "Pos", "Pos-Neg", "Pos-Neg-Flip"]
+
+# FNO Model Architecture
+fno_model:
+  modes: 12 # Per spatial dimension
+  hidden_dims: 18
+  num_fourier_blocks: 4
+  output_channels: 1 # Assuming single scalar field output, adjust if d_U' > 1
+
+# Training configuration
+training:
+  optimizer: "AdamW"
+  learning_rate_schedule:
+    name: "cosine_decay_with_warmup"
+    init_value: 1.0e-4 # Common default, not specified in paper
+    peak_value: 1.0e-3 # Common default, not specified in paper
+    warmup_steps: 1000 # Not specified in paper, a reasonable default
+    decay_steps: 100000 # To be dynamically set based on epochs * (dataset_size / batch_size)
+  batch_size: 1 # Paper states 'iterating through a single input-output pair per trajectory' for an epoch, implying effective batch size for loss calc.
+  epochs_low_data: 100
+  epochs_ood: 1000
+  initial_time_steps: 10 # For FNO input
+  input_padding: 2 # Constant zero grid points at borders
+
+# Uncertainty Quantification Methods configuration
+uq_methods:
+  luno_iso:
+    enabled: true
+    sigma_squared_init: 1.0e-3 # Initial value for calibration
+  luno_la:
+    enabled: true
+    prior_sigma_init: 1.0e-3 # Initial value for calibration
+    ggn_low_rank: 500
+    ggn_data_minibatch_size: 1000 # For OOD GGN approximation
+  sample_iso:
+    enabled: true
+    num_samples: 200
+    sigma_squared_init: 1.0e-3 # Initial value for calibration
+  sample_la:
+    enabled: true
+    num_samples: 200
+    prior_sigma_init: 1.0e-3 # Initial value for calibration
+    ggn_low_rank: 500 # Same as LUNO-LA
+    ggn_data_minibatch_size: 1000 # Same as LUNO-LA
+  input_perturbations:
+    enabled: true
+    noise_sigma_init: 1.0e-2 # Initial value for calibration
+    num_perturbations: 200 # Paper does not specify, assumed for ensemble-like behavior
+  deep_ensemble:
+    enabled: true
+    num_members: 10
+
+# Calibration configuration
+calibration:
+  metric: "NLL" # Target metric for calibration
+  grid_size: 500 # Number of points in logarithmic grid search
+  # Range for sigma_squared, prior_sigma, noise_sigma will be dynamically determined around init values
+
+# Evaluation configuration
+evaluation:
+  autoregressive_rollout_steps: 59 # Max temporal resolution for rollouts
+  num_rollout_trajectories: 50 # For Figures 4 and 7

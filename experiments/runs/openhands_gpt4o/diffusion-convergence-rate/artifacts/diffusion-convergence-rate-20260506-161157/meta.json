@@ -1,0 +1,9 @@
+{
+  "paper_id": "diffusion-convergence-rate",
+  "run_id": "diffusion-convergence-rate-20260506-161157",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 545.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 21
+}

@@ -1,0 +1,21 @@
+# MR.Q Requirements
+# Based on paper software versions (Appendix B.5)
+
+torch>=2.0.0
+numpy>=1.24.0
+gymnasium>=0.29.0
+
+# For Gym locomotion (MuJoCo):
+# gymnasium[mujoco]
+# mujoco>=3.0.0
+
+# For DMC:
+# dm_control>=1.0.0
+
+# For Atari:
+# gymnasium[atari]
+# ale-py>=0.8.0
+# opencv-python>=4.5.0
+
+# Optional but recommended:
+# tensorboard  # for logging

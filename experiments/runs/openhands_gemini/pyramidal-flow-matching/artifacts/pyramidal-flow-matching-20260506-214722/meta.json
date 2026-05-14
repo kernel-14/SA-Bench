@@ -1,0 +1,9 @@
+{
+  "paper_id": "pyramidal-flow-matching",
+  "run_id": "pyramidal-flow-matching-20260506-214722",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 282.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 13
+}

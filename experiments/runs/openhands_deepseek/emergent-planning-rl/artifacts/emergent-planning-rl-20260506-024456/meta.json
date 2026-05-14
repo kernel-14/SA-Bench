@@ -1,0 +1,9 @@
+{
+  "paper_id": "emergent-planning-rl",
+  "run_id": "emergent-planning-rl-20260506-024456",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1663.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 45
+}

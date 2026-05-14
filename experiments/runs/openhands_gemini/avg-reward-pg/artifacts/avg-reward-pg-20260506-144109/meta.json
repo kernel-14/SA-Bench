@@ -1,0 +1,9 @@
+{
+  "paper_id": "avg-reward-pg",
+  "run_id": "avg-reward-pg-20260506-144109",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 296.0,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 15
+}

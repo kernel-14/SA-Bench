@@ -1,0 +1,75 @@
+## config.yaml
+general:
+  # Base model and components
+  vae_model_name: "runwayml/stable-diffusion-v1-5" # Assumed from SD v1.5 if not specified by Open-Sora
+  text_encoder_name: "google/t5-v1_1-large" # Common for PixArt-alpha, specified T5
+  open_sora_config_path: "hpcaitech/Open-Sora-v1-0" # Placeholder: Path/ID for Open-Sora v1.0 config/weights
+  
+  # Image/Video dimensions
+  image_size: 256 # All videos are resized to 256x256
+  
+  # Diffusion schedule
+  diffusion_steps: 1000 # T=1000 for DDPM schedule
+  beta_schedule: "linear" # DDPM uses linear beta schedule
+  beta_start: 0.0001 # beta_1
+  beta_end: 0.02 # beta_T
+
+  # Inference settings
+  num_inference_steps: 100 # Improved DDPM with 100 steps for inference
+  guidance_scale: 7.5 # Classifier-free guidance scale for T2V tasks
+
+  # Ca2-VDM specific features
+  use_prefix_enhancement: true # Toggle prefix-enhancement (PE)
+  prefix_enhancement_sub_len: 3 # P' for prefix-enhanced spatial attention
+
+  # Paths
+  data_path: "./data" # Base directory for datasets (InternVid, SkyTimelapse, MSR-VTT, UCF101)
+  save_path: "./checkpoints" # Directory to save model checkpoints and logs
+  
+training:
+  optimizer: "AdamW" # AdamW optimizer
+  learning_rate: 0.00002 # 2e-5 learning rate
+
+  # Text-to-Video (T2V) Generation on InternVid
+  t2v_internvid:
+    task_description: "Text-to-Video generation using filtered InternVid dataset (4.9M pairs)"
+    chunk_length: 16 # l = 16
+    max_prefix_length: 49 # P_max = 1 + 3*l = 49
+    max_train_video_length: 65 # L_train = P_max + l = 65
+    
+    # Ca2-VDM specific training stages for T2V
+    ca2_vdm_stage1:
+      batch_size: 288 # Batch size for causal modeling without clean prefix (32-frame videos)
+      training_steps: 32000 # Training steps for Stage 1
+    ca2_vdm_stage2:
+      batch_size: 144 # Batch size for full causal modeling with clean prefix (65-frame videos)
+      training_steps: 21000 # Training steps for Stage 2
+    
+    # Baseline OS-Fix training for T2V
+    os_fix_baseline:
+      train_video_length: 32 # L_train = 32 frames
+      prefix_length: 16 # P = l = L_train / 2 = 16 frames
+      batch_size: 288 
+      training_steps: 20000 
+
+  # Video Prediction (VP) on SkyTimelapse
+  vp_skytimelapse:
+    task_description: "Video prediction using SkyTimelapse dataset"
+    chunk_length: 8 # l = 8
+    max_prefix_length: 25 # P_max = 1 + 3*l = 25
+    max_train_video_length: 33 # L_train = P_max + l = 33
+    batch_size: 8 # Batch size for Ca2-VDM, OS-Ext, and OS-Fix
+    training_steps: 11000 # Training steps for all models in VP task
+
+    # Baseline OS-Fix training for VP
+    os_fix_baseline:
+      train_video_length: 16 # L_train = 16 frames
+      prefix_length: 8 # P = 8 frames
+
+evaluation:
+  num_generated_samples_fvd: 512 # Number of samples for FVD calculation
+  fvd_chunk_size: 16 # I3D model accepts at least 16 frames for FVD
+  # Note: Exact I3D model details (version, pretraining) not specified,
+  # using a commonly accepted one like from StyleGAN-V implementation.
+  # VBench specific metrics (Aesthetic Quality, Imaging Quality, Motion Smoothness, Temporal Flickering)
+  # will be computed using a VBench implementation.

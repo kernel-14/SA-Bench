@@ -1,0 +1,9 @@
+{
+  "paper_id": "sam2",
+  "run_id": "sam2-20260506-182253",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 621.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 42
+}

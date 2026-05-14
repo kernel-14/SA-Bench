@@ -1,0 +1,102 @@
+## config.yaml
+general:
+  experiment_name: "mdm_token_ordering_reproduction"
+  seed: 42
+  device: "cuda" # Or "cpu"
+  log_dir: "logs"
+  output_dir: "outputs"
+
+data:
+  dataset_type: "slimpajama" # Options: "slimpajama", "lo_naesat", "sudoku", "zebra", "llada_tasks"
+  max_sequence_length: 2048 # L=2048 for text, L=512 for L&O-NAE-SAT
+  tokenizer_name: "bert-base-uncased" # For text, e.g., for Slimpajama and LLaDA tasks. For puzzles, custom int-based.
+  vocab_size: 32000 # Placeholder, should match tokenizer or task specific vocab
+
+  slimpajama:
+    path_to_data: "/path/to/slimpajama_data" # Placeholder
+  
+  lo_naesat:
+    N: 20 # Number of latent tokens (e.g., 20, 25, 30, 40, 50, 100)
+    P: 280 # Number of observation tokens (e.g., 280, 275, 270, 260, 250, 200)
+    m: 3 # Vocabulary size for L&O-NAE-SAT
+    k: 3 # Arity for NAE-SAT predicate
+    num_sequences: 100000 # Number of synthetic sequences to generate
+    # predicate_function: "NAE" # g(x',x'',x''') = 1 - 1[x'=x''=x''']
+
+  puzzles:
+    train_data_path: "/path/to/shah_et_al_puzzles_train" # Placeholder for Sudoku/Zebra train
+    test_data_path: "/path/to/shah_et_al_puzzles_test" # Placeholder for Sudoku/Zebra test
+    hard_test_data_path: "/path/to/radcliffe_hard_sudoku" # Placeholder for hard Sudoku test
+    puzzle_type: "sudoku" # Options: "sudoku", "zebra"
+
+  llada_tasks:
+    human_eval_path: "/path/to/human_eval_data" # Placeholder
+    math_path: "/path/to/math_data" # Placeholder
+    mmlu_path: "/path/to/mmlu_data" # Placeholder
+    roc_stories_path: "/path/to/roc_stories_data" # Placeholder
+
+model:
+  model_type: "mdm_transformer" # Options: "mdm_transformer", "arm_transformer"
+  
+  common:
+    num_layers: 12 # Common transformer layers
+    num_heads: 12 # Common transformer heads
+    hidden_dim: 768 # Common transformer hidden dimension
+    ff_dim: 3072 # Feed forward dimension (usually 4*hidden_dim)
+    dropout: 0.1
+    use_learnable_pos_embeddings: False # True for PiLearnerARM and text experiments in Sec 3.2
+    
+  # Specific configurations for different model sizes
+  size_configs:
+    6M:   {num_layers: 4, num_heads: 4, hidden_dim: 256, ff_dim: 1024} # Example config for 6M
+    19M:  {num_layers: 6, num_heads: 8, hidden_dim: 512, ff_dim: 2048} # Example config for 19M
+    42M:  {num_layers: 8, num_heads: 8, hidden_dim: 768, ff_dim: 3072} # Example config for 42M ARM
+    170M: {num_layers: 12, num_heads: 12, hidden_dim: 768, ff_dim: 3072} # Example config for 170M
+    1.1B: {num_layers: 24, num_heads: 16, hidden_dim: 1024, ff_dim: 4096} # Example config for 1.1B
+    8B:   {num_layers: 32, num_heads: 32, hidden_dim: 2048, ff_dim: 8192} # Example config for LLaDA 8B
+
+  pretrained_mdm_path: null # Path to pretrained LLaDA 8B or other MDMs
+
+training:
+  optimizer:
+    type: "AdamW"
+    betas: [0.9, 0.95]
+    weight_decay: 0.1
+  
+  lr_scheduler:
+    type: "cosine"
+    max_lr: 0.0004 # 4e-4
+    min_lr: 0.00004 # 4e-5
+    warmup_steps: 1000 # Placeholder, not specified, common practice
+  
+  noise_schedule:
+    type: "linear" # Options: "linear", "cosine". Functional form not specified, assuming linear.
+    num_diffusion_steps: 1000 # Number of discrete steps for forward/reverse process
+
+  epochs: 300 # For logic puzzles
+  iterations: 2000 # For L&O-NAE-SAT, base MDM
+  iterations_bayes_proxy: 50000 # For L&O-NAE-SAT, Bayes-optimal proxy
+  
+  batch_size: 128 # For logic puzzles, adjust for text/LLaDA based on GPU memory
+  gradient_accumulation_steps: 1 # Increase for larger effective batch size on limited VRAM
+  
+  arm_teacher_forcing: false # Set to true for 'ARM (with ordering)' experiments
+  save_interval_epochs: 50
+  eval_interval_epochs: 10
+
+inference:
+  num_inference_steps: 50 # For logic puzzles
+  inference_strategies: ["vanilla", "top_probability", "top_probability_margin"]
+  adaptive_k_selection_method: "expected_unmasked" # Determines how many tokens to unmask at each step
+  
+  # Noise for adaptive strategies
+  gaussian_noise_std: 0.01 # Placeholder, for text adaptive inference, value not specified
+  gumbel_noise_coeff: 0.5 # For logic puzzles adaptive inference
+
+  initial_mask_state: "fully_masked" # Start from x_1 = (0,...,0)
+
+evaluation:
+  metrics: ["accuracy", "perplexity", "entropy"] # Available metrics
+  perplexity_llm_model_path: "/path/to/llama2-7b" # Placeholder for LLaMA2-7B model
+  num_samples_for_eval: 1024 # For text (Section C.2.2)
+  # iso_flop_analysis_max_flops: 1e18 # For scaling law experiments (Sec 3.2), requires dynamic configuration based on model size

@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced core components of the paper, including conceptual implementations of Identity-Probing and Training-Based Detectors for de-anonymization, and an Adversarial Voting Simulator based on Elo ratings to model leaderboard manipulation. Implemented main.py to orchestrate simulations. Created necessary config and data files.",
+  "steps": 21,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/voting-leaderboards/voting-leaderboards-20260505-151946/workspace/repo"
+}

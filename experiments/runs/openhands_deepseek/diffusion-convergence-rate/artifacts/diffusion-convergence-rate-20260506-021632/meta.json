@@ -1,0 +1,9 @@
+{
+  "paper_id": "diffusion-convergence-rate",
+  "run_id": "diffusion-convergence-rate-20260506-021632",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1703.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 33
+}

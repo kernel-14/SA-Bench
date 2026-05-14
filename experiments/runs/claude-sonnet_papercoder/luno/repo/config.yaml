@@ -1,0 +1,188 @@
+## config.yaml
+## Configuration for LUNO: Linearization Turns Neural Operators into Function-Valued Gaussian Processes
+## All values are taken directly from the paper. Fields marked with [ASSUMED] are not explicitly
+## stated in the paper and use standard defaults; see comments for justification.
+
+experiment:
+  ## Options: "low_data" or "ood"
+  mode: "low_data"
+  ## Options: "burgers", "hyper_diffusion", "ks_conservative" (for low_data mode)
+  pde_name: "burgers"
+  seed: 42
+  output_dir: "outputs"
+
+## -----------------------------------------------------------------------
+## FNO Architecture
+## Paper Section 5 / Appendix D.2:
+##   "12 modes (per spatial dimension) and 18 hidden dimensions constant
+##    throughout the network, with a total of 4 Fourier blocks"
+## -----------------------------------------------------------------------
+model:
+  modes: 12                  ## k_max: number of Fourier modes per spatial dimension
+  channels: 18               ## d_v': hidden channel width, constant throughout
+  n_blocks: 4                ## total number of Fourier blocks (L=4, so L-1=3 intermediate + 1 last)
+  activation: "gelu"         ## [ASSUMED] standard FNO activation; paper does not specify
+  spatial_padding: 2         ## Appendix D.2: "padded by two constant zero grid points"
+
+## -----------------------------------------------------------------------
+## Input / Output Dimensions
+## Appendix D.2:
+##   "10 initial time steps and train to predict the following time step"
+##   "velocity field and the reaction term are glued to the input"
+## 1D PDEs: in_channels = 10 (time steps) + 1 (velocity placeholder) + 1 (reaction placeholder) = 12
+## 2D PDEs: in_channels = 10 (time steps) + 2 (velocity x,y) + 1 (reaction) = 13
+## out_channels = 1 for all experiments (next time step prediction)
+## -----------------------------------------------------------------------
+  input_steps: 10            ## number of input time steps fed to the FNO
+  out_channels: 1            ## predicting one time step ahead
+
+## -----------------------------------------------------------------------
+## Training
+## Appendix D.2:
+##   "Networks for the low data experiment are trained for 100 epochs"
+##   "all remaining networks are trained for 1000 epochs"
+##   "one epoch corresponds to iterating through a single input-output pair
+##    per trajectory in the training set"
+##   "mean squared error loss was minimized using AdamW"
+##   "combined with a cosine decay learning rate scheduler with warmup"
+## Learning rate and weight decay are [ASSUMED] standard values; not stated in paper.
+## -----------------------------------------------------------------------
+training:
+  low_data_epochs: 100       ## Paper Appendix D.2: low-data regime training duration
+  full_epochs: 1000          ## Paper Appendix D.2: OOD / full training duration
+  loss: "mse"                ## Paper Appendix D.2: "mean squared error loss"
+  optimizer: "adamw"         ## Paper Appendix D.2: "AdamW"
+  learning_rate: 1.0e-3      ## [ASSUMED] standard FNO/AdamW default; not stated in paper
+  weight_decay: 1.0e-4       ## [ASSUMED] standard AdamW default; not stated in paper
+  lr_schedule: "cosine_decay_with_warmup"  ## Paper Appendix D.2
+  warmup_fraction: 0.05      ## [ASSUMED] 5% of total epochs; paper does not specify warmup length
+  ## Epoch definition from paper: one gradient step per trajectory per epoch.
+  ## batch_size is therefore equal to n_train_trajectories (one pair per traj).
+  ## For low_data: effective batch_size = 25; for OOD: effective batch_size = 1000.
+  batch_size_per_epoch: 1    ## one input-output pair per trajectory per epoch (paper definition)
+
+## -----------------------------------------------------------------------
+## Dataset: Low-Data Regime (1D PDEs via APEBench)
+## Appendix D.1.1 / Table 3:
+##   Burgers, Hyper Diffusion, Kuramoto-Sivashinsky (conservative)
+##   All: spatial_res=256, temporal_res=59, train=25, val=250, test=250
+## -----------------------------------------------------------------------
+data:
+  low_data:
+    spatial_res: 256         ## Table 3: spatial resolution for all 1D PDEs
+    time_steps: 59           ## Table 3: temporal resolution (number of time steps per trajectory)
+    n_train: 25              ## Table 3: training trajectories (low-data regime)
+    n_val: 250               ## Table 3: validation trajectories
+    n_test: 250              ## Table 3: test trajectories
+    pde_configs:
+      burgers:
+        apebench_name: "burgers_1d"
+      hyper_diffusion:
+        apebench_name: "hyper_diffusion_1d"
+      ks_conservative:
+        apebench_name: "ks_conservative_1d"
+
+  ## -----------------------------------------------------------------------
+  ## Dataset: OOD Regime (2D Advection-Diffusion-Reaction)
+  ## Appendix D.1.2:
+  ##   "Spatial resolution: 100x100 grid"
+  ##   "Temporal resolution: dt=5e-10 over 200 time steps, from which 59 are sub-sampled"
+  ##   "alpha=0.026 was held constant throughout"
+  ##   "1000 training trajectories of the Base dataset"
+  ##   "calibrate on validation dataset with 250 input-output pairs"
+  ##   "250 random test pairs from some of the datasets"
+  ## -----------------------------------------------------------------------
+  ood:
+    spatial_res: 100         ## Appendix D.1.2: "100x100 grid"
+    time_steps: 59           ## Appendix D.1.2: "59 are sub-sampled"
+    n_steps_raw: 200         ## Appendix D.1.2: "200 time steps" before subsampling
+    dt: 5.0e-10              ## Appendix D.1.2: "dt = 5e-10"
+    alpha: 0.026             ## Appendix D.1.2: diffusion coefficient, held constant
+    n_train: 1000            ## Appendix D.1.2: "1000 training trajectories of the Base dataset"
+    n_val: 250               ## Appendix D.1.2: "250 input-output pairs" for calibration
+    n_test: 250              ## Appendix D.1.2: "250 random test pairs"
+    variants:                ## Appendix D.1.2: five dataset variants
+      - "base"
+      - "flip"
+      - "pos"
+      - "pos_neg"
+      - "pos_neg_flip"
+    ## Initial condition parameters (approximated from paper description / Figure 5)
+    ic:
+      n_blobs_min: 1         ## Appendix D.1.2: "Random number (1-10) of Gaussian blobs"
+      n_blobs_max: 10
+      blob_scale_min: 5      ## [ASSUMED] grid points; approximated from Figure 5
+      blob_scale_max: 15     ## [ASSUMED] grid points; approximated from Figure 5
+      blob_amplitude_min: 0.5   ## [ASSUMED] approximated from Figure 5
+      blob_amplitude_max: 2.0   ## [ASSUMED] approximated from Figure 5
+    velocity:
+      range_min: -1.0        ## [ASSUMED] uniform random velocity field range
+      range_max: 1.0         ## [ASSUMED] uniform random velocity field range
+
+## -----------------------------------------------------------------------
+## Uncertainty Quantification Methods
+## Appendix D.3:
+##   GGN rank: "we consider a low rank of 500"
+##   GGN data (low-data): "we consider all input-output pairs" (25 trajectories)
+##   GGN data (OOD): "only a minibatch of 1000 input-output pairs"
+##   Samples: "we generate 200 samples" (for Sample-* methods)
+##   Ensemble: "trained 10 times with different random seeds" (Appendix D.3.2)
+##   Last-layer only: Appendix C.1 / Section 3.2.1
+## -----------------------------------------------------------------------
+uncertainty:
+  ggn:
+    rank: 500                ## Appendix D.3.4: "we consider a low rank of 500"
+    last_layer_only: true    ## Section 3.2.1 / Appendix C.1: last Fourier block only
+    n_pairs_low_data: 25     ## Appendix D.3.4: "all input-output pairs" for low-data (25 traj)
+    n_pairs_ood: 1000        ## Appendix D.3.4: "minibatch of 1000 input-output pairs" for OOD
+
+  sampling:
+    n_samples: 200           ## Appendix D.3.5: "we generate 200 samples"
+
+  ensemble:
+    n_members: 10            ## Section 5 / Appendix D.3.2: "trained 10 times with different random seeds"
+
+## -----------------------------------------------------------------------
+## Calibration
+## Appendix D.5:
+##   "calibrated using 250 input-output pairs of the validation set"
+##   "minimize the marginal negative log-likelihood"
+##   "grid search over a logarithmically spaced grid with 500 points
+##    centered around the relevant value"
+## -----------------------------------------------------------------------
+calibration:
+  n_val_pairs: 250           ## Appendix D.5: validation set size for calibration
+  metric: "marginal_nll"     ## Appendix D.5: "minimize the marginal negative log-likelihood"
+  grid_size: 500             ## Appendix D.5: "logarithmically spaced grid with 500 points"
+  grid_range_factor: 100.0   ## log-spaced grid spans [center/factor, center*factor]
+  ## Initial center values for grid search (heuristic starting points)
+  prior_prec_center: 1.0     ## [ASSUMED] starting center for LA prior precision search
+  sigma_sq_iso_center: 1.0   ## [ASSUMED] starting center for isotropic variance search
+  sigma_perturb_center: 0.01 ## [ASSUMED] starting center for input perturbation sigma
+
+## -----------------------------------------------------------------------
+## Evaluation
+## Section 5 / Appendix D.4:
+##   "evaluate our model on ... 250 test input-output pairs"
+##   Metrics: RMSE, marginal chi2, marginal NLL
+##   Autoregressive rollout: "50 trajectories from the Pos-Neg-Flip dataset" (Figure 4)
+## -----------------------------------------------------------------------
+evaluation:
+  n_test_pairs: 250          ## Section 5: "250 test input-output pairs"
+  metrics:
+    - "rmse"                 ## Appendix D.4.1
+    - "nll"                  ## Appendix D.4.2: marginal negative log-likelihood
+    - "chi2"                 ## Appendix D.4.3: marginal chi-squared statistic
+  rollout:
+    n_trajectories: 50       ## Figure 4 caption: "50 trajectories from the Pos-Neg-Flip dataset"
+    n_steps: 59              ## [ASSUMED] full trajectory length; paper shows full rollout in Figure 4
+    dataset: "pos_neg_flip"  ## Figure 4: rollout evaluated on Pos-Neg-Flip OOD dataset
+
+## -----------------------------------------------------------------------
+## Logging and Checkpointing
+## -----------------------------------------------------------------------
+logging:
+  log_every_n_epochs: 10     ## [ASSUMED] reasonable logging frequency
+  save_checkpoints: true
+  checkpoint_dir: "checkpoints"
+  results_dir: "results"

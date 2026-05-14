@@ -1,0 +1,9 @@
+{
+  "paper_id": "ma-rlhf",
+  "run_id": "ma-rlhf-20260506-045919",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1112.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 27
+}

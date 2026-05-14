@@ -1,0 +1,440 @@
+## configs/default.yaml
+## Central configuration for Pyramidal Flow Matching reproduction.
+## All hyperparameters are sourced directly from the paper.
+## Sections marked with [PAPER] cite the exact paper location.
+
+## ---------------------------------------------------------------------------
+## Model Architecture [Paper: Section 4.1, Appendix B]
+## ---------------------------------------------------------------------------
+model:
+  ## MM-DiT backbone based on SD3 Medium
+  name: "mm_dit"
+  num_layers: 24                    ## [Paper: Appendix B] 24 transformer layers
+  hidden_dim: 1152                  ## SD3 Medium standard hidden dimension
+  num_heads: 16                     ## SD3 Medium standard number of attention heads
+  head_dim: 72                      ## hidden_dim // num_heads
+  mlp_ratio: 4.0
+  total_params: "2B"                ## [Paper: Section 4.1] 2B parameters total
+  dtype: "bfloat16"                 ## [Paper: Appendix B, Table 4] bfloat16 precision
+
+  ## Text conditioning [Paper: Appendix B]
+  ## Following FLUX.1: both T5 and CLIP encoders
+  text_encoder:
+    t5_model: "google/t5-v1_1-xxl"
+    clip_model: "openai/clip-vit-large-patch14"
+    t5_max_length: 256
+    t5_embed_dim: 4096
+    clip_embed_dim: 768
+    freeze_encoders: true           ## Text encoders are frozen during DiT training
+
+  ## Positional encoding [Paper: Section 3.4]
+  position_encoding:
+    spatial_type: "sinusoidal"      ## Sinusoidal in spatial dimensions
+    temporal_type: "rope_1d"        ## 1D RoPE for temporal dimension [Paper: Section 4.1]
+    ## Spatial pyramid: extrapolate; temporal pyramid history: interpolate
+    ## [Paper: Section 3.4, Fig. 3b]
+    spatial_pyramid_mode: "extrapolate"
+    temporal_history_mode: "interpolate"
+
+  ## Patch size for patchification
+  patch_size: 2
+
+## ---------------------------------------------------------------------------
+## 3D VAE [Paper: Section 4.1, Appendix B]
+## ---------------------------------------------------------------------------
+vae:
+  name: "causal_vae_3d"
+  ## [Paper: Section 4.1] 3D VAE compresses videos spatially and temporally
+  ## with a downsampling ratio of 8x8x8
+  spatial_compression: 8            ## 8x spatial compression (H and W)
+  temporal_compression: 8           ## 8x temporal compression
+  latent_channels: 16               ## Latent channel dimension
+  ## [Paper: Appendix B] Similar structure to MAGVIT-v2, 3D causal convolution
+  architecture: "magvit_v2_style"
+  use_causal_conv: true             ## Each frame depends only on preceding frames
+  ## Asymmetric encoder-decoder with KL regularization [Paper: Appendix B]
+  kl_regularization: true
+  kl_weight: 1.0e-6
+  ## Encoder channel multipliers
+  channel_multipliers: [1, 2, 4, 4]
+  base_channels: 128
+  num_res_blocks: 2
+  ## [Paper: Appendix B] Trained on WebVid-10M and 6.9M SAM images from scratch
+  pretrained_path: null             ## Set to path if loading pretrained VAE
+  ## For very long videos, scatter across multiple GPUs [Paper: Appendix B]
+  scatter_long_videos: true
+
+## ---------------------------------------------------------------------------
+## Pyramidal Flow Matching [Paper: Section 3.2, 3.3]
+## ---------------------------------------------------------------------------
+pyramid:
+  ## [Paper: Section 4.1] Number of pyramid stages set to 3 in all experiments
+  num_stages: 3                     ## K = 3
+
+  ## Time window boundaries [s_k, e_k] for each stage k
+  ## [Paper: Section 3.2] Uniform stage partitioning of [0, 1]
+  ## Stage 2 (lowest res, 1/4 resolution): [0.0, 0.333]
+  ## Stage 1 (mid res, 1/2 resolution):    [0.333, 0.667]
+  ## Stage 0 (full res):                   [0.667, 1.0]
+  stage_bounds:
+    - [0.0, 0.333]                  ## k=2: lowest resolution stage
+    - [0.333, 0.667]                ## k=1: mid resolution stage
+    - [0.667, 1.0]                  ## k=0: full resolution stage (final)
+
+  ## Downsampling factors per stage: stage k uses factor 2^k
+  ## stage 0: factor 1 (full res), stage 1: factor 2, stage 2: factor 4
+  downsample_factors: [1, 2, 4]
+
+  ## Renoising at jump points [Paper: Section 3.2.2, Eq. 15, Appendix A]
+  ## gamma = -1/3 minimizes noise weight alpha, maximally preserving signal
+  gamma: -0.3333333333333333        ## gamma in [-1/3, 0]; paper uses -1/3
+
+  ## Upsampling mode for noisy latents at jump points
+  upsample_mode: "nearest"          ## Nearest-neighbor [Paper: Appendix A derivation]
+  ## Downsampling mode for clean x_1 latents
+  downsample_mode: "bilinear"       ## Bilinear for clean latents
+
+  ## Coupled noise sampling [Paper: Section 3.2.1, Eqs. 9-10]
+  ## Same noise direction for both endpoints improves flow straightness
+  use_coupled_noise: true
+
+  ## Temporal pyramid history conditioning [Paper: Section 3.3]
+  temporal:
+    ## [Paper: Section 3.3, following Valevski et al. 2024]
+    ## Corruptive noise strength uniformly sampled from [0, 1/3] during training
+    history_noise_min: 0.0
+    history_noise_max: 0.3333333333333333
+    ## Use clean frames at inference
+    use_noisy_history_at_inference: false
+    ## Number of history frames to condition on
+    num_history_frames: 2           ## Most recent 2 frames at different compressions
+
+## ---------------------------------------------------------------------------
+## Training Datasets [Paper: Section 4.1, Appendix B]
+## ---------------------------------------------------------------------------
+data:
+  ## Image datasets for Stage 1 [Paper: Appendix B]
+  image_datasets:
+    laion_5b:
+      enabled: true
+      path: "data/laion5b"
+      size: 180_000_000             ## [Paper: Appendix B] 180M images from LAION-5B
+      type: "webdataset"
+    cc12m:
+      enabled: true
+      path: "data/cc12m"
+      size: 11_000_000              ## [Paper: Section 4.1] 11M from CC-12M
+      type: "webdataset"
+    sa1b:
+      enabled: true
+      path: "data/sa1b"
+      size: 6_900_000               ## [Paper: Section 4.1] 6.9M non-blurred from SA-1B
+      type: "folder"
+      filter_blurred: true
+    journeydb:
+      enabled: true
+      path: "data/journeydb"
+      size: 4_400_000               ## [Paper: Section 4.1] 4.4M from JourneyDB
+      type: "folder"
+    synthetic:
+      enabled: true
+      path: "data/synthetic"
+      size: 14_000_000              ## [Paper: Section 4.1] 14M publicly available synthetic
+      type: "folder"
+
+  ## Video datasets for Stages 2 & 3 [Paper: Section 4.1, Appendix B]
+  video_datasets:
+    webvid_10m:
+      enabled: true
+      path: "data/webvid10m"
+      size: 10_000_000              ## [Paper: Section 4.1] WebVid-10M
+      type: "webdataset"
+    openvid_1m:
+      enabled: true
+      path: "data/openvid1m"
+      size: 1_000_000               ## [Paper: Section 4.1] OpenVid-1M
+      type: "folder"
+    open_sora_plan:
+      enabled: true
+      path: "data/open_sora_plan"
+      size: 1_000_000               ## [Paper: Section 4.1] 1M high-res non-watermark
+      type: "folder"
+      filter_watermark: true
+
+  ## [Paper: Section 4.1] ~10M single-shot videos after postprocessing
+  total_video_samples: 10_000_000
+
+  ## [Paper: Appendix B] Image data mixed at 12.5% in video training batches
+  image_mix_ratio: 0.125
+
+  ## Video captioning [Paper: Appendix B]
+  captioning:
+    model: "video_llama2"           ## Video-LLaMA2 for recaptioning
+    use_precomputed: true           ## Use pre-generated captions if available
+    caption_file: "data/captions.json"
+
+  ## Resolution and frame settings
+  resolution:
+    ## Training resolutions per stage
+    stage2_resolution: 256          ## Low-resolution video training
+    stage3_resolution: 768          ## [Paper: Section 4.3] High-resolution 768p
+    ## Aspect ratio bucketing
+    buckets:
+      - [256, 256]
+      - [256, 384]
+      - [384, 256]
+      - [384, 384]
+      - [512, 512]
+      - [512, 768]
+      - [768, 512]
+      - [768, 768]
+
+  ## Frame counts [Paper: Section 4.3]
+  frames:
+    ## [Paper: Section 4.3] 5-second video at 24fps = 121 frames
+    fps: 24
+    stage2_short_frames: 49         ## 2-second video at 24fps (approx)
+    stage2_long_frames: 121         ## 5-second video at 24fps
+    stage3_frames: 241              ## [Paper: Section 4.2] 10-second, 241-frame video
+    ## After 8x temporal VAE compression
+    stage2_short_latent_frames: 7
+    stage2_long_latent_frames: 16
+    stage3_latent_frames: 31
+
+  ## Token packing [Paper: Section 3.4, Patch n' Pack]
+  packing:
+    enabled: true
+    max_tokens_per_batch: 16384     ## Approximate max tokens per packed batch
+    ## [Paper: Section 4.2] <=15,360 tokens vs 119,040 for full-sequence
+    target_tokens_pyramid: 15360
+    target_tokens_full: 119040
+
+## ---------------------------------------------------------------------------
+## Training Configuration [Paper: Appendix B, Table 4]
+## ---------------------------------------------------------------------------
+training:
+  ## Hardware [Paper: Appendix B, Table 4]
+  num_gpus: 128                     ## [Paper: Table 4] 128 NVIDIA A100 GPUs
+  gpu_type: "A100"
+
+  ## Three-stage training procedure [Paper: Appendix B]
+
+  ## Stage 1: Image Training [Paper: Appendix B]
+  stage1:
+    mode: "image"
+    ## [Paper: Table 4]
+    optimizer: "adamw"
+    beta1: 0.9
+    beta2: 0.999                    ## [Paper: Table 4] beta2=0.999 for stage 1
+    eps: 1.0e-6
+    weight_decay: 1.0e-4
+    learning_rate: 1.0e-4           ## [Paper: Table 4]
+    lr_schedule: "constant_with_warmup"
+    warmup_steps: 1000              ## [Paper: Table 4] 1k warmup steps
+    total_steps: 50000              ## [Paper: Table 4] 50k steps
+    global_batch_size: 1536         ## [Paper: Table 4]
+    gradient_clip: 1.0              ## [Paper: Table 4]
+    dtype: "bfloat16"               ## [Paper: Table 4]
+    ## [Paper: Appendix B] ~1536 A100 GPU hours (~12 hours on 128 A100s)
+    estimated_gpu_hours: 1536
+    estimated_wall_time_hours: 12
+    checkpoint_every_steps: 5000
+    log_every_steps: 100
+
+  ## Stage 2: Low-Resolution Video Training [Paper: Appendix B]
+  stage2:
+    mode: "video"
+    ## [Paper: Table 4]
+    optimizer: "adamw"
+    beta1: 0.9
+    beta2: 0.95                     ## [Paper: Table 4] beta2=0.95 for stages 2 & 3
+    eps: 1.0e-6
+    weight_decay: 1.0e-4
+    learning_rate: 1.0e-4           ## [Paper: Table 4]
+    lr_schedule: "constant_with_warmup"
+    warmup_steps: 1000              ## [Paper: Table 4] 1k warmup steps
+    total_steps: 200000             ## [Paper: Table 4] 200k steps total
+    ## Sub-stages within stage 2 [Paper: Appendix B]
+    substage_2a_steps: 80000        ## 80k steps on 2-second videos
+    substage_2b_steps: 120000       ## 120k steps on 5-second videos
+    global_batch_size: 768          ## [Paper: Table 4]
+    gradient_clip: 1.0              ## [Paper: Table 4]
+    dtype: "bfloat16"               ## [Paper: Table 4]
+    ## [Paper: Appendix B] ~11,520 A100 GPU hours (~90 hours on 128 A100s)
+    estimated_gpu_hours: 11520
+    estimated_wall_time_hours: 90
+    checkpoint_every_steps: 10000
+    log_every_steps: 100
+
+  ## Stage 3: High-Resolution Video Training [Paper: Appendix B]
+  stage3:
+    mode: "video_high_res"
+    ## [Paper: Table 4]
+    optimizer: "adamw"
+    beta1: 0.9
+    beta2: 0.95                     ## [Paper: Table 4]
+    eps: 1.0e-6
+    weight_decay: 1.0e-4
+    learning_rate: 5.0e-5           ## [Paper: Table 4] reduced LR for finetuning
+    lr_schedule: "constant_with_warmup"
+    warmup_steps: 1000              ## [Paper: Table 4] 1k warmup steps
+    total_steps: 50000              ## [Paper: Table 4] 50k steps
+    global_batch_size: 384          ## [Paper: Table 4]
+    gradient_clip: 1.0              ## [Paper: Table 4]
+    dtype: "bfloat16"               ## [Paper: Table 4]
+    ## [Paper: Appendix B] ~7,680 A100 GPU hours (~60 hours on 128 A100s)
+    estimated_gpu_hours: 7680
+    estimated_wall_time_hours: 60
+    ## [Paper: Appendix B] Varying durations 5-10s
+    video_duration_range: [5, 10]
+    checkpoint_every_steps: 5000
+    log_every_steps: 100
+
+  ## Total training cost [Paper: Section 4.2]
+  ## 20.7k A100 GPU hours total
+  total_estimated_gpu_hours: 20736
+
+  ## Initialization [Paper: Appendix B]
+  ## MM-DiT weights initialized from SD3 Medium
+  pretrained_sd3_path: null         ## Set to local SD3 Medium checkpoint path
+  resume_from_checkpoint: null      ## Set to resume training
+
+  ## Distributed training
+  distributed:
+    backend: "nccl"
+    find_unused_parameters: false
+    gradient_as_bucket_view: true
+
+  ## Mixed precision
+  mixed_precision: "bf16"           ## bfloat16 as per paper
+
+## ---------------------------------------------------------------------------
+## Inference Configuration [Paper: Section 4.2, 4.3]
+## ---------------------------------------------------------------------------
+inference:
+  ## [Paper: Section 4.3] 5-second 121-frame video for VBench evaluation
+  default_num_frames: 121
+  ## [Paper: Section 4.3] 768p resolution at 24fps
+  default_resolution: [768, 768]
+  default_fps: 24
+
+  ## ODE solver settings (not specified in paper; reasonable defaults)
+  num_steps_per_stage: 20           ## Euler steps per pyramid stage
+  solver: "euler"                   ## Euler ODE solver
+
+  ## Classifier-free guidance [Paper: Section 3.4]
+  ## CFG employed to enhance temporal consistency and motion smoothness
+  cfg_scale: 7.5                    ## Standard CFG scale (not specified in paper)
+  apply_cfg_all_stages: true        ## Apply CFG at all pyramid stages
+
+  ## [Paper: Section 4.2] 56 seconds to create a 5-second 384p video clip
+  ## at inference (comparable to full-sequence diffusion)
+
+  ## Autoregressive generation [Paper: Section 3.3, 4.3]
+  ## [Paper: Section 4.3] 10-second video = 241 frames at 24fps
+  long_video_frames: 241
+  ## Segment size for autoregressive generation
+  ## After 8x temporal compression: 241 frames -> ~31 latent frames
+  segment_latent_frames: 16         ## Frames per autoregressive segment
+
+  ## Image-to-video [Paper: Section 4.3]
+  ## 120 newly synthesized frames for 5-second I2V
+  i2v_num_frames: 121
+
+  ## Output settings
+  output_dir: "outputs"
+  save_intermediate_stages: false
+
+## ---------------------------------------------------------------------------
+## Evaluation Configuration [Paper: Section 4.1, 4.3]
+## ---------------------------------------------------------------------------
+eval:
+  ## [Paper: Section 4.1] VBench evaluation
+  vbench:
+    enabled: true
+    prompts_path: "data/eval/vbench_prompts.txt"
+    output_dir: "outputs/vbench"
+    ## [Paper: Section 4.3] 5-second 121-frame video per prompt
+    num_frames: 121
+    resolution: [768, 768]
+    fps: 24
+    ## 16 fine-grained dimensions evaluated
+    dimensions:
+      - "subject_consistency"
+      - "background_consistency"
+      - "temporal_flickering"
+      - "motion_smoothness"
+      - "dynamic_degree"
+      - "aesthetic_quality"
+      - "imaging_quality"
+      - "object_class"
+      - "multiple_objects"
+      - "human_action"
+      - "color"
+      - "spatial_relationship"
+      - "scene"
+      - "appearance_style"
+      - "temporal_style"
+      - "overall_consistency"
+
+  ## [Paper: Section 4.1] EvalCrafter evaluation
+  evalcrafter:
+    enabled: true
+    prompts_path: "data/eval/evalcrafter_prompts.txt"
+    output_dir: "outputs/evalcrafter"
+    num_frames: 121
+    resolution: [768, 768]
+    fps: 24
+
+  ## Ablation: FID on MS-COCO [Paper: Section 4.4]
+  fid_coco:
+    enabled: false
+    num_prompts: 3000               ## [Paper: Section 4.4] 3K randomly sampled prompts
+    coco_ref_dir: "data/coco/val2017"
+    output_dir: "outputs/fid_coco"
+
+  ## Ablation: FVD on MSR-VTT [Paper: Appendix C.2, Fig. 12b]
+  fvd_msrvtt:
+    enabled: false
+    msrvtt_dir: "data/msrvtt"
+    output_dir: "outputs/fvd_msrvtt"
+
+  ## User study [Paper: Section 4.3, Appendix B]
+  user_study:
+    num_prompts: 50                 ## [Paper: Appendix B] 50 prompts from VBench
+    num_participants: 20            ## [Paper: Appendix B] 20+ participants
+    ## Evaluation dimensions [Paper: Appendix B]
+    dimensions:
+      - "aesthetic_quality"
+      - "motion_smoothness"
+      - "semantic_alignment"
+    ## Baselines compared [Paper: Appendix B]
+    baselines:
+      - "open_sora_plan_v1.1"
+      - "open_sora_1.2"
+      - "pika_1.0"
+      - "cogvideox_2b"
+      - "cogvideox_5b"
+      - "kling"
+
+## ---------------------------------------------------------------------------
+## Paths and Logging
+## ---------------------------------------------------------------------------
+paths:
+  output_dir: "outputs"
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  cache_dir: ".cache"
+
+logging:
+  use_tensorboard: true
+  use_wandb: false
+  wandb_project: "pyramidal-flow-matching"
+  log_level: "INFO"
+  log_every_steps: 100
+
+## ---------------------------------------------------------------------------
+## Reproducibility
+## ---------------------------------------------------------------------------
+seed: 42
+deterministic: false               ## Full determinism too slow for large-scale training

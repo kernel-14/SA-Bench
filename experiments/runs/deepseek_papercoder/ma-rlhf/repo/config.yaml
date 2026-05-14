@@ -1,0 +1,355 @@
+# config.yaml
+# Comprehensive configuration for reproducing MA-RLHF experiments.
+# Usage: main.py --config config.yaml --experiment tldr_2b
+
+defaults:
+  # Data splits ratios (for tasks that have preference pairs)
+  data_splits:
+    sft_ratio: 0.2
+    rm_ratio: 0.4
+    ppo_ratio: 0.4
+  # Tokenizer settings
+  tokenizer_kwargs:
+    truncation_side: "left"
+    padding_side: "right"
+    model_max_length: 1024   # but per task overridden
+  # Macro action defaults
+  macro:
+    enabled: true
+    termination: "fixed_ngram"   # fixed_ngram, randomized_ngram, parsing, perplexity
+    n: 5
+    randomized_lengths: [2, 3, 5, 10]
+    randomized_repeat: 3
+    parsing_cutoff: 5
+    weighting: "equal"            # equal, unit, position_decayed
+
+experiments:
+  # --- TL;DR Summarization ---
+  tldr_2b:
+    model_name: "google/gemma-2b"
+    dataset_name: "tldr"
+    max_prompt_length: 512
+    max_response_length: 512
+    sft:
+      batch_size: 512
+      epochs: 1
+      learning_rate: 5.0e-5
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    rm:
+      batch_size: 64
+      epochs: 1
+      learning_rate: 1.0e-5
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    ppo:
+      batch_size: 256
+      policy_learning_rate: 1.5e-5
+      critic_learning_rate: 1.5e-5
+      epochs_over_dataset: 1
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.05
+      warmup_steps: 200
+      temperature: 0.8
+      top_p: 1.0
+      top_k: 50
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5
+
+  tldr_7b:
+    model_name: "google/gemma-7b"
+    dataset_name: "tldr"
+    max_prompt_length: 512
+    max_response_length: 512
+    sft:
+      batch_size: 128
+      epochs: 1
+      learning_rate: 2.0e-5
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    rm:
+      batch_size: 128
+      epochs: 1
+      learning_rate: 1.0e-6
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    ppo:
+      batch_size: 256
+      policy_learning_rate: 1.0e-6
+      critic_learning_rate: 1.0e-6
+      epochs_over_dataset: 1
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.01    # reduced for stability
+      warmup_steps: 200
+      temperature: 0.8
+      top_p: 1.0
+      top_k: 50
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5
+
+  tldr_27b:
+    model_name: "google/gemma-2-27b"
+    dataset_name: "tldr"
+    max_prompt_length: 512
+    max_response_length: 512
+    sft:
+      batch_size: 128
+      epochs: 1          # Table 5: 1 for others (TL;DR)
+      learning_rate: 5.0e-6
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    rm:
+      batch_size: 128
+      epochs: 1
+      learning_rate: 8.0e-6
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    ppo:
+      batch_size: 256
+      policy_learning_rate: 7.0e-7
+      critic_learning_rate: 1.0e-6
+      epochs_over_dataset: 1
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.1
+      warmup_steps: 0
+      temperature: 0.8
+      top_p: 1.0
+      top_k: 50
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5
+
+  # --- Anthropic Helpful and Harmless Dialogue ---
+  hhrlhf_2b:
+    model_name: "google/gemma-2b"
+    dataset_name: "hhrlhf"
+    max_prompt_length: 512
+    max_response_length: 512
+    sft:
+      batch_size: 512
+      epochs: 1
+      learning_rate: 5.0e-5
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    rm:
+      batch_size: 64
+      epochs: 1
+      learning_rate: 1.0e-5
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    ppo:
+      batch_size: 256
+      policy_learning_rate: 1.5e-5
+      critic_learning_rate: 1.5e-5
+      epochs_over_dataset: 1
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.05
+      warmup_steps: 200
+      temperature: 0.8
+      top_p: 1.0
+      top_k: 50
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5
+
+  hhrlhf_7b:
+    model_name: "google/gemma-7b"
+    dataset_name: "hhrlhf"
+    max_prompt_length: 512
+    max_response_length: 512
+    sft:
+      batch_size: 128
+      epochs: 1
+      learning_rate: 2.0e-5
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    rm:
+      batch_size: 64
+      epochs: 1
+      learning_rate: 1.0e-6
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    ppo:
+      batch_size: 256
+      policy_learning_rate: 1.0e-6
+      critic_learning_rate: 1.0e-6
+      epochs_over_dataset: 1
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.05
+      warmup_steps: 200
+      temperature: 0.8
+      top_p: 1.0
+      top_k: 50
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5
+
+  # --- WebGPT Comparisons ---
+  webgpt_2b:
+    model_name: "google/gemma-2b"
+    dataset_name: "webgpt"
+    max_prompt_length: 512
+    max_response_length: 512
+    sft:
+      batch_size: 64
+      epochs: 3               # Table 5: SFT for WebGPT 3 epochs for 2B
+      learning_rate: 1.0e-4
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    rm:
+      batch_size: 32
+      epochs: 1
+      learning_rate: 2.0e-5
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    ppo:
+      batch_size: 256
+      policy_learning_rate: 1.5e-5
+      critic_learning_rate: 1.5e-5
+      epochs_over_dataset: 4   # Table 5: PPO epochs 4 for WebGPT
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.1
+      warmup_steps: 200
+      temperature: 0.8
+      top_p: 1.0
+      top_k: 50
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5
+
+  webgpt_7b:
+    model_name: "google/gemma-7b"
+    dataset_name: "webgpt"
+    max_prompt_length: 512
+    max_response_length: 512
+    sft:
+      batch_size: 128
+      epochs: 5               # Table 5: WebGPT SFT epochs 5 for 7B
+      learning_rate: 2.0e-5
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    rm:
+      batch_size: 32
+      epochs: 1
+      learning_rate: 1.0e-6
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.1
+    ppo:
+      batch_size: 256
+      policy_learning_rate: 1.0e-6
+      critic_learning_rate: 1.0e-6
+      epochs_over_dataset: 4
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.1
+      warmup_steps: 200
+      temperature: 0.8
+      top_p: 1.0
+      top_k: 50
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5
+
+  # --- APPS Code Generation ---
+  apps_2b:
+    model_name: "google/codegemma-1.1-2b"
+    dataset_name: "apps"
+    max_prompt_length: 600
+    max_response_length: 512
+    # No RM stage; reward from compiler feedback (see ppo)
+    sft:
+      batch_size: 16
+      epochs: 1
+      learning_rate: 5.0e-6
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.0
+    rm: null
+    ppo:
+      batch_size: 16
+      policy_learning_rate: 5.0e-7
+      critic_learning_rate: 5.0e-5
+      epochs_over_dataset: 1
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.05
+      warmup_steps: 20
+      temperature: 1.0
+      top_p: 1.0
+      top_k: 5
+      reward_type: "compiler"    # Appendix B.5
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5
+
+  apps_7b:
+    model_name: "google/codegemma-1.1-7b-it"
+    dataset_name: "apps"
+    max_prompt_length: 600
+    max_response_length: 512
+    sft:
+      batch_size: 32
+      epochs: 1
+      learning_rate: 2.0e-6
+      lr_scheduler: "cosine"
+      warmup_ratio: 0.0
+    rm: null
+    ppo:
+      batch_size: 16
+      policy_learning_rate: 5.0e-7
+      critic_learning_rate: 5.0e-5
+      epochs_over_dataset: 1
+      ppo_epochs: 1
+      rollout_batch_size: 1
+      clip_ratio: 0.2
+      lambda_gae: 0.95
+      gamma_gae: 1.0
+      kl_coef: 0.05
+      warmup_steps: 20
+      temperature: 1.0
+      top_p: 1.0
+      top_k: 5
+      reward_type: "compiler"
+    macro:
+      enabled: true
+      termination: "fixed_ngram"
+      n: 5

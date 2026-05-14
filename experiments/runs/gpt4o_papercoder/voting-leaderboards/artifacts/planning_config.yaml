@@ -1,0 +1,27 @@
+## config.yaml
+training:
+  learning_rate: 0.01  # Logistic regression uses default learning rates
+  batch_size: 50       # Based on data collection, 50 responses per prompt/model
+  epochs: 20           # Typical epochs for convergence in logistic regression
+
+features:
+  tfidf_enabled: true  # TF-IDF feature extraction
+  bow_enabled: true    # Bag-of-Words feature extraction
+  length_enabled: true # Response length feature extraction
+
+data:
+  prompts_file: "data/prompts.json"           # File containing the diverse prompts used
+  responses_dir: "data/model_responses/"      # Directory containing responses per model
+  voting_logs_file: "data/voting_logs.json"   # File containing simulated voting records
+
+simulation:
+  elo_scaling_factor: 30         # Elo scaling factor per paper approximation
+  iterations_per_simulation: 1000  # Granular updates to simulate adversarial interactions
+  voting_accuracy: 0.95         # Detector accuracy based on paper results
+
+evaluation:
+  metrics:
+    - "accuracy"
+    - "precision"
+    - "recall"
+  result_plots_dir: "results/"   # Directory to store evaluation plots

@@ -1,0 +1,121 @@
+# config.yaml
+# Default configuration for reproducing the paper "NGPT: Normalized Transformer
+# with Representation Learning on the Hypersphere". All values are taken from
+# the paper's Tables 2, 3, Section 2.6, and Appendix A.6/A.7.
+
+# ---------------------------------------------------------------------------
+# Model architecture
+model:
+  # Whether to use the normalized Transformer (nGPT) variant
+  use_ngpt: true
+
+  # Vocabulary size of the tokenizer (LLaMA-2, 32k)
+  vocab_size: 32000
+
+  # Hyperparameters for 0.5B model (24 layers, d_model=1024)
+  # For 1.0B model, use: n_layers=36, d_model=1280, n_heads=20
+  n_layers: 24
+  d_model: 1024
+  n_heads: 16
+  d_k: 64              # d_model // n_heads
+
+  # MLP hidden dimension (always 4 * d_model)
+  d_mlp: 4096
+
+  # Maximum sequence length during training
+  max_seq_len: 1024    # Change to 4096 or 8192 for other experiments
+
+  # Rotary position embedding base frequency
+  rope_base: 10000
+
+  # Initial weight standard deviation (before normalization in nGPT)
+  init_scale_norm: 0.02               # used for GPT baseline
+  init_scale_ngpt: !expr "1/math.sqrt(model.d_model)"  # used for nGPT
+
+  # Whether to tie input and output embeddings (paper does not tie them)
+  tie_embeddings: false
+
+# ---------------------------------------------------------------------------
+# Training hyperparameters
+training:
+  # Global batch size in number of sequences
+  batch_size: 512
+
+  # Number of training iterations (example for 52B tokens with 1k context)
+  num_iters: 100000      # 100k iters * 512 * 1024 ≈ 52B tokens
+
+  # Evaluation interval (iterations)
+  eval_interval: 1000
+
+  # Number of GPUs (used for gradient accumulation if needed)
+  num_gpus: 64          # original paper uses 64 A100 GPUs
+
+  # Mixed precision
+  use_amp: true
+  dtype: "bfloat16"
+
+# ---------------------------------------------------------------------------
+# Optimizer settings
+optim:
+  # Base learning rate (initial learning rate)
+  lr: 2.0e-3            # default for 0.5B, 1k context (see Figure 7)
+
+  # Adam betas (not explicitly stated; standard LLM betas used)
+  betas: [0.9, 0.95]
+
+  # Epsilon
+  eps: 1.0e-8
+
+  # Whether to use weight decay (AdamW) for GPT baseline; nGPT uses Adam
+  weight_decay: 0.0     # nGPT: 0.0; GPT: 0.1
+
+  # Learning rate warmup steps: GPT uses 2000, nGPT uses 0
+  warmup_steps: 0        # nGPT: 0; GPT: 2000
+
+  # Learning rate scheduler: cosine annealing to 0
+  lr_schedule: "cosine"
+  lr_final: 0.0
+
+# ---------------------------------------------------------------------------
+# nGPT specific parameters (only used when model.use_ngpt = true)
+ngpt:
+  # Eigen learning rate init/scale (applied per-layer per-dimension)
+  eigen_alpha_A_init: 0.05
+  eigen_alpha_A_scale: !expr "1/math.sqrt(model.d_model)"
+  eigen_alpha_M_init: 0.05
+  eigen_alpha_M_scale: !expr "1/math.sqrt(model.d_model)"
+
+  # QK scaling factors (per attention head)
+  s_qk_init: 1.0
+  s_qk_scale: !expr "1/math.sqrt(model.d_model)"
+
+  # MLP intermediate scaling factors (s_u, s_v)
+  s_u_init: 1.0
+  s_u_scale: 1.0
+  s_v_init: 1.0
+  s_v_scale: 1.0
+  # Rescaling of MLP v before SiLU: multiply by sqrt(d_model)  (built-in)
+
+  # Logit scaling factor (vocabulary-wise)
+  s_z_init: 1.0
+  s_z_scale: !expr "1/math.sqrt(model.d_model)"
+
+# ---------------------------------------------------------------------------
+# Data
+data:
+  # Path to store/download OpenWebText dataset
+  dataset_path: "./data/openwebtext"
+
+  # Tokenizer identifier from HuggingFace (LLaMA-2)
+  tokenizer_name: "meta-llama/Llama-2-7b-hf"
+
+  # Split ratio for train/validation
+  val_ratio: 0.01       # 99% train, 1% validation
+
+# ---------------------------------------------------------------------------
+# Logging and checkpoints
+logging:
+  log_dir: "./logs"
+  checkpoint_dir: "./checkpoints"
+  use_wandb: false
+  wandb_project: "ngpt-reproduction"

@@ -1,0 +1,9 @@
+{
+  "paper_id": "ngpt",
+  "run_id": "ngpt-20260506-211432",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 158.8,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 11
+}

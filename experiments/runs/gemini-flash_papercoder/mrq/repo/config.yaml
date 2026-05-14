@@ -1,0 +1,70 @@
+## config.yaml
+# Core training loop parameters
+training:
+  total_timesteps: 1000000 # Default, will be overridden by benchmark-specific max steps (e.g., 1M for Gym, 500k for DMC, 2.5M for Atari)
+  initial_random_steps: 10000
+  replay_buffer_capacity: 1000000 # 1M
+  minibatch_size: 256
+  discount_factor: 0.99 # gamma
+  target_update_frequency: 250 # T_target
+  replay_ratio: 1 # Assumed: 1 gradient update per environment step
+
+# Optimizer settings
+optimizer:
+  type: AdamW
+  learning_rate_encoders: 0.0001 # 1e-4 for f_omega, g_omega
+  learning_rate_rl: 0.0003      # 3e-4 for Q_theta, pi_phi
+  weight_decay: 0.0001        # 1e-4
+  grad_clip_norm: 20.0          # For policy network
+
+# Network architecture parameters
+network:
+  zs_dim: 512
+  zsa_dim: 512
+  za_dim: 256
+  hidden_dim: 512
+  encoder_value_activation: ELU # For state_encoder, state_action_encoder, value_network
+  policy_activation: ReLU      # For policy_network
+
+# Loss function and model-based representation parameters
+losses:
+  lambda_reward: 0.1
+  lambda_dynamics: 1.0 # Assumed default from similar works as it was left blank in paper's table
+  lambda_terminal: 0.1
+  lambda_pre_activ: 0.00001 # 1e-5
+  encoder_horizon: 5 # HEnc
+  value_horizon: 3   # HQ
+
+# Prioritized Experience Replay (PER) settings
+prioritized_replay:
+  prioritized_replay_alpha: 0.4 # alpha
+  min_priority: 1.0 # Minimum priority score for sampling
+
+# Policy and exploration
+policy:
+  policy_noise_std: 0.2 # sigma for target policy noise
+  policy_noise_clip: 0.3 # c for clipping target policy noise
+  exploration_noise_std: 0.2 # Sigma for Gaussian exploration noise during action selection
+  gumbel_tau: 10.0 # For Gumbel-Softmax in discrete actions
+
+# Reward processing (Categorical)
+reward_processing:
+  reward_bins: 65
+  reward_range: [-10.0, 10.0] # Effective range for symexp/symlog
+
+# Environment settings (defaults, will be overridden by benchmark-specific configurations)
+environment:
+  env_name: "default_env" # Placeholder, actual env set by main script
+  seed: 0 # Default seed, experiments run over 10 seeds (0-9)
+  image_obs: False # True for visual DMC/Atari, False for vector DMC/Gym
+  discrete_actions: False # True for Atari, False for Gym/DMC
+  action_repeat: 1 # Default, 2 for DMC, 4 for Atari
+  frame_stack: 1 # Default, 3 for visual DMC, 4 for Atari (specific logic in B.3)
+
+# Logging and evaluation
+logging_evaluation:
+  log_interval: 1000 # Log training metrics every N steps
+  eval_interval: 5000 # Default for Gym/DMC, 100000 for Atari
+  checkpoint_interval: 100000 # Save model checkpoint every N steps
+  num_eval_episodes: 10 # Number of episodes to average for evaluation
+  log_dir: "logs/" # Base directory for TensorBoard logs and checkpoints

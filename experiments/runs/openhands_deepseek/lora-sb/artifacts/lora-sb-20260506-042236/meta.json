@@ -1,0 +1,9 @@
+{
+  "paper_id": "lora-sb",
+  "run_id": "lora-sb-20260506-042236",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1224.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 25
+}

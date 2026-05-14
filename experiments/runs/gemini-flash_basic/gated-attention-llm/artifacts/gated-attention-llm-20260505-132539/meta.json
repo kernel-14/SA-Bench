@@ -1,0 +1,90 @@
+{
+  "case_id": "gated-attention-llm",
+  "run_id": "gated-attention-llm-20260505-132539",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 279414,
+    "total_output_tokens": 18761,
+    "total_tokens": 298175,
+    "estimated_cost_usd": 1.1197,
+    "elapsed_seconds": 188.7,
+    "steps": 12,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 7.74,
+        "input_tokens": 1208,
+        "output_tokens": 189
+      },
+      {
+        "step": 2,
+        "elapsed_s": 1.92,
+        "input_tokens": 1332,
+        "output_tokens": 39
+      },
+      {
+        "step": 3,
+        "elapsed_s": 6.22,
+        "input_tokens": 9923,
+        "output_tokens": 528
+      },
+      {
+        "step": 4,
+        "elapsed_s": 3.71,
+        "input_tokens": 16559,
+        "output_tokens": 185
+      },
+      {
+        "step": 5,
+        "elapsed_s": 6.66,
+        "input_tokens": 16675,
+        "output_tokens": 437
+      },
+      {
+        "step": 6,
+        "elapsed_s": 37.84,
+        "input_tokens": 16930,
+        "output_tokens": 6586
+      },
+      {
+        "step": 7,
+        "elapsed_s": 30.75,
+        "input_tokens": 24443,
+        "output_tokens": 2200
+      },
+      {
+        "step": 8,
+        "elapsed_s": 30.57,
+        "input_tokens": 30025,
+        "output_tokens": 2054
+      },
+      {
+        "step": 9,
+        "elapsed_s": 16.48,
+        "input_tokens": 35544,
+        "output_tokens": 1306
+      },
+      {
+        "step": 10,
+        "elapsed_s": 11.4,
+        "input_tokens": 39005,
+        "output_tokens": 1275
+      },
+      {
+        "step": 11,
+        "elapsed_s": 18.06,
+        "input_tokens": 42416,
+        "output_tokens": 2975
+      },
+      {
+        "step": 12,
+        "elapsed_s": 17.29,
+        "input_tokens": 45354,
+        "output_tokens": 987
+      }
+    ]
+  }
+}

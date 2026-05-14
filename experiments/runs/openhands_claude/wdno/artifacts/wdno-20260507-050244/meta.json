@@ -1,0 +1,9 @@
+{
+  "paper_id": "wdno",
+  "run_id": "wdno-20260507-050244",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1471.7,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 50
+}

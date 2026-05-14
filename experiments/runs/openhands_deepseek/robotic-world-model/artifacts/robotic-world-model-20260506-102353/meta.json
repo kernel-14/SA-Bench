@@ -1,0 +1,9 @@
+{
+  "paper_id": "robotic-world-model",
+  "run_id": "robotic-world-model-20260506-102353",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1399.7,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 35
+}

@@ -1,0 +1,56 @@
+## config.yaml
+model_config:
+  model_type: "ngpt" # Options: "ngpt", "gpt" (for baseline comparison)
+  n_layers: 24 # Number of Transformer layers. 24 for 0.5B, 36 for 1.0B models.
+  d_model: 1024 # Dimensionality of the model. 1024 for 0.5B, 1280 for 1.0B models.
+  n_heads: 16 # Number of attention heads. 16 for 0.5B, 20 for 1.0B models.
+  # d_k (key dimension) is derived as d_model / n_heads = 1024 / 16 = 64
+  # d_mlp (MLP dimension) is derived as 4 * d_model = 4 * 1024 = 4096
+  vocab_size: 32000 # LLaMA-2 tokenizer vocabulary size.
+  rope_base: 10000.0 # Base for Rotary Position Embeddings.
+  block_size: 4096 # Context length in tokens. Common values: 1024, 4096, 8192.
+  init_std_dev: 0.03125 # Initial standard deviation for matrix parameters.
+                        # For nGPT: 1 / sqrt(d_model) = 1 / sqrt(1024) = 0.03125.
+                        # For GPT baseline: 0.02.
+
+optimizer_config:
+  optimizer_name: "adam" # For nGPT: "adam" (Adam with weight_decay=0.0). For GPT baseline: "adamw".
+  learning_rate: 0.0005 # Initial learning rate. Tuned per model/context_length (e.g., 5e-4 for 0.5B/4k, 1e-3 for 0.5B/1k).
+  weight_decay: 0.0 # For nGPT: 0.0. For GPT baseline: 0.1.
+  learning_rate_schedule: "cosine_annealing" # Learning rate schedule.
+  warmup_steps: 0 # For nGPT: 0. For GPT baseline: 2000.
+  final_learning_rate: 0.0 # Learning rate at the end of cosine annealing.
+
+training_config:
+  global_batch_size: 512 # Total batch size across all GPUs.
+  gradient_accumulation_steps: 1 # Number of steps to accumulate gradients before an optimizer step.
+                                 # If global_batch_size / num_gpus is the per-GPU batch size, set to 1.
+  max_train_steps: 100000 # Total training steps. 100k for parameter inspections/ablations.
+                          # For full speedup evaluation, nGPT: 20k, GPT: 200k (1B/4k context).
+  eval_interval: 1000 # Perform validation every N steps (example, not specified in paper).
+  log_interval: 10 # Log training progress every N steps (example, not specified in paper).
+  precision: "bfloat16" # Training precision for matrix parameters.
+
+ngpt_specific_config:
+  # Values derived for d_model = 1024
+  alpha_A_init: 0.05 # Initial value for alpha_A (eigen learning rate for Attention).
+  alpha_A_scale_factor: 0.03125 # Scaling factor for alpha_A (1 / sqrt(d_model)).
+  alpha_M_init: 0.05 # Initial value for alpha_M (eigen learning rate for MLP), implied same as alpha_A.
+  alpha_M_scale_factor: 0.03125 # Scaling factor for alpha_M (1 / sqrt(d_model)), implied same as alpha_A.
+  s_qk_init: 1.0 # Initial value for s_qk (Q/K scaling in attention).
+  s_qk_scale_factor: 0.03125 # Scaling factor for s_qk (1 / sqrt(d_model)).
+  s_u_init: 1.0 # Initial value for s_u (MLP intermediate scaling).
+  s_u_scale_factor: 1.0 # Scaling factor for s_u.
+  s_nu_init: 1.0 # Initial value for s_nu (MLP intermediate scaling).
+  s_nu_scale_factor: 1.0 # Scaling factor for s_nu.
+  s_z_init: 1.0 # Initial value for s_z (Logits scaling).
+  s_z_scale_factor: 0.03125 # Scaling factor for s_z (1 / sqrt(d_model)).
+
+data_config:
+  dataset_name: "openwebtext" # Dataset to use.
+  tokenizer_name: "NousResearch/Llama-2-7b-hf" # HuggingFace tokenizer identifier.
+
+system_config:
+  num_gpus: 64 # Number of GPUs for distributed training (from paper).
+  master_port: 29500 # Port for distributed training communication.
+  seed: 42 # Random seed for reproducibility (not specified in paper, but good practice).

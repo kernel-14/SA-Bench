@@ -1,0 +1,6583 @@
+{
+  "paper_id": "conformal-bayesian-quadrature",
+  "repo_path": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/conformal-bayesian-quadrature/repo",
+  "scored_at": "2026-05-12T09:59:17.447393Z",
+  "model": "deepseek-v4-pro",
+  "dimensions": {
+    "D1": {
+      "score": 0.0,
+      "total_claims": 25,
+      "claims": [
+        {
+          "id": "conformal-bayesian-quadrature-D1-001",
+          "claim": "Number of random data splits/trials for Monte Carlo evaluation across all experiments = 10000",
+          "source": "Section 5, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "10000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiments",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "evaluation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "10000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiments",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiments[_\\- ]*number|experiments.*number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*evaluation|number.*evaluation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "evaluation[_\\- ]*monte|evaluation.*monte",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "monte[_\\- ]*carlo|monte.*carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "10000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "monte",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "trials",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "splits",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "random",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-002",
+          "claim": "Confidence level for the HPD interval; target failure rate is 1 - beta = 0.05 = 0.95",
+          "source": "Section 5, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.05",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "confidence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "interval",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "hpd",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.05",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "confidence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "interval",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "confidence[_\\- ]*interval|confidence.*interval",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "interval[_\\- ]*hpd|interval.*hpd",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "hpd[_\\- ]*failure|hpd.*failure",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "failure[_\\- ]*target|failure.*target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.05",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "failure",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "level",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "rate",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "beta",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-003",
+          "claim": "1 - beta = 0.05; maximum acceptable rate of trials exceeding the risk threshold = 0.05",
+          "source": "Section 5, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.05",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "acceptable",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "exceeding",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "maximum",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.05",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "acceptable",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "exceeding",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "acceptable[_\\- ]*threshold|acceptable.*threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "threshold[_\\- ]*exceeding|threshold.*exceeding",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "exceeding[_\\- ]*maximum|exceeding.*maximum",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "maximum[_\\- ]*trials|maximum.*trials",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.05",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "trials",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "risk",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "rate",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "beta",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-004",
+          "claim": "Number of Dirichlet Monte Carlo samples for estimating Pr(L^+ <= alpha) in the HPD decision rule computation = 1000",
+          "source": "Section 5, paragraph 2 (Eq 33 context)",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Dirichlet Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "computation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Dirichlet Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "computation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "dirichlet[_\\- ]*computation|dirichlet.*computation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "computation[_\\- ]*number|computation.*number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*estimating|number.*estimating",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "estimating[_\\- ]*monte|estimating.*monte",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "estimating",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "monte",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "decision",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "samples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-005",
+          "claim": "Method for computing 95% confidence intervals on binomial proportions of failure rate = Clopper-Pearson",
+          "source": "Table notes in Section 5",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Clopper-Pearson",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "proportions",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "confidence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "intervals",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Clopper-Pearson",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "proportions",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "confidence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "clopper\\-pearson[_\\- ]*proportions|clopper\\-pearson.*proportions",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "proportions[_\\- ]*confidence|proportions.*confidence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "confidence[_\\- ]*intervals|confidence.*intervals",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "intervals[_\\- ]*computing|intervals.*computing",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "computing",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "failure",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "rate",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-006",
+          "claim": "Confidence level for Clopper-Pearson intervals on reported relative frequencies = 0.95",
+          "source": "Table notes in Section 5",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Clopper-Pearson",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "confidence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "frequencies",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "intervals",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Clopper-Pearson",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "confidence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "frequencies",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "clopper\\-pearson[_\\- ]*confidence|clopper\\-pearson.*confidence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "confidence[_\\- ]*frequencies|confidence.*frequencies",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "frequencies[_\\- ]*intervals|frequencies.*intervals",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "intervals[_\\- ]*reported|intervals.*reported",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "reported",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "relative",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "level",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-007",
+          "claim": "Number of calibration samples in the synthetic binomial experiment = 10",
+          "source": "Section 5.1, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "synthetic",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "calibration[_\\- ]*number|calibration.*number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*experiment|number.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*synthetic|experiment.*synthetic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "synthetic[_\\- ]*binomial|synthetic.*binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "samples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-008",
+          "claim": "Number of binomial trials per sample in the loss function: l(z_i, lambda) = (1/K) * sum_{k=1}^K 1{V_{ik} > lambda} = 4",
+          "source": "Section 5.1, Eq 34",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "K 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "function",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "z_i",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "K 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "function",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*function|number.*function",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "function[_\\- ]*binomial|function.*binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "binomial[_\\- ]*z_i|binomial.*z_i",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "z_i[_\\- ]*trials|z_i.*trials",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "trials",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "sum",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "sample",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "loss",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-009",
+          "claim": "Target risk threshold; decision rule lambda must satisfy R(theta, lambda) <= 0.4 = 0.4",
+          "source": "Section 5.1, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "decision",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "satisfy",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "decision",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "target[_\\- ]*threshold|target.*threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "threshold[_\\- ]*decision|threshold.*decision",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "decision[_\\- ]*satisfy|decision.*satisfy",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "satisfy[_\\- ]*lambda|satisfy.*lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "theta",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "rule",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "risk",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-010",
+          "claim": "Maximum possible loss, normalized to 1; used as l_{(n+1)} = B in L^+ construction = 1",
+          "source": "Section 5.1, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "construction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "maximum",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "normalized",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "possible",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "loss",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "construction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "maximum",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "normalized",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "possible",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "construction[_\\- ]*maximum|construction.*maximum",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "maximum[_\\- ]*normalized|maximum.*normalized",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "normalized[_\\- ]*possible|normalized.*possible",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "possible[_\\- ]*loss|possible.*loss",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "n+1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "epoch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-011",
+          "claim": "Value of lambda achieving zero loss; the problem is achievable since there exists a lambda_max satisfying the guarantee = 1",
+          "source": "Section 5.1, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "lambda_max",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "satisfying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "achievable",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "value",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "guarantee",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "lambda_max",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "satisfying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "achievable",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "value",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_max[_\\- ]*satisfying|lambda_max.*satisfying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "satisfying[_\\- ]*achievable|satisfying.*achievable",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "achievable[_\\- ]*value|achievable.*value",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "value[_\\- ]*guarantee|value.*guarantee",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "achieving",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "problem",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "exists",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "there",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-012",
+          "claim": "Derived from E[l] = 1 - lambda and alpha = 0.4: any trial with lambda < 0.6 has expected loss > 0.4, thus constitutes excessive risk = 0.6",
+          "source": "Section 5.1, paragraph 2",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.6",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "derived",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "constitutes",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "excessive",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.6",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "derived",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "constitutes",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "derived[_\\- ]*constitutes|derived.*constitutes",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "constitutes[_\\- ]*excessive|constitutes.*excessive",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "excessive[_\\- ]*expected|excessive.*expected",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "expected[_\\- ]*lambda|expected.*lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.6",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "expected",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "trial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "alpha",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "thus",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-013",
+          "claim": "Distribution of V_{ik} used to generate the binomial loss: V_{ik} ~ Uniform(0, 1) = Uniform(0, 1)",
+          "source": "Section 5.1, Eq 34",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "distribution",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "generate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "loss",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "distribution",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "generate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "distribution[_\\- ]*uniform|distribution.*uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "uniform[_\\- ]*uniform|uniform.*uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "uniform[_\\- ]*generate|uniform.*generate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "generate[_\\- ]*binomial|generate.*binomial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "epoch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "weight_decay",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-014",
+          "claim": "Number of Dirichlet samples used for estimating the L^+ density histogram in Figure 4 = 100000",
+          "source": "Section 5.1, paragraph 3",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "100000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Figure 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "estimating",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "100000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Figure 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "dirichlet[_\\- ]*number|dirichlet.*number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*estimating|number.*estimating",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "estimating[_\\- ]*histogram|estimating.*histogram",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "histogram[_\\- ]*samples|histogram.*samples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "100000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "histogram",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "samples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "density",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-015",
+          "claim": "Three lambda settings used for visualizing the L^+ distribution in Figure 4 = [0.7, 0.8, 0.9]",
+          "source": "Section 5.1, paragraph 3; Figure 4",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.7",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.8",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.9",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Figure 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "distribution",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.7",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.8",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.9",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Figure 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "distribution[_\\- ]*visualizing|distribution.*visualizing",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "visualizing[_\\- ]*three|visualizing.*three",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "three[_\\- ]*settings|three.*settings",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "settings[_\\- ]*lambda|settings.*lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.7",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.8",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.9",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "visualizing",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "three",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "settings",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-016",
+          "claim": "Number of calibration samples per trial in the synthetic heteroskedastic experiment = 200",
+          "source": "Section 5.2, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "200",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "heteroskedastic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "200",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "heteroskedastic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "heteroskedastic[_\\- ]*calibration|heteroskedastic.*calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "calibration[_\\- ]*number|calibration.*number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*experiment|number.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*synthetic|experiment.*synthetic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "200",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "synthetic",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "samples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "trial",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "per",
+              "results": 5,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-017",
+          "claim": "Target miscoverage risk; equivalent to 90% coverage target = 0.1",
+          "source": "Section 5.2, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "90",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "miscoverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "equivalent",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "90",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "miscoverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "miscoverage[_\\- ]*target|miscoverage.*target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "target[_\\- ]*equivalent|target.*equivalent",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "equivalent[_\\- ]*coverage|equivalent.*coverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "coverage[_\\- ]*target|coverage.*target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "90",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "coverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "risk",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-018",
+          "claim": "Lower bound of input distribution X ~ Uniform(0, 4) = 0",
+          "source": "Section 5.2, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "distribution",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "lower",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "input",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "bound",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "distribution",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "lower",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "input",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "distribution[_\\- ]*uniform|distribution.*uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "uniform[_\\- ]*lower|uniform.*lower",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lower[_\\- ]*input|lower.*input",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "input[_\\- ]*bound|input.*bound",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "epoch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "weight_decay",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-019",
+          "claim": "Upper bound of input distribution X ~ Uniform(0, 4) = 4",
+          "source": "Section 5.2, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "distribution",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "upper",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "input",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "bound",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "distribution",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "upper",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "input",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "distribution[_\\- ]*uniform|distribution.*uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "uniform[_\\- ]*upper|uniform.*upper",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "upper[_\\- ]*input|upper.*input",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "input[_\\- ]*bound|input.*bound",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "epoch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "weight_decay",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-020",
+          "claim": "Y | X ~ N(0, X^2); heteroskedastic noise with variance proportional to X^2 = N(0, X^2)",
+          "source": "Section 5.2, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "heteroskedastic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "proportional",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "variance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "noise",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "heteroskedastic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "proportional",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "variance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "noise",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "heteroskedastic[_\\- ]*proportional|heteroskedastic.*proportional",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "proportional[_\\- ]*variance|proportional.*variance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "variance[_\\- ]*noise|variance.*noise",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "epoch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "weight_decay",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "beta",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-021",
+          "claim": "Symmetric prediction intervals centered at 0; lambda_hat is the threshold selected by each method = [-lambda_hat, lambda_hat]",
+          "source": "Section 5.2, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "symmetric",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "lambda_hat",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "prediction",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "intervals",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "symmetric",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "lambda_hat",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "prediction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "symmetric[_\\- ]*lambda_hat|symmetric.*lambda_hat",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_hat[_\\- ]*lambda_hat|lambda_hat.*lambda_hat",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_hat[_\\- ]*prediction|lambda_hat.*prediction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "selected",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "centered",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "each",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-022",
+          "claim": "Loss is the miscoverage loss (0-1 loss for whether the true Y falls outside the prediction interval) = miscoverage",
+          "source": "Section 5.2, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "miscoverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "prediction",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "loss",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "interval",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "whether",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "miscoverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "prediction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "loss",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "interval",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "miscoverage[_\\- ]*miscoverage|miscoverage.*miscoverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "miscoverage[_\\- ]*prediction|miscoverage.*prediction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "prediction[_\\- ]*loss|prediction.*loss",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "loss[_\\- ]*interval|loss.*interval",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "outside",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "falls",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "true",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-023",
+          "claim": "Number of calibration examples per random split in the MS-COCO experiment = 1000",
+          "source": "Section 5.3, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "MS-COCO",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "MS-COCO",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "ms\\-coco[_\\- ]*calibration|ms\\-coco.*calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "calibration[_\\- ]*number|calibration.*number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*experiment|number.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*examples|experiment.*examples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "examples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "random",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "split",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "per",
+              "results": 5,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-024",
+          "claim": "Number of test examples per random split in the MS-COCO experiment = 3952",
+          "source": "Section 5.3, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3952",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "MS-COCO",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "examples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3952",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "MS-COCO",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "ms\\-coco[_\\- ]*number|ms\\-coco.*number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*experiment|number.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*examples|experiment.*examples",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "examples[_\\- ]*random|examples.*random",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3952",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "random",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "split",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "test",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "per",
+              "results": 5,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D1-025",
+          "claim": "Task type for MS-COCO: controlling false negative rate in multilabel classification = multilabel_classification",
+          "source": "Section 5.3, paragraph 1",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "MS-COCO",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "multilabel_classification",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "classification",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "controlling",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "multilabel",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "MS-COCO",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "multilabel_classification",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "classification",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "controlling",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "multilabel_classification[_\\- ]*ms\\-coco|multilabel_classification.*ms\\-coco",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "ms\\-coco[_\\- ]*classification|ms\\-coco.*classification",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "classification[_\\- ]*controlling|classification.*controlling",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "controlling[_\\- ]*multilabel|controlling.*multilabel",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "task",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "negative",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "false",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "type",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "rate",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(config|args|param|hyper)",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        }
+      ]
+    },
+    "D2": {
+      "score": 0.0,
+      "total_claims": 6,
+      "claims": [
+        {
+          "id": "conformal-bayesian-quadrature-D2-001",
+          "claim": "Split conformal prediction decision rule: lambda_scp = s_{(ceil((n+1)*(1-alpha)))} when ceil((n+1)*(1-alpha)) <= n, otherwise lambda_scp = infinity. This is an alpha-acceptable decision rule for the miscoverage loss L_scp(theta, lambda) = Pr{s(z_new) > lambda}.",
+          "source": "Section 3.1, Proposition 3.1, Eq 12",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "alpha-acceptable",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "lambda_scp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "l_scp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "miscoverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "prediction",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "alpha-acceptable",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "lambda_scp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "l_scp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "miscoverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "alpha\\-acceptable[_\\- ]*lambda_scp|alpha\\-acceptable.*lambda_scp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_scp[_\\- ]*lambda_scp|lambda_scp.*lambda_scp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_scp[_\\- ]*l_scp|lambda_scp.*l_scp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "l_scp[_\\- ]*miscoverage|l_scp.*miscoverage",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "split",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "otherwise",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "conformal",
+              "results": 4,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "z_new",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "alpha",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(loss|forward|sigma|alpha|beta|norm|grad)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(torch|numpy|jax)\\.",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D2-002",
+          "claim": "Conformal risk control decision rule: lambda_crc = inf{lambda: (1/(n+1)) * (sum_{i=1}^n l(z_i, lambda) + B) <= alpha}, where l(z, lambda) is monotonically non-increasing in lambda and B is the maximum possible loss.",
+          "source": "Section 3.2, Proposition 3.2, Eq 15",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "non-increasing",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "monotonically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "lambda_crc",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "conformal",
+              "results": 4,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "possible",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "non-increasing",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "monotonically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "lambda_crc",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "conformal",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "non\\-increasing[_\\- ]*monotonically|non\\-increasing.*monotonically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "monotonically[_\\- ]*lambda_crc|monotonically.*lambda_crc",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_crc[_\\- ]*conformal|lambda_crc.*conformal",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "conformal[_\\- ]*possible|conformal.*possible",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "decision",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "maximum",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "control",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "z_i",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "sum",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(loss|forward|sigma|alpha|beta|norm|grad)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(torch|numpy|jax)\\.",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D2-003",
+          "claim": "Full algorithm: lambda_hpd^beta = inf{lambda: Pr(L^+ <= alpha | l_{1:n}(lambda)) >= beta}. For each candidate lambda (descending search): (1) compute calibration losses l_i(lambda); (2) sort losses ascending; (3) append B as l_{(n+1)}; (4) sample Dirichlet U ~ Dir(1,...,1); (5) compute L^+ = sum U_i * l_(i); (6) estimate Pr(L^+ <= alpha) via Monte Carlo; (7) if prob >= beta, return lambda. Implemented with 1000 Dirichlet MC samples.",
+          "source": "Section 5, Eq 33",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Dirichlet U",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Dirichlet MC",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "implemented",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Dirichlet U",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Dirichlet MC",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "implemented[_\\- ]*lambda_hpd|implemented.*lambda_hpd",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_hpd[_\\- ]*dirichlet|lambda_hpd.*dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "dirichlet[_\\- ]*dirichlet|dirichlet.*dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "dirichlet[_\\- ]*calibration|dirichlet.*calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lambda_hpd",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "calibration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "u_i",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "descending",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(loss|forward|sigma|alpha|beta|norm|grad)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(torch|numpy|jax)\\.",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D2-004",
+          "claim": "Constructs the prediction set or interval from the selected threshold lambda: C(x_new) = {y in Y: s(x_new, y) <= lambda}. For a test input x_new, collect all candidate outputs y whose nonconformity score s(x_new, y) is at most lambda.",
+          "source": "Section 2.1, Eq 2; Section 3.1, Eq 13",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "constructs",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "nonconformity",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "prediction",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "candidate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "constructs",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "nonconformity",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "prediction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "constructs[_\\- ]*nonconformity|constructs.*nonconformity",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "nonconformity[_\\- ]*prediction|nonconformity.*prediction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "prediction[_\\- ]*threshold|prediction.*threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "threshold[_\\- ]*candidate|threshold.*candidate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "x_new",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "selected",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lambda",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "score",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "loss",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(loss|forward|sigma|alpha|beta|norm|grad)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(torch|numpy|jax)\\.",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D2-005",
+          "claim": "Constructs the random variable L^+ that stochastically dominates the posterior risk. Sample U_1,...,U_{n+1} ~ Dir(1,...,1) and compute L^+ = sum_{i=1}^{n+1} U_i * l_(i). The distribution of L^+ provides a distribution-free upper bound on posterior expected loss. Implement via Monte Carlo: for each Dirichlet sample, compute weighted sum of sorted losses with B appended as l_{(n+1)}.",
+          "source": "Section 4.5, Theorem 4.3, Eq 27",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Sample U",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "distribution-free",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "stochastically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "constructs",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Sample U",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "distribution-free",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "stochastically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "distribution\\-free[_\\- ]*stochastically|distribution\\-free.*stochastically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "stochastically[_\\- ]*constructs|stochastically.*constructs",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "constructs[_\\- ]*implement|constructs.*implement",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "implement[_\\- ]*dirichlet|implement.*dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "implement",
+              "results": 4,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "distribution",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "u_i",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "u_1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(loss|forward|sigma|alpha|beta|norm|grad)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(torch|numpy|jax)\\.",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D2-006",
+          "claim": "Loss function for the synthetic binomial experiment (Section 5.1). Computes the fraction of K uniform random draws exceeding threshold lambda. The loss is monotonically non-increasing in lambda, bounded by B=1, and achieves zero loss at lambda_max=1.",
+          "source": "Section 5.1, Eq 34",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "5.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Section 5",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "non-increasing",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "monotonically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "lambda_max",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "5.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Section 5",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "non-increasing",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "monotonically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "non\\-increasing[_\\- ]*monotonically|non\\-increasing.*monotonically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "monotonically[_\\- ]*lambda_max|monotonically.*lambda_max",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_max[_\\- ]*computes|lambda_max.*computes",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "computes[_\\- ]*experiment|computes.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "5\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "computes",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "threshold",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "synthetic",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "exceeding",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(loss|forward|sigma|alpha|beta|norm|grad)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(torch|numpy|jax)\\.",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        }
+      ]
+    },
+    "D3": {
+      "score": 0.0,
+      "total_claims": 3,
+      "claims": [
+        {
+          "id": "conformal-bayesian-quadrature-D3-001",
+          "claim": "Synthetic Binomial benchmark (Section 5.1): Demonstrate that CRC marginal guarantee can lead to high frequency of individual trials exceeding target risk; validate that the HPD approach controls per-trial risk at specified confidence level. The loss is a scaled binomial l(z_i, lambda) = (1/K) * sum_{k=1}^K 1{V_{ik} > lambda} with V_{ik} ~ Uniform(0,1), n=10, K=4, alpha=0.4, B=1. Since E[l] = 1 - lambda, risk threshold is exactly known (lambda < 0.6 = excessive risk). Three methods compared across M=10,000 random splits, evaluating relative frequency of risk exceedance with 95% Clopper-Pearson CI: CRC 21.20% [20.40%, 22.01%], RCPS (Hoeffding UCB) 0.00% [0.00%, 0.04%], Ours (HPD, beta=0.95) 0.03% [0.01%, 0.09%]. Mean risk across all trials: CRC 0.3363 +/- 0.0007 vs Ours 0.1758 +/- 0.0006. L^+ distribution histograms visualized for lambda in {0.7, 0.8, 0.9} (Figure 4, 100,000 Dirichlet samples).",
+          "source": "Section 5.1, Table 1, Figure 3, Figure 4",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "5.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.6",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "5.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.6",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "clopper\\-pearson[_\\- ]*demonstrate|clopper\\-pearson.*demonstrate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "demonstrate[_\\- ]*synthetic|demonstrate.*synthetic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "synthetic[_\\- ]*hoeffding|synthetic.*hoeffding",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "hoeffding[_\\- ]*dirichlet|hoeffding.*dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "5\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.6",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "21.20",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "20.40",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "22.01",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "0.00",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(train|eval|dataset|metric|epoch)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(DataLoader|Trainer|evaluate)",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D3-002",
+          "claim": "Synthetic Heteroskedastic benchmark (Section 5.2): Compare methods under input-dependent noise X ~ Uniform(0,4), Y|X ~ N(0, X^2) with n=200 calibration samples per trial across M=10,000 random splits. Prediction intervals are symmetric [-lambda_hat, lambda_hat]; loss is miscoverage (0-1); alpha=0.1 (90% coverage target); target failure rate <= 5% (beta=0.95). Three methods compared on relative frequency of risk exceedance (95% Clopper-Pearson CI) and mean prediction interval length: SCP/CRC 46.19% [45.21%, 47.17%], interval 7.99; RCPS (Hoeffding UCB) 0.0% [0.0%, 0.04%], interval 14.29; Ours (HPD, beta=0.95) 3.42% [3.07%, 3.80%], interval 9.50. Evaluate whether HPD achieves target failure rate (<= 5%) while producing shorter prediction intervals than RCPS: RCPS under-control (0.0%, interval 14.29) but conservative; Ours achieves 3.42% (within 5% target) with 33.5% shorter intervals than RCPS (9.50 vs 14.29).",
+          "source": "Section 5.2, Table 2",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "5.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "200",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "5.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "200",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "clopper\\-pearson[_\\- ]*heteroskedastic|clopper\\-pearson.*heteroskedastic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "heteroskedastic[_\\- ]*input\\-dependent|heteroskedastic.*input\\-dependent",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "input\\-dependent[_\\- ]*under\\-control|input\\-dependent.*under\\-control",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "under\\-control[_\\- ]*prediction|under\\-control.*prediction",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "5\\.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "200",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "90",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "0.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "46.19",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "45.21",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(train|eval|dataset|metric|epoch)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(DataLoader|Trainer|evaluate)",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D3-003",
+          "claim": "MS-COCO real-world benchmark (Section 5.3): Evaluate methods on multilabel classification false negative rate control (fraction of ground-truth labels not in prediction set). Setup mirrors Angelopoulos & Bates (2023, Section 5.1); each of M=10,000 random splits contains 1000 calibration and 3952 test examples. Three methods compared on relative frequency of risk exceedance and average prediction set size: CRC 45.05%, set size 2.92; RCPS (Hoeffding UCB) 0.0%, set size 3.57; Ours (HPD, beta=0.95) 5.43%, set size 3.04. CRC marginal guarantee allows 45.05% of trials to exceed risk threshold with smallest sets (2.92). RCPS controls risk perfectly (0.0%) but produces largest sets (3.57). Ours achieves near-target failure rate (5.43%, closest to 5%) with intermediate set size (3.04), balancing risk control and efficiency.",
+          "source": "Section 5.3, Table 3",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "5.3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "2023",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "5.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "5.3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "2023",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "5.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "angelopoulos[_\\- ]*ground\\-truth|angelopoulos.*ground\\-truth",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "ground\\-truth[_\\- ]*near\\-target|ground\\-truth.*near\\-target",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "near\\-target[_\\- ]*ms\\-coco|near\\-target.*ms\\-coco",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "ms\\-coco[_\\- ]*classification|ms\\-coco.*classification",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "5\\.3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "2023",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "5\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "3952",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "45.05",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "2.92",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "0.0",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(train|eval|dataset|metric|epoch)",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(DataLoader|Trainer|evaluate)",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        }
+      ]
+    },
+    "D4": {
+      "score": 0.0,
+      "total_claims": 4,
+      "claims": [
+        {
+          "id": "conformal-bayesian-quadrature-D4-001",
+          "claim": "Paper-specified theoretical development ordering: Section 3 (Decision-theoretic formulation: define risk R(theta, lambda), maximum risk Rbar(lambda), alpha-acceptable decision rules) -> Section 3.1 (Recover split conformal prediction as special case, Proposition 3.1) -> Section 3.2 (Recover conformal risk control as special case, Proposition 3.2) -> Section 4.1 (Introduce Bayes risk via integrated risk r(pi, lambda) and worst-case integrated risk rbar(lambda) = Rbar(lambda)) -> Section 4.2 (Reformulate as Bayesian quadrature: model quantile function K(t), posterior p(K|l_{1:n})) -> Section 4.3 (Eliminate prior: derive worst-case bound sup_pi E(L|t_{1:n},l_{1:n}) <= sum u_i * l_(i), Theorem 4.1) -> Section 4.4 (Handle input noise: apply quantile spacings Dirichlet distribution, Lemma 4.2) -> Section 4.5 (Combine: L^+ stochastic dominance and confidence bound b_beta*, Theorem 4.3 + Corollary 4.4; key output: L^+ bound feeds the HPD decision rule in Section 5) -> Section 4.6 (Recover CRC and SCP by taking expectation of L^+).",
+          "source": "Section 3 through Section 4.6",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "4.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "4.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "4.3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "4.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "4.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "decision\\-theoretic[_\\- ]*paper\\-specified|decision\\-theoretic.*paper\\-specified",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "paper\\-specified[_\\- ]*alpha\\-acceptable|paper\\-specified.*alpha\\-acceptable",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "alpha\\-acceptable[_\\- ]*reformulate|alpha\\-acceptable.*reformulate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "reformulate[_\\- ]*proposition|reformulate.*proposition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3\\.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "4\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "4\\.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "4.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "4.5",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "4.6",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Section 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Proposition 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(pipeline|phase|runner|trainer|workflow)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(class|def)\\s+\\w+",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D4-002",
+          "claim": "HPD decision rule computation procedure (per trial): (1) For candidate lambda, compute calibration losses l(z_i, lambda) for i=1..n; (2) Sort losses ascending: l_{(1)}, ..., l_{(n)}; (3) Append B as l_{(n+1)}; (4) Monte Carlo: sample U ~ Dir(1,...,1) repeatedly, compute L^+ = sum U_i * l_{(i)} each time; (5) Estimate Pr(L^+ <= alpha) as empirical fraction of samples where L^+ <= alpha; (6) Select lowest lambda such that Pr(L^+ <= alpha) >= beta; (7) Form prediction set C(x_new) = {y: s(x_new, y) <= lambda}. Parameter setting: 1000 Dirichlet samples for HPD, 100000 for visualization histograms.",
+          "source": "Section 4.5, Eq 27-29; Section 5, Eq 33; Figure 2",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "100000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Append B",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Estimate Pr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "100000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Append B",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Monte Carlo",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "visualization[_\\- ]*parameter|visualization.*parameter",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "parameter[_\\- ]*dirichlet|parameter.*dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "dirichlet[_\\- ]*estimate|dirichlet.*estimate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "estimate[_\\- ]*computation|estimate.*computation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "100000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(pipeline|phase|trainer|runner|workflow|schedule|step)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "visualization",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "parameter",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "estimate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "computation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(pipeline|phase|runner|trainer|workflow)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(class|def)\\s+\\w+",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D4-003",
+          "claim": "Experimental evaluation pipeline ordering: (1) Synthetic Binomial (Section 5.1): known loss distribution E[l]=1-lambda, n=10, K=4, alpha=0.4, directly verifiable risk threshold; (2) Synthetic Heteroskedastic (Section 5.2): X~Uniform(0,4), Y|X~N(0,X^2), n=200, alpha=0.1, symmetric intervals; (3) MS-COCO (Section 5.3): real-world multilabel classification, n=1000 calibration + 3952 test, false negative rate control. All experiments: M=10000 random splits, compute CRC/RCPS/HPD decision rules, evaluate relative frequency of risk exceedance and prediction set size. Data flow per experiment: calibration split -> lambda threshold (via CRC/RCPS/HPD) -> test split evaluation -> risk exceedance frequency + set size reporting.",
+          "source": "Section 5, Section 5.1, Section 5.2, Section 5.3",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "5.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "5.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "200",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "5.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "5.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "heteroskedastic[_\\- ]*experimental|heteroskedastic.*experimental",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experimental[_\\- ]*ms\\-coco|experimental.*ms\\-coco",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "ms\\-coco[_\\- ]*classification|ms\\-coco.*classification",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "classification[_\\- ]*synthetic|classification.*synthetic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "5\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "5\\.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "0.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "5.3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "1000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "3952",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "10000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(pipeline|phase|runner|trainer|workflow)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(class|def)\\s+\\w+",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        },
+        {
+          "id": "conformal-bayesian-quadrature-D4-004",
+          "claim": "Baseline methods comparison order (per experiment/trial): (1) Conformal Risk Control: compute lambda_crc = inf{lambda: (1/(n+1))(sum l_i + B) <= alpha} using only expected value of L^+; (2) RCPS with Hoeffding UCB: compute lambda via upper confidence bound on empirical risk; (3) Ours (HPD, beta=0.95): compute lambda_hpd via the 7-step Monte Carlo Dirichlet HPD procedure. Source for CRC: Section 3.2 Eq 15. Source for RCPS: Bates et al. (2021). Source for HPD: Section 5 Eq 33. Metric reporting: relative freq of risk exceedance with 95% Clopper-Pearson CI, prediction set size/interval length.",
+          "source": "Section 5, Table 1, Table 2, Table 3",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "0.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "15",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "2021",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "33",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "0.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "15",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "2021",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "clopper\\-pearson[_\\- ]*lambda_hpd|clopper\\-pearson.*lambda_hpd",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_hpd[_\\- ]*lambda_crc|lambda_hpd.*lambda_crc",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lambda_crc[_\\- ]*hoeffding|lambda_crc.*hoeffding",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "hoeffding[_\\- ]*dirichlet|hoeffding.*dirichlet",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "0\\.95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3\\.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "15",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "2021",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "95",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Conformal Risk Control",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Hoeffding UCB",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Monte Carlo Dirichlet HPD",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Section 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(pipeline|phase|runner|trainer|workflow)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(class|def)\\s+\\w+",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        }
+      ]
+    }
+  },
+  "overall_score": 0.0
+}

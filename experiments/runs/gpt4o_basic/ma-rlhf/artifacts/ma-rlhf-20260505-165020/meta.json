@@ -1,0 +1,174 @@
+{
+  "case_id": "ma-rlhf",
+  "run_id": "ma-rlhf-20260505-165020",
+  "model_name": "gpt-4o",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 467288,
+    "total_output_tokens": 5678,
+    "total_tokens": 472966,
+    "estimated_cost_usd": 1.487,
+    "elapsed_seconds": 214.0,
+    "steps": 26,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 2.72,
+        "input_tokens": 1198,
+        "output_tokens": 29
+      },
+      {
+        "step": 2,
+        "elapsed_s": 1.28,
+        "input_tokens": 1245,
+        "output_tokens": 32
+      },
+      {
+        "step": 3,
+        "elapsed_s": 1.91,
+        "input_tokens": 4308,
+        "output_tokens": 32
+      },
+      {
+        "step": 4,
+        "elapsed_s": 2.56,
+        "input_tokens": 6935,
+        "output_tokens": 32
+      },
+      {
+        "step": 5,
+        "elapsed_s": 15.84,
+        "input_tokens": 9100,
+        "output_tokens": 401
+      },
+      {
+        "step": 6,
+        "elapsed_s": 11.46,
+        "input_tokens": 11956,
+        "output_tokens": 377
+      },
+      {
+        "step": 7,
+        "elapsed_s": 10.84,
+        "input_tokens": 14274,
+        "output_tokens": 321
+      },
+      {
+        "step": 8,
+        "elapsed_s": 4.38,
+        "input_tokens": 15113,
+        "output_tokens": 27
+      },
+      {
+        "step": 9,
+        "elapsed_s": 3.08,
+        "input_tokens": 15470,
+        "output_tokens": 27
+      },
+      {
+        "step": 10,
+        "elapsed_s": 6.35,
+        "input_tokens": 15766,
+        "output_tokens": 31
+      },
+      {
+        "step": 11,
+        "elapsed_s": 6.49,
+        "input_tokens": 15829,
+        "output_tokens": 154
+      },
+      {
+        "step": 12,
+        "elapsed_s": 3.89,
+        "input_tokens": 16247,
+        "output_tokens": 32
+      },
+      {
+        "step": 13,
+        "elapsed_s": 11.26,
+        "input_tokens": 19570,
+        "output_tokens": 297
+      },
+      {
+        "step": 14,
+        "elapsed_s": 6.67,
+        "input_tokens": 20051,
+        "output_tokens": 133
+      },
+      {
+        "step": 15,
+        "elapsed_s": 16.02,
+        "input_tokens": 20201,
+        "output_tokens": 636
+      },
+      {
+        "step": 16,
+        "elapsed_s": 8.04,
+        "input_tokens": 21874,
+        "output_tokens": 187
+      },
+      {
+        "step": 17,
+        "elapsed_s": 7.39,
+        "input_tokens": 22657,
+        "output_tokens": 111
+      },
+      {
+        "step": 18,
+        "elapsed_s": 10.99,
+        "input_tokens": 23149,
+        "output_tokens": 154
+      },
+      {
+        "step": 19,
+        "elapsed_s": 14.8,
+        "input_tokens": 23322,
+        "output_tokens": 376
+      },
+      {
+        "step": 20,
+        "elapsed_s": 10.01,
+        "input_tokens": 24295,
+        "output_tokens": 498
+      },
+      {
+        "step": 21,
+        "elapsed_s": 9.79,
+        "input_tokens": 25460,
+        "output_tokens": 426
+      },
+      {
+        "step": 22,
+        "elapsed_s": 10.95,
+        "input_tokens": 26531,
+        "output_tokens": 413
+      },
+      {
+        "step": 23,
+        "elapsed_s": 6.78,
+        "input_tokens": 27557,
+        "output_tokens": 129
+      },
+      {
+        "step": 24,
+        "elapsed_s": 7.92,
+        "input_tokens": 27859,
+        "output_tokens": 74
+      },
+      {
+        "step": 25,
+        "elapsed_s": 11.42,
+        "input_tokens": 28103,
+        "output_tokens": 476
+      },
+      {
+        "step": 26,
+        "elapsed_s": 10.91,
+        "input_tokens": 29218,
+        "output_tokens": 273
+      }
+    ]
+  }
+}

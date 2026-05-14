@@ -1,0 +1,96 @@
+{
+  "case_id": "ngpt",
+  "run_id": "ngpt-20260505-142142",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 209696,
+    "total_output_tokens": 13127,
+    "total_tokens": 222823,
+    "estimated_cost_usd": 0.826,
+    "elapsed_seconds": 231.2,
+    "steps": 13,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 9.03,
+        "input_tokens": 1323,
+        "output_tokens": 66
+      },
+      {
+        "step": 2,
+        "elapsed_s": 3.07,
+        "input_tokens": 1298,
+        "output_tokens": 75
+      },
+      {
+        "step": 3,
+        "elapsed_s": 5.8,
+        "input_tokens": 5765,
+        "output_tokens": 566
+      },
+      {
+        "step": 4,
+        "elapsed_s": 15.07,
+        "input_tokens": 11628,
+        "output_tokens": 531
+      },
+      {
+        "step": 5,
+        "elapsed_s": 39.3,
+        "input_tokens": 11799,
+        "output_tokens": 1431
+      },
+      {
+        "step": 6,
+        "elapsed_s": 4.21,
+        "input_tokens": 14608,
+        "output_tokens": 263
+      },
+      {
+        "step": 7,
+        "elapsed_s": 30.31,
+        "input_tokens": 15205,
+        "output_tokens": 1667
+      },
+      {
+        "step": 8,
+        "elapsed_s": 27.03,
+        "input_tokens": 17129,
+        "output_tokens": 2375
+      },
+      {
+        "step": 9,
+        "elapsed_s": 32.24,
+        "input_tokens": 21216,
+        "output_tokens": 1549
+      },
+      {
+        "step": 10,
+        "elapsed_s": 22.34,
+        "input_tokens": 23674,
+        "output_tokens": 1109
+      },
+      {
+        "step": 11,
+        "elapsed_s": 16.84,
+        "input_tokens": 26060,
+        "output_tokens": 855
+      },
+      {
+        "step": 12,
+        "elapsed_s": 13.82,
+        "input_tokens": 27811,
+        "output_tokens": 2183
+      },
+      {
+        "step": 13,
+        "elapsed_s": 11.99,
+        "input_tokens": 32180,
+        "output_tokens": 457
+      }
+    ]
+  }
+}

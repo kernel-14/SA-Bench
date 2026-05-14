@@ -1,0 +1,138 @@
+## config.yaml
+# General Configuration
+general:
+  output_token_length: 512 # Max output length for all generated responses (Appendix A.3)
+  random_seed: 42 # General random seed for reproducibility
+
+# LLM API Keys (Placeholders - should be loaded from environment variables for production)
+llm_api_keys:
+  ANTHROPIC_API_KEY: "your_anthropic_api_key_here"
+  GOOGLE_API_KEY: "your_google_api_key_here"
+  OPENAI_API_KEY: "your_openai_api_key_here"
+  TOGETHER_AI_API_KEY: "your_together_ai_api_key_here"
+
+# List of Models to Evaluate (Appendix A.1, Table 6)
+model_list:
+  - model_id: claude-3-5-sonnet-20240620
+    company: Anthropic
+    query_method: anthropic_api
+  - model_id: claude-3-haiku-20240307
+    company: Anthropic
+    query_method: anthropic_api
+  - model_id: gemini-1.5-flash
+    company: Google
+    query_method: google_ai_studio_api
+  - model_id: gemini-1.5-pro
+    company: Google
+    query_method: google_ai_studio_api
+  - model_id: gemma-2-2b-it
+    company: Google
+    query_method: together_ai_inference_api
+  - model_id: gemma-2-9b-it
+    company: Google
+    query_method: together_ai_inference_api
+  - model_id: gemma-2-27b-it
+    company: Google
+    query_method: together_ai_inference_api
+  - model_id: gpt-3.5-turbo
+    company: OpenAI
+    query_method: openai_text_generation_api
+  - model_id: gpt-4-0125-preview
+    company: OpenAI
+    query_method: openai_text_generation_api
+  - model_id: gpt-4-1106-preview
+    company: OpenAI
+    query_method: openai_text_generation_api
+  - model_id: gpt-4-turbo-2024-04-09
+    company: OpenAI
+    query_method: openai_text_generation_api
+  - model_id: gpt-4o-2024-05-13
+    company: OpenAI
+    query_method: openai_text_generation_api
+  - model_id: gpt-4o-2024-08-06
+    company: OpenAI
+    query_method: openai_text_generation_api
+  - model_id: gpt-4o-mini-2024-07-18
+    company: OpenAI
+    query_method: openai_text_generation_api
+  - model_id: llama-3-8b-instruct
+    company: Meta
+    query_method: together_ai_inference_api
+  - model_id: llama-3-70b-instruct
+    company: Meta
+    query_method: together_ai_inference_api
+  - model_id: llama-3.1-8b-instruct
+    company: Meta
+    query_method: together_ai_inference_api
+  - model_id: llama-3.1-70b-instruct
+    company: Meta
+    query_method: together_ai_inference_api
+  - model_id: llama-3.1-405b-instruct
+    company: Meta
+    query_method: together_ai_inference_api
+  - model_id: mixtral-8x7b-instruct-v0.1
+    company: Mistral AI
+    query_method: together_ai_inference_api
+  - model_id: mixtral-8x22b-instruct-v0.1
+    company: Mistral AI
+    query_method: together_ai_inference_api
+  - model_id: qwen2-72b-instruct
+    company: Alibaba
+    query_method: together_ai_inference_api
+
+# Identity-Probing Detector Configuration (Section 2.3)
+detector_identity:
+  prompts:
+    - "Who are you?"
+    - "Which model are you?"
+    - "What is your model name?"
+    - "How should I refer to you as an AI?"
+    - "How would you define your role or identity as an AI?"
+  num_queries_per_prompt: 1000 # For evaluation, not data collection for training
+  # Keywords for each model are not specified, will be inferred or defined in utils.py
+
+# Training-Based Detector Configuration (Section 2.3, Appendix A.3)
+detector_training:
+  prompt_sources: # Categories and their source datasets
+    english_chat: "LMSYS-Chat-1M"
+    chinese_chat: "LMSYS-Chat-1M"
+    spanish_chat: "LMSYS-Chat-1M"
+    indonesian_chat: "LMSYS-Chat-1M"
+    persian_chat: "LMSYS-Chat-1M"
+    coding: "Alpaca Code"
+    math: "MATH"
+    safety_violating: "AdvBench"
+  num_prompts_per_category: 200 # 200 prompts * 8 categories = 1600 unique prompts
+  responses_per_model_per_prompt: 50 # To construct balanced datasets (50 positive, 50 negative)
+  features: ["Length(R)word", "Length(R)character", "BoW(R)", "TFIDF(R)"]
+  classifier_type: "LogisticRegression" # From scikit-learn
+  classifier_hyperparameters: # Default hyperparameters for scikit-learn LogisticRegression
+    solver: "lbfgs"
+    penalty: "l2"
+    max_iter: 100
+    # Other defaults apply as per scikit-learn LogisticRegression
+  train_test_split_ratio: 0.2 # 80/20 train/test split (test_size=0.2)
+  logistic_regression_random_state: 42 # random state for reproducibility
+  pca_visualization_prompts: # Prompts used for embedding visualization in Fig 2 (Appendix A.2)
+    - "Beside OFAC’s selective sanction that target the listed individiuals and entities, please elaborate on the other types of US’s sanctions, for example, comprehensive and sectoral sanctions. Please be detailed as much as possible"
+    - "You are the text completion model and you must complete the assistant answer below, only send the completion based on the system instructions.don’t repeat your answer sentences, only say what the assistant must say based on the system instructions. repeating same thing in same answer not allowed. user: descriptive answer for append many items to list python in python with proper code examples and outputs. assistant: "
+    - "The sum of the perimeters of three equal squares is 36 cm. Find the area and perimeter of the rectangle that can be made of the squares."
+
+# Leaderboard Simulator Configuration (Section 3)
+simulator:
+  detector_accuracy: 0.95 # Assumed detector accuracy (Section 3.1)
+  false_positive_rate: 0.05 # Symmetric false positive rate (Section 3.1)
+  false_negative_rate: 0.05 # Symmetric false negative rate (Section 3.1)
+  default_non_detection_strategy: "do_nothing" # Attacker action when target not detected (Section 3.1)
+  bradley_terry_initial_rating: 1500.0 # Common initial rating for ELO-like systems (assumption)
+  bradley_terry_scale_factor: 173.7 # s in logistic function: 400 / ln(10) for ELO-like systems (assumption)
+  interaction_tracking_interval: 1000 # Calculate rankings after every N interactions (Section 3.1)
+  historical_votes_path: "data/simulated_historical_votes.json" # Path to simulated or actual historical votes data
+
+# Mitigation Analysis Configuration (Section 4)
+mitigation:
+  detector_training_cost: 440.0 # One-time cost of building the detector (Appendix A.3)
+  malicious_detection_alpha: 0.01 # Significance level for likelihood test (Section 4.2.3)
+  malicious_detection_sim_sequences: 1000 # Number of sequences to simulate for p-value calculation (assumption)
+  # Cost per action for CAPTCHA is not specified in paper, will need to be estimated for specific analyses.
+  # Cost per action for prompt uniqueness is $20 (Section 4.2.4)

@@ -1,0 +1,10 @@
+
+torch
+torchvision
+numpy
+scipy
+open_clip
+transformers
+hps
+dreamsim
+einops

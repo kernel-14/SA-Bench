@@ -1,0 +1,46 @@
+## config.yaml
+training:
+  learning_rate: 4e-4
+  batch_size: 128  # Based on video data training configuration
+  epochs: 50  # Fine-tuning stage recommendation
+  weight_decay: 0.1
+  optimizer: "AdamW"
+  warmup_steps: 1000
+  lr_schedule: "reciprocal_sqrt"
+  gradient_clipping: 0.1  # Max norm
+  
+data:
+  frame_resolution: 1024  # Input image resolution
+  max_frames_per_video: 16  # For fine-tuning long sequences
+  augmentations:
+    horizontal_flip: true
+    random_crop: true
+    affine_transform: true
+    color_jitter: true
+  num_workers: 8
+  
+model:
+  backbone: "Hiera"  # MAE pre-trained transformer
+  use_memory: true
+  memory_size: 6  # FIFO memory queue length
+  prompt_types: ["clicks", "boxes", "masks"]
+  pretrained_weights: "path/to/pretrained/weights"  # Fill this path after downloading
+
+evaluation:
+  metrics: ["T&F", "mIoU", "FPS"]
+  datasets:
+    zero_shot: ["DAVIS", "YouTubeVOS", "FBMS", "VIPSeg", "SA-V"]
+    test_set_split: "SA-V_test"
+  
+device:
+  distributed_training: false
+  num_gpus: 1  # Modify based on hardware availability
+  mixed_precision: true  # Automatic Mixed Precision (AMP)
+  
+logging:
+  log_dir: "logs/"
+  checkpoint_dir: "checkpoints/"
+  checkpoint_frequency: 5  # Save model checkpoint every 5 epochs
+  
+reproducibility:
+  random_seed: 42  # For consistent results

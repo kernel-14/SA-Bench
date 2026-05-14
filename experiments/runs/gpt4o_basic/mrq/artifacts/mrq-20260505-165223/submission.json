@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced the core algorithm of MR.Q from the paper, including state and state-action embeddings, reward/dynamics/terminal losses, and value/policy updates. Implemented training loop in `main.py`. Added placeholders for benchmarks and data pipeline initialization in `data/config.yaml`. The repository is structured for incremental additions as needed.",
+  "steps": 15,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/mrq/mrq-20260505-165223/workspace/repo"
+}

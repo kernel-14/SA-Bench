@@ -1,0 +1,255 @@
+## config.yaml
+# Global configuration for the reproduction study of Parameter-Efficient Fine-Tuning (PEFT) in Visual Recognition.
+
+# --- General Settings ---
+seed: 42 # Random seed for all operations to ensure reproducibility.
+
+logging:
+  log_dir: "logs" # Directory to save all experiment logs, checkpoints, and results.
+  experiment_name: "peft_visual_recognition_study" # Base name for log files and experiment directories.
+
+# --- Model Configuration ---
+model:
+  backbone:
+    type: "vit" # Specifies the backbone architecture type (Vision Transformer).
+    # Hugging Face model identifiers for ViT-B/16 based on pre-training.
+    # The actual checkpoint to load will depend on the 'backbone_pretrained_on' field in each experiment.
+    pretrained_on_imagenet21k_checkpoint: "google/vit-base-patch16-224-in21k" # ViT-B/16 pre-trained on ImageNet-21K.
+    pretrained_on_clip_checkpoint: "openai/clip-vit-base-patch16" # CLIP ViT-B/16.
+    freeze_backbone_weights: True # Default: backbone weights are frozen unless a PEFT method explicitly modifies them or full_ft is used.
+    # Note: ViT-B/16 has approx. 85.8 million parameters. This is used for PEFT parameter cap calculations.
+  
+  head:
+    type: "linear" # Always a linear classification head for downstream tasks.
+    # Input dimension and number of classes will be determined dynamically from the backbone and dataset.
+
+# --- PEFT Configuration (General Parameters) ---
+peft:
+  # Maximum allowed ratio of trainable parameters relative to the total backbone parameters (ViT-B/16).
+  # 1.5% of ViT-B/16 (~85.8M) is approximately 1.287M parameters.
+  cap_peft_params_ratio: 0.015 
+
+# --- Training Configuration (General Defaults) ---
+training:
+  optimizer: "AdamW"
+  optimizer_params:
+    betas: [0.9, 0.999] # Default AdamW beta values.
+    eps: 1e-8 # Default AdamW epsilon value.
+  scheduler: "cosine" # Cosine decay learning rate scheduler.
+  batch_size: 64 # Consistent batch size across all experiments.
+  eval_frequency_epochs: 1 # Evaluate validation set at the end of each epoch.
+  max_grad_norm: 1.0 # Gradient clipping, common practice, not explicitly mentioned but good for stability.
+  drop_path_rate_default: 0.1 # Default drop path rate, found to be important for PEFT performance. Can be overridden.
+
+# --- Dataset Configuration ---
+datasets:
+  base_paths:
+    vtab1k: "./data/vtab1k" # Local path to VTAB-1K datasets.
+    cifar100: "./data/cifar100" # Local path to CIFAR-100 dataset.
+    resisc45: "./data/resisc45" # Local path to RESISC45 dataset.
+    clevr_distance: "./data/clevr_distance" # Local path to Clevr-Distance dataset.
+    imagenet: "./data/imagenet" # Local path to ImageNet-1K (for 100-shot training).
+    imagenet_v2: "./data/imagenet_v2" # Local path for ImageNet-V2.
+    imagenet_r: "./data/imagenet_r" # Local path for ImageNet-R.
+    imagenet_s: "./data/imagenet_s" # Local path for ImageNet-S.
+    imagenet_a: "./data/imagenet_a" # Local path for ImageNet-A.
+
+  # Data augmentation policies, identified by a key and referenced in experiment configs.
+  # Transforms will be applied using torchvision.transforms.
+  data_augmentation_policies:
+    vtab1k_default: # Used for low-shot VTAB-1K experiments.
+      train: [] # No data augmentation.
+      eval: []
+    many_shot_cifar100: # Used for many-shot CIFAR-100.
+      train: ["horizontal_flip"]
+      eval: []
+    many_shot_resisc45: # Used for many-shot RESISC45.
+      train: ["horizontal_flip", "vertical_flip"]
+      eval: []
+    many_shot_clevr_distance: # Used for many-shot Clevr-Distance.
+      train: [] # No data augmentation.
+      eval: []
+    robustness_strong: # Used for robustness experiments (100-shot ImageNet).
+      train: ["random_resized_crop", "random_horizontal_flip", "color_jitter", "auto_augment"] # Placeholder for "strong data augmentation" based on common practices.
+      eval: []
+
+# --- PEFT Method Specific Hyperparameter Search Spaces (from Table 3 in paper) ---
+# These parameters will be used in grid search for hyperparameter tuning.
+peft_hyperparameter_search_spaces:
+  VPT-Shallow:
+    prompt_number: [5, 10, 50, 100, 200] # Number of prompts.
+  VPT-Deep:
+    prompt_number: [5, 10, 50, 100] # Number of prompts (100 assumed from paper's 1100 typo).
+  BitFit: {} # No method-specific hyperparameters for tuning.
+  DiffFit: {} # No method-specific hyperparameters for tuning.
+  LayerNorm: {} # No method-specific hyperparameters for tuning.
+  SSF: {} # No method-specific hyperparameters for tuning.
+  Pfeif-Adapter:
+    adapter_scale_factor: [0.01, 0.1, 1, 10]
+    adapter_bottleneck: [4, 8, 16, 32] # Bottleneck dimension 'r'.
+  Houl-Adapter:
+    adapter_scale_factor: [0.01, 0.1, 1, 10]
+    adapter_bottleneck: [4, 8, 16, 32]
+  AdaptFormer:
+    adapter_scale_factor: [0.05, 0.1, 0.2]
+    adapter_bottleneck: [4, 16, 32]
+  RepAdapter:
+    repadapter_scale_factor: [0.1, 0.5, 1, 5, 10]
+    repadapter_bottleneck: [8, 16, 32]
+  Convpass:
+    convpass_scale_factor: [0.01, 0.1, 1, 10, 100]
+    convpass_bottleneck: [8, 16]
+    convpass_xavier_init: [True, False] # Xavier initialization for Convpass weights.
+  LoRA:
+    lora_bottleneck: [1, 8, 16, 32] # Rank 'r' for low-rank approximation.
+  FacT_TT:
+    fact_scale_factor: [0.01, 0.1, 1, 10, 100]
+    fact_bottleneck: [8, 16, 32]
+  FacT_TK:
+    fact_scale_factor: [0.01, 0.1, 1, 10, 100]
+    fact_bottleneck: [16, 32, 64]
+
+# --- Experiment Definitions ---
+# Each entry in this list defines a distinct experiment or set of experiments.
+# The 'main.py' script will iterate through these definitions.
+experiments:
+  # --- Low-Shot (VTAB-1K) Experiments ---
+  # These experiments iterate over all 19 VTAB-1K tasks using the ImageNet-21K pre-trained backbone.
+  - name: "vtab1k_linear_probing"
+    type: "low_shot"
+    dataset: "vtab1k" # Indicates to iterate over all VTAB-1K tasks.
+    backbone_pretrained_on: "imagenet21k"
+    method: "linear_probing"
+    epochs: 100
+    learning_rate_search: [1e-3, 1e-2] # Hyperparameter search range for learning rate.
+    weight_decay_search: [1e-4, 1e-3] # Hyperparameter search range for weight decay.
+    drop_path_rate: 0 # No significant backbone updates, so drop_path is 0.
+    data_augmentation_policy: "vtab1k_default"
+    eval_metrics: ["top1_accuracy"]
+    save_best_model: True
+
+  - name: "vtab1k_full_ft"
+    type: "low_shot"
+    dataset: "vtab1k"
+    backbone_pretrained_on: "imagenet21k"
+    method: "full_ft"
+    epochs: 100
+    learning_rate_search: [1e-3, 1e-2]
+    weight_decay_search: [1e-4, 1e-3]
+    drop_path_rate: 0.1 # Crucial for full FT in low-shot regime.
+    data_augmentation_policy: "vtab1k_default"
+    eval_metrics: ["top1_accuracy"]
+    save_best_model: True
+
+  - name: "vtab1k_vpt_shallow"
+    type: "low_shot"
+    dataset: "vtab1k"
+    backbone_pretrained_on: "imagenet21k"
+    method: "VPT-Shallow"
+    epochs: 100
+    learning_rate_search: [1e-3, 1e-2]
+    weight_decay_search: [1e-4, 1e-3]
+    peft_hyperparameter_search_key: "VPT-Shallow" # Refers to the definition in 'peft_hyperparameter_search_spaces'.
+    drop_path_rate: 0.1
+    data_augmentation_policy: "vtab1k_default"
+    eval_metrics: ["top1_accuracy"]
+    save_best_model: True
+
+  # Add similar blocks for all other 13 PEFT methods for VTAB-1K:
+  # VPT-Deep, BitFit, DiffFit, LayerNorm, SSF, Pfeif-Adapter, Houl-Adapter, AdaptFormer, RepAdapter, Convpass, LoRA, FacT_TT, FacT_TK
+  # Ensure 'peft_hyperparameter_search_key' matches the PEFT method name.
+
+  # --- Many-Shot Experiments ---
+  # These experiments use full training sets for selected datasets.
+  - name: "many_shot_cifar100_full_ft"
+    type: "many_shot"
+    dataset: "cifar100"
+    backbone_pretrained_on: "imagenet21k"
+    method: "full_ft"
+    epochs: 40
+    learning_rate_search: [5e-4, 1e-3]
+    weight_decay_search: [1e-4, 1e-3]
+    drop_path_rate: 0.1
+    data_augmentation_policy: "many_shot_cifar100"
+    eval_metrics: ["top1_accuracy"]
+    save_best_model: True
+
+  - name: "many_shot_resisc45_lora"
+    type: "many_shot"
+    dataset: "resisc45"
+    backbone_pretrained_on: "imagenet21k"
+    method: "LoRA"
+    epochs: 40
+    learning_rate_search: [5e-4, 1e-3]
+    weight_decay_search: [1e-4, 1e-3]
+    peft_hyperparameter_search_key: "LoRA"
+    peft_target_params_ratio: [0.02, 0.05] # Target 2-5% of backbone parameters for many-shot PEFT.
+    drop_path_rate: 0.1
+    data_augmentation_policy: "many_shot_resisc45"
+    eval_metrics: ["top1_accuracy"]
+    save_best_model: True
+  
+  # Add similar blocks for other many-shot datasets (Clevr-Distance, RESISC, CIFAR-100)
+  # and a representative set of PEFT methods as per paper (e.g., Full FT, LoRA, Adapter methods).
+
+  # --- Robustness to Distribution Shifts Experiments ---
+  # These experiments use 100-shot ImageNet-1K training data and evaluate on OOD datasets.
+  - name: "robustness_full_ft_wise"
+    type: "robustness"
+    dataset: "imagenet_100shot" # Fine-tune on 100-shot ImageNet-1K.
+    backbone_pretrained_on: "clip" # Use CLIP pre-trained backbone.
+    method: "full_ft"
+    epochs: 5 # Assuming a small number of epochs for fine-tuning on 100-shot ImageNet with fixed LR/WD.
+    learning_rate: 3e-5 # Fixed learning rate as per paper.
+    weight_decay: 5e-3 # Fixed weight decay as per paper.
+    drop_path_rate: 0.1 # Assumed based on general benefit.
+    data_augmentation_policy: "robustness_strong"
+    eval_metrics: ["top1_accuracy"] # Primary accuracy for target distribution.
+    wise_interpolation:
+      enable: True
+      alphas: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] # Range of alpha values for WiSE.
+      # Path to the state dict of the model *before* fine-tuning (i.e., just the loaded CLIP backbone + initialized head).
+      # This will be generated and saved during the experiment run.
+      pre_finetuned_model_output_path: "artifacts/clip_base_pre_finetuned_sd.pth" 
+    save_best_model: True
+
+  - name: "robustness_convpass_wise"
+    type: "robustness"
+    dataset: "imagenet_100shot"
+    backbone_pretrained_on: "clip"
+    method: "Convpass"
+    epochs: 5
+    learning_rate: 3e-5
+    weight_decay: 5e-3
+    peft_hyperparameter_search_key: "Convpass" # Use a pre-determined best HP for Convpass or small search for robustness.
+    # For simplicity, we can fix the Convpass HPs (e.g., bottleneck 16, scale 1.0, xavier_init True) for robustness, if not tuning.
+    # Example: peft_fixed_hyperparameters: {convpass_bottleneck: 16, convpass_scale_factor: 1.0, convpass_xavier_init: True}
+    drop_path_rate: 0.1
+    data_augmentation_policy: "robustness_strong"
+    eval_metrics: ["top1_accuracy"]
+    wise_interpolation:
+      enable: True
+      alphas: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+      pre_finetuned_model_output_path: "artifacts/clip_base_pre_finetuned_sd.pth"
+    save_best_model: True
+
+  # Add similar blocks for other representative PEFT methods with WiSE (e.g., LoRA, HoulsbyAdapter).
+
+  # --- Analysis Experiments (Post-training) ---
+  # These experiments load multiple trained models to perform comparison tasks.
+  - name: "vtab1k_prediction_analysis"
+    type: "analysis"
+    dataset: "vtab1k"
+    analysis_tasks: ["prediction_overlap", "ensemble_accuracy", "ranking_frequency"]
+    # List of checkpoint paths for the best performing models for each PEFT method on VTAB-1K.
+    # These paths would come from the 'save_best_model' steps of the low_shot experiments.
+    models_to_analyze:
+      vpt_deep: "checkpoints/vtab1k_vpt_deep_best.pth"
+      lora: "checkpoints/vtab1k_lora_best.pth"
+      ssf: "checkpoints/vtab1k_ssf_best.pth"
+      houl_adapter: "checkpoints/vtab1k_houl_adapter_best.pth"
+      # ... include all 14 PEFT methods + linear probing + full FT
+    prediction_overlap_config:
+      topk_confident: 5000 # Number of most confident samples for correct prediction overlap.
+      leastk_confident: 5000 # Number of least confident samples for wrong prediction overlap.
+    eval_metrics: ["prediction_overlap", "ensemble_accuracy", "ranking_frequency"] # These are special analysis metrics.

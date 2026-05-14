@@ -1,0 +1,9 @@
+{
+  "paper_id": "petl-visual-recognition",
+  "run_id": "petl-visual-recognition-20260506-090205",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1358.7,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 36
+}

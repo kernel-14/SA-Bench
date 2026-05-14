@@ -1,0 +1,60 @@
+## config.yaml
+training:
+  pretraining:
+    phase_1:
+      learning_rate: 5e-5
+      batch_size: 7000
+      steps: 870000
+      weight_decay: 0.05
+      scheduler: constant_with_warmup
+      warmup_steps: 200
+    phase_2:
+      learning_rate: 2e-5
+      batch_size: 4614
+      steps: 185000
+      weight_decay: 0.1
+      scheduler: cosine_decay
+      warmup_steps: 200
+  finetuning:
+    learning_rate: 2e-5
+    batch_size: 2500
+    steps: 68000
+    weight_decay: 0.01
+    scheduler: cosine_decay
+    warmup_steps: 200
+
+model:
+  visual_encoder:
+    depth: 24
+    width: 1472
+    patch_size: 16
+    mlp_width: 5888
+    attention_heads: 23
+  llm:
+    model_name: InternLM2-Base
+    use_moe: true
+    num_experts: 2
+    depth: 24
+    width: 2048
+    mlp_width: 8192
+    attention_heads: 16
+    max_seq_length: 16384
+
+data:
+  pretraining_datasets:
+    - laion_2b
+    - coyo_700m
+    - wukong
+    - sa_1b
+  finetuning_datasets:
+    - internvl_2_5
+
+logging:
+  log_metrics: true
+  log_interval: 100
+  evaluation_interval: 5000
+
+hardware:
+  num_gpus: 4
+  precision: bf16
+  gradient_accumulation: 1

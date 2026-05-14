@@ -1,0 +1,9 @@
+{
+  "paper_id": "gated-attention-llm",
+  "run_id": "gated-attention-llm-20260506-184722",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 879.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 41
+}

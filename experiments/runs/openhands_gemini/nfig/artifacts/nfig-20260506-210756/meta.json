@@ -1,0 +1,9 @@
+{
+  "paper_id": "nfig",
+  "run_id": "nfig-20260506-210756",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 395.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 22
+}

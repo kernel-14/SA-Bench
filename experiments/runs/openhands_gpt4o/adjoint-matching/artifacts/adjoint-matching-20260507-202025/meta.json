@@ -1,0 +1,9 @@
+{
+  "paper_id": "adjoint-matching",
+  "run_id": "adjoint-matching-20260507-202025",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 4412.3,
+  "agent_state": "AgentState.ERROR",
+  "iterations": 100
+}

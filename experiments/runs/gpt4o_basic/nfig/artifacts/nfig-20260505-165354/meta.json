@@ -1,0 +1,114 @@
+{
+  "case_id": "nfig",
+  "run_id": "nfig-20260505-165354",
+  "model_name": "gpt-4o",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 192638,
+    "total_output_tokens": 2766,
+    "total_tokens": 195404,
+    "estimated_cost_usd": 0.6194,
+    "elapsed_seconds": 96.1,
+    "steps": 16,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 1.44,
+        "input_tokens": 1192,
+        "output_tokens": 29
+      },
+      {
+        "step": 2,
+        "elapsed_s": 3.13,
+        "input_tokens": 1239,
+        "output_tokens": 71
+      },
+      {
+        "step": 3,
+        "elapsed_s": 2.19,
+        "input_tokens": 4141,
+        "output_tokens": 32
+      },
+      {
+        "step": 4,
+        "elapsed_s": 3.19,
+        "input_tokens": 6211,
+        "output_tokens": 32
+      },
+      {
+        "step": 5,
+        "elapsed_s": 11.95,
+        "input_tokens": 11856,
+        "output_tokens": 510
+      },
+      {
+        "step": 6,
+        "elapsed_s": 3.5,
+        "input_tokens": 12723,
+        "output_tokens": 71
+      },
+      {
+        "step": 7,
+        "elapsed_s": 4.95,
+        "input_tokens": 13159,
+        "output_tokens": 31
+      },
+      {
+        "step": 8,
+        "elapsed_s": 12.02,
+        "input_tokens": 13224,
+        "output_tokens": 519
+      },
+      {
+        "step": 9,
+        "elapsed_s": 6.3,
+        "input_tokens": 14526,
+        "output_tokens": 120
+      },
+      {
+        "step": 10,
+        "elapsed_s": 6.73,
+        "input_tokens": 14743,
+        "output_tokens": 293
+      },
+      {
+        "step": 11,
+        "elapsed_s": 5.35,
+        "input_tokens": 15609,
+        "output_tokens": 98
+      },
+      {
+        "step": 12,
+        "elapsed_s": 6.16,
+        "input_tokens": 15808,
+        "output_tokens": 166
+      },
+      {
+        "step": 13,
+        "elapsed_s": 5.27,
+        "input_tokens": 16321,
+        "output_tokens": 90
+      },
+      {
+        "step": 14,
+        "elapsed_s": 6.59,
+        "input_tokens": 16510,
+        "output_tokens": 231
+      },
+      {
+        "step": 15,
+        "elapsed_s": 10.7,
+        "input_tokens": 17190,
+        "output_tokens": 379
+      },
+      {
+        "step": 16,
+        "elapsed_s": 6.39,
+        "input_tokens": 18186,
+        "output_tokens": 94
+      }
+    ]
+  }
+}

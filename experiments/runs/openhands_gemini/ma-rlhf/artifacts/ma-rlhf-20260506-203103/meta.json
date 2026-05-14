@@ -1,0 +1,9 @@
+{
+  "paper_id": "ma-rlhf",
+  "run_id": "ma-rlhf-20260506-203103",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 306.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 11
+}

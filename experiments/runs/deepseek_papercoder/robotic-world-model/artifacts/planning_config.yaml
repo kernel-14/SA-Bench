@@ -1,0 +1,44 @@
+## config.yaml
+# Hyperparameters and configurations extracted from the paper.
+# All sections reproduce the settings described in the paper’s methodology and appendix.
+
+environment:
+  robot: "anymal_d"                    # or "unitree_g1"
+  task: "velocity_tracking"            # Isaac Lab task identifier
+  step_time: 0.02                      # Δt in seconds (Table S10,S11)
+  control_freq: 50                     # Hz
+
+world_model:
+  history_len: 32                      # M: context horizon (Table S10)
+  forecast_len: 8                      # N: prediction horizon during training
+  forecast_decay: 1.0                  # α: weight decay across forecast steps (Eq. 2)
+  gru_hidden_size: [256, 256]          # GRU base: two layers (Table S7)
+  head_hidden_size: [128]              # MLP heads (Table S7)
+  activation: "relu"
+  max_iterations: 2500                 # pretraining iterations (Table S10)
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  batch_size: 1024
+  num_seeds: 5
+
+mbrl_ppo:
+  imagination_envs: 4096               # number of parallel imagination environments (Table S11)
+  imagination_steps: 100               # T: rollout steps in imagination per iteration
+  real_buffer_capacity: 1000           # |D|: size of real experience buffer
+  max_iterations: 2500                 # online training iterations
+  learning_rate: 0.001
+  weight_decay: 0.0
+  ppo_epochs: 5                        # learning epochs per iteration
+  ppo_minibatches: 4
+  target_kl: 0.01                      # KL divergence target for early stopping (not used in paper? but table has it)
+  discount_factor: 0.99                # γ
+  clip_range: 0.2                      # ε
+  entropy_coef: 0.005
+  num_seeds: 5
+
+policy_network:
+  hidden_dims: [128, 128, 128]        # actor and critic (Table S9)
+  activation: "elu"
+
+# data_collection:
+#   pretrained_policy_path: "models/ppo_anymal_d.pt"  # optional, if you have a pretrained policy for generating demonstrations

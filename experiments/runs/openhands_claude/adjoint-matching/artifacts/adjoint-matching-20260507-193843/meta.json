@@ -1,0 +1,9 @@
+{
+  "paper_id": "adjoint-matching",
+  "run_id": "adjoint-matching-20260507-193843",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1141.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 37
+}

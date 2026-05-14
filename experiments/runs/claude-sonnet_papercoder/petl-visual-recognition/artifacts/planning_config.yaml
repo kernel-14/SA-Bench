@@ -1,0 +1,384 @@
+## config.yaml
+# Unified configuration for PEFT Visual Recognition reproduction study.
+# Paper: "Lessons and Insights from a Unifying Study of PEFT in Visual Recognition"
+# All values are taken directly from the paper. No fabricated details.
+
+## ---------------------------------------------------------------------------
+## Shared / Global Settings
+## ---------------------------------------------------------------------------
+seed: 42
+device: cuda
+num_workers: 4
+image_size: 224
+
+normalization:
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+
+## ---------------------------------------------------------------------------
+## Backbone Options
+## ---------------------------------------------------------------------------
+backbones:
+  imagenet21k_vit:
+    name: vit_base_patch16_224_in21k
+    source: timm
+    pretrained: true
+    embed_dim: 768
+    num_layers: 12
+    patch_size: 16
+    total_params: 86_000_000        # ~86M, used for 1.5% param cap enforcement
+    num_heads: 12
+
+  clip_vit:
+    name: ViT-B/16
+    source: open_clip
+    pretrained: true
+    embed_dim: 768
+    num_layers: 12
+    patch_size: 16
+
+## ---------------------------------------------------------------------------
+## PEFT Parameter Cap (applied to VTAB-1K experiments)
+## Paper: "We set a cap for PEFT size <= 1.5% of ViT-B/16"
+## 1.5% of 86M = ~1.29M trainable parameters
+## ---------------------------------------------------------------------------
+peft_param_cap:
+  ratio: 0.015
+  absolute_max_params: 1_290_000
+
+## ---------------------------------------------------------------------------
+## Experiment 1: VTAB-1K Low-Shot Evaluation
+## Paper Section 3 + Appendix A.1
+## ---------------------------------------------------------------------------
+vtab:
+  backbone: imagenet21k_vit
+  num_train_samples: 1000           # Fixed by VTAB-1K benchmark
+  val_ratio: 0.2                    # 80/20 split of 1000 training images
+  data_augmentation: false          # Paper: "we don't apply data augmentation"
+
+  training:
+    optimizer: adamw                # Paper: "We employ AdamW optimizer"
+    batch_size: 64                  # Paper: "batch size of 64"
+    epochs: 100                     # Paper: "We train all methods with 100 epochs"
+    lr_scheduler: cosine_decay      # Paper: "cosine decay learning rate scheduler"
+    gradient_clip_max_norm: 1.0
+
+  ## Hyperparameter search grids (paper Table 3 + Appendix A.1)
+  hyperparam_search:
+    learning_rate: [0.001, 0.01]          # Paper: "tuned from [1e-3, 1e-2]"
+    weight_decay: [0.0001, 0.001]         # Paper: "weight decay from [1e-4, 1e-3]"
+    drop_path_rate: [0.0, 0.1]            # Paper: "turn the drop path rate on (0.1) or off (0)"
+
+  ## 19 VTAB-1K tasks organized by group (paper Table 1)
+  task_groups:
+    natural:
+      - caltech101
+      - cifar100
+      - dtd
+      - flowers102
+      - pets
+      - sun397
+      - svhn
+    specialized:
+      - camelyon
+      - eurosat
+      - resisc45
+      - retinopathy
+    structured:
+      - clevr_count
+      - clevr_distance
+      - dmlab
+      - dsprites_loc
+      - dsprites_ori
+      - smallnorb_azimuth
+      - smallnorb_elevation
+      - kitti
+
+  ## Number of classes per VTAB task
+  num_classes:
+    caltech101: 102
+    cifar100: 100
+    dtd: 47
+    flowers102: 102
+    pets: 37
+    sun397: 397
+    svhn: 10
+    camelyon: 2
+    eurosat: 10
+    resisc45: 45
+    retinopathy: 5
+    clevr_count: 8
+    clevr_distance: 6
+    dmlab: 6
+    dsprites_loc: 16
+    dsprites_ori: 16
+    smallnorb_azimuth: 18
+    smallnorb_elevation: 9
+    kitti: 4
+
+## ---------------------------------------------------------------------------
+## Experiment 2: Many-Shot Evaluation
+## Paper Section 5 + Appendix A.1
+## ---------------------------------------------------------------------------
+manyshot:
+  backbone: imagenet21k_vit
+  val_ratio: 0.1                    # Paper: "We perform 90/10 train-val split"
+
+  training:
+    optimizer: adamw
+    batch_size: 64
+    epochs: 40                      # Paper: "We train all methods with 40 epochs"
+    lr_scheduler: cosine_decay
+    gradient_clip_max_norm: 1.0
+
+  ## Hyperparameter search grids (Appendix A.1)
+  hyperparam_search:
+    learning_rate: [0.0005, 0.001]  # Paper: "tuned from [5e-4, 1e-3]"
+    weight_decay: [0.0001, 0.001]   # Paper: "weight decay keeps the same range [1e-4, 1e-3]"
+    drop_path_rate: [0.0, 0.1]
+
+  datasets:
+    cifar100:
+      num_classes: 100
+      train_size: 50000
+      augmentation:                 # Paper: "We apply horizontal flipping for CIFAR100"
+        random_horizontal_flip: true
+        random_vertical_flip: false
+      source: torchvision
+
+    resisc45:
+      num_classes: 45
+      train_size: 25200
+      augmentation:                 # Paper: "horizontal and vertical flipping for Resisc"
+        random_horizontal_flip: true
+        random_vertical_flip: true
+      source: folder
+
+    clevr_distance:
+      num_classes: 6
+      train_size: 70000
+      augmentation:                 # Paper: "no augmentation for Clevr"
+        random_horizontal_flip: false
+        random_vertical_flip: false
+      source: tensorflow_datasets
+
+  ## Parameter sweep for Figure 5 reproduction
+  ## Vary bottleneck dims to cover ~0.5% to ~10% of total params
+  param_sweep:
+    target_ratios: [0.005, 0.01, 0.02, 0.05, 0.10, 0.20]
+
+## ---------------------------------------------------------------------------
+## Experiment 3: Robustness / Distribution Shift Evaluation
+## Paper Section 7 + Appendix A.1
+## ---------------------------------------------------------------------------
+robustness:
+  backbone: clip_vit
+  num_shots: 100                    # Paper: "100-shot ImageNet-1K ... 100 images/class"
+
+  training:
+    optimizer: adamw
+    batch_size: 64
+    learning_rate: 0.00003          # Paper: "we set a small learning rate as 3e-5"
+    weight_decay: 0.005             # Paper: "weight decay as 5e-3"
+    lr_scheduler: cosine_decay
+    strong_augmentation: true       # Paper: "We use a strong data augmentation following [107]"
+
+  ## Strong augmentation pipeline (following Neural Prompt Search [107])
+  strong_augmentation:
+    random_resized_crop:
+      size: 224
+      scale: [0.08, 1.0]
+    random_horizontal_flip: true
+    color_jitter:
+      brightness: 0.4
+      contrast: 0.4
+      saturation: 0.4
+      hue: 0.1
+    random_grayscale: 0.2
+
+  ## CLIP zero-shot head initialization
+  ## Paper: "we ensemble the 80 prompts provided by CLIP"
+  clip_prompts_url: "https://github.com/openai/CLIP"
+  num_clip_prompts: 80
+
+  ## WiSE sweep (paper Section 7, Figure 1c)
+  ## Paper: "linearly interpolates the weights of a fully FT model with those of the original backbone"
+  wise:
+    alphas: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+  ## Distribution shift datasets (paper Section 7)
+  shift_datasets:
+    - imagenet          # Target distribution
+    - imagenet_v2       # Paper: "ImageNet-V2, a new ImageNet test set"
+    - imagenet_r        # Paper: "ImageNet-R, renditions for 200 ImageNet classes"
+    - imagenet_s        # Paper: "ImageNet-S, sketch images for 1K ImageNet classes"
+    - imagenet_a        # Paper: "ImageNet-A, natural adversarial examples"
+
+  ## PEFT methods evaluated in robustness experiment (paper Table 2)
+  methods_evaluated:
+    - full
+    - bitfit
+    - layernorm
+    - houlsby_adapter
+    - adaptformer
+    - repadapter
+    - convpass
+    - lora
+    - fact_tk
+
+## ---------------------------------------------------------------------------
+## PEFT Method Configurations
+## Hyperparameter search grids from paper Table 3 + Appendix A.1
+## #Params ranges from paper Table 3
+## ---------------------------------------------------------------------------
+peft_methods:
+
+  ## Baselines
+  linear:
+    description: "Linear probing — only head trained, backbone frozen"
+    trainable_params_M: ~0.0        # Head only, negligible
+
+  full:
+    description: "Full fine-tuning — all backbone + head parameters"
+    trainable_params_M: ~86.0
+
+  ## Prompt-based methods (paper Section 2.2)
+  vpt_shallow:
+    description: "Visual Prompt Tuning Shallow — prompts prepended to first layer only"
+    search_grid:
+      num_prompts: [5, 10, 50, 100, 200]   # Paper Table 3
+    params_range_M: [0.0003, 0.153]         # Paper Table 3
+
+  vpt_deep:
+    description: "Visual Prompt Tuning Deep — prompts prepended to every layer, outputs discarded"
+    search_grid:
+      num_prompts: [5, 10, 50, 100]         # Paper Table 3
+    params_range_M: [0.046, 0.921]          # Paper Table 3
+
+  ## Direct selective tuning methods (paper Section 2.2)
+  bitfit:
+    description: "BitFit — tune only bias terms in QKV, FC, LN, patch embedding"
+    search_grid: {}                          # Paper: "N/A"
+    params_fixed_M: 0.102                   # Paper Table 3
+
+  layernorm:
+    description: "LayerNorm tuning — tune only LN scale and bias parameters"
+    search_grid: {}                          # Paper: "N/A"
+    params_fixed_M: 0.038                   # Paper Table 3
+
+  difffit:
+    description: "DiffFit — BitFit + LayerNorm + learnable scale factors after MSA and MLP"
+    search_grid: {}                          # Paper: "N/A"
+    params_fixed_M: 0.140                   # Paper Table 3
+
+  ssf:
+    description: "SSF — scale and shift intermediate features at h2,h3,h5,h7,h8,h9"
+    search_grid: {}                          # Paper: "N/A"
+    params_fixed_M: 0.205                   # Paper Table 3
+
+  ## Adapter-based methods (paper Section 2.2)
+  pfeiffer_adapter:
+    description: "Pfeiffer Adapter — single bottleneck adapter after MLP block only"
+    search_grid:
+      adapter_scale: [0.01, 0.1, 1.0, 10.0]      # Paper Table 3
+      adapter_bottleneck: [4, 8, 16, 32]           # Paper Table 3
+    params_range_M: [0.082, 0.599]                 # Paper Table 3
+
+  houlsby_adapter:
+    description: "Houlsby Adapter — two bottleneck adapters per layer: after MSA and after MLP"
+    search_grid:
+      adapter_scale: [0.01, 0.1, 1.0, 10.0]      # Paper Table 3
+      adapter_bottleneck: [4, 8, 16, 32]           # Paper Table 3
+    params_range_M: [0.165, 1.198]                 # Paper Table 3
+
+  adaptformer:
+    description: "AdaptFormer — adapter in parallel with MLP block"
+    search_grid:
+      adapter_scale: [0.05, 0.1, 0.2]             # Paper Table 3
+      adapter_bottleneck: [4, 16, 32]              # Paper Table 3
+    params_range_M: [0.082, 0.599]                 # Paper Table 3
+
+  convpass:
+    description: "ConvPass — convolutional adapter parallel to MSA and MLP with 2D conv"
+    search_grid:
+      convpass_scale: [0.01, 0.1, 1.0, 10.0, 100.0]   # Paper Table 3
+      convpass_bottleneck: [8, 16]                       # Paper Table 3
+      xavier_init: [true, false]                         # Paper Table 3
+    params_range_M: [0.327, 0.664]                       # Paper Table 3
+
+  repadapter:
+    description: "RepAdapter — linear adapter with group-wise transformation, re-parameterizable"
+    search_grid:
+      repadapter_scale: [0.1, 0.5, 1.0, 5.0, 10.0]    # Paper Table 3
+      repadapter_bottleneck: [8, 16, 32]                 # Paper Table 3
+    groups: 8                                             # Default from original RepAdapter paper
+    params_range_M: [0.239, 0.903]                       # Paper Table 3
+
+  ## Efficient selective tuning methods (paper Section 2.2)
+  lora:
+    description: "LoRA — low-rank decomposition applied to Q and V projections in MSA"
+    apply_to: [query, value]                              # Paper: "Q/V projection weights"
+    search_grid:
+      lora_rank: [1, 8, 16, 32]                          # Paper Table 3
+    params_range_M: [0.036, 1.179]                       # Paper Table 3
+
+  fact_tt:
+    description: "FacT-TT — tensor-train decomposition of stacked weight matrices"
+    mode: tensor_train
+    search_grid:
+      fact_scale: [0.01, 0.1, 1.0, 10.0, 100.0]        # Paper Table 3
+      fact_rank: [8, 16, 32]                              # Paper Table 3
+    params_range_M: [0.021, 0.196]                       # Paper Table 3
+
+  fact_tk:
+    description: "FacT-TK — Tucker decomposition of stacked weight matrices"
+    mode: tucker
+    search_grid:
+      fact_rank: [16, 32, 64]                             # Paper Table 3
+      fact_scale: [0.01, 0.1, 1.0, 10.0, 100.0]         # Paper Table 3
+    params_range_M: [0.030, 0.369]                       # Paper Table 3
+
+## ---------------------------------------------------------------------------
+## Prediction Diversity Analysis Configuration
+## Paper Section 4
+## ---------------------------------------------------------------------------
+diversity_analysis:
+  top_k_confident: 5000             # Paper: "5K most confident" / "5K least confident"
+  representative_methods:           # Paper Figure 3b: "one method from each PEFT category"
+    - lora                          # Efficient selective
+    - houlsby_adapter               # Adapter-based
+    - ssf                           # Direct selective
+  dataset_for_venn: cifar100        # Paper: "FT on CIFAR-100 (VTAB-1K)"
+  focus_datasets:                   # Paper Figure 3a
+    - dtd                           # Natural group
+    - retinopathy                   # Specialized group
+    - dmlab                         # Structured group
+
+## ---------------------------------------------------------------------------
+## Ensemble Evaluation Configuration
+## Paper Section 4, Figure 4
+## ---------------------------------------------------------------------------
+ensemble:
+  strategy: average_logits          # Paper: "average logits of all PEFT methods"
+  baseline: worst_method            # Paper: "we use the worst PEFT method as the baseline"
+
+## ---------------------------------------------------------------------------
+## Compute / Hardware (paper Appendix A.1)
+## Paper: "eight NVIDIA RTX 6000 Ada GPUs, two AMD EPYC 9554 64-Core Processors, 800GB RAM"
+## ---------------------------------------------------------------------------
+compute:
+  gpus: 8
+  gpu_model: NVIDIA RTX 6000 Ada
+  mixed_precision: true             # Use torch.cuda.amp for efficiency
+  distributed: false                # Single-node multi-GPU optional
+
+## ---------------------------------------------------------------------------
+## Output / Logging
+## ---------------------------------------------------------------------------
+output:
+  base_dir: ./outputs
+  save_predictions: true            # Required for diversity and ensemble analysis
+  save_logits: true                 # Required for ensemble evaluation
+  save_checkpoints: true
+  log_interval: 10                  # Log every N batches
+  tensorboard: true

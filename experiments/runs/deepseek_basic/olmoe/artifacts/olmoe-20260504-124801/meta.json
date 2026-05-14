@@ -1,0 +1,8 @@
+{
+  "case_id": "olmoe",
+  "run_id": "olmoe-20260504-124801",
+  "model_name": "deepseek-v4-pro",
+  "api_base_url": "https://api.deepseek.com",
+  "mode": "static-dev",
+  "dry_run": false
+}

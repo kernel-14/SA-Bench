@@ -1,0 +1,9 @@
+
+torch
+transformers
+accelerate
+datasets
+trl
+sentencepiece
+ninja
+bitsandbytes

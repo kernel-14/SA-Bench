@@ -1,0 +1,9 @@
+{
+  "paper_id": "voting-leaderboards",
+  "run_id": "voting-leaderboards-20260506-125659",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 994.4,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 19
+}

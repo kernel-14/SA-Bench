@@ -1,0 +1,289 @@
+## config.yaml
+# SCoRe: Self-Correction via Reinforcement Learning
+# Configuration file — all values sourced directly from the paper (Appendix B, Table 5)
+# and methodology sections. No fabricated values.
+
+experiment:
+  run_name: "score_experiment"
+  output_dir: "outputs/"
+  seed: 42
+  wandb_project: "score_self_correction"
+  log_level: "INFO"
+
+## ---------------------------------------------------------------------------
+## Task selection: "math" or "code"
+## ---------------------------------------------------------------------------
+task: "math"
+
+## ---------------------------------------------------------------------------
+## Model configuration
+## For MATH: paper uses Gemini 1.5 Flash (not publicly fine-tunable).
+## Open-source substitute: Qwen/Qwen2.5-Math-7B-Instruct
+## For CODE: paper uses Gemini 1.0 Pro (not publicly fine-tunable).
+## Open-source substitute: deepseek-ai/deepseek-coder-7b-instruct-v1.5
+## ---------------------------------------------------------------------------
+model:
+  math_model_name: "Qwen/Qwen2.5-Math-7B-Instruct"
+  code_model_name: "deepseek-ai/deepseek-coder-7b-instruct-v1.5"
+  torch_dtype: "bfloat16"
+  device_map: "auto"
+  max_new_tokens: 1024
+  ## Greedy decoding for evaluation (temperature=0 => greedy)
+  eval_temperature: 0.0
+  ## Stochastic sampling for training rollouts
+  train_temperature: 1.0
+  ## Temperature for inference-compute scaling experiments (Section 6.2)
+  scaling_temperature: 0.7
+
+## ---------------------------------------------------------------------------
+## LoRA configuration (not specified in paper; added for practical GPU usage)
+## ---------------------------------------------------------------------------
+lora:
+  use_lora: true
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+  ## Typical attention projection modules for LLaMA/Qwen/DeepSeek architectures
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+## ---------------------------------------------------------------------------
+## Training hyperparameters — sourced from Table 5 (Appendix B)
+## Left table: MATH (Gemini 1.5 Flash)
+## Right table: MBPP/Code (Gemini 1.0 Pro)
+## ---------------------------------------------------------------------------
+training:
+  math:
+    optimizer: "adam"
+    learning_rate: 5.0e-6          # Table 5, MATH column
+    total_steps: 3000              # Table 5, MATH column ("Training steps: 3000")
+    ## Stage I / Stage II split: not specified in paper; defaulting to 50/50
+    stage1_steps: 1500
+    stage2_steps: 1500
+    batch_size: 512                # Table 5, MATH column
+    ## Adam optimizer defaults (not specified in paper)
+    adam_beta1: 0.9
+    adam_beta2: 0.999
+    adam_epsilon: 1.0e-8
+    weight_decay: 0.0
+    max_grad_norm: 1.0
+
+  code:
+    optimizer: "adam"
+    learning_rate: 1.0e-5          # Table 5, MBPP column
+    total_steps: 1500              # Table 5, MBPP column ("Training steps: 1500")
+    ## Stage I / Stage II split: not specified in paper; defaulting to 50/50
+    stage1_steps: 750
+    stage2_steps: 750
+    batch_size: 128                # Table 5, MBPP column
+    ## Adam optimizer defaults (not specified in paper)
+    adam_beta1: 0.9
+    adam_beta2: 0.999
+    adam_epsilon: 1.0e-8
+    weight_decay: 0.0
+    max_grad_norm: 1.0
+
+## ---------------------------------------------------------------------------
+## SCoRe-specific hyperparameters — sourced from Table 5 (Appendix B)
+## ---------------------------------------------------------------------------
+score:
+  math:
+    ## Reward shaping multiplier (Table 5: α = 10)
+    ## Applied as: shaped_r2 = r2 + alpha * (r2 - r1)
+    alpha: 10.0
+    ## Standard KL penalty weight applied to both turns (Table 5: β1 = 0.01)
+    ## Used in Equation 2 and Stage II objective (Equation 4)
+    beta1: 0.01
+    ## Stage I first-turn KL penalty weight (Table 5: β2 = 0.1 for MATH)
+    ## Applied only to turn-1 distribution in Stage I (Equation 3)
+    ## Must be larger than beta1 to enforce strict first-turn constraint
+    beta2: 0.1
+
+  code:
+    ## Reward shaping multiplier (Table 5: α = 10)
+    alpha: 10.0
+    ## Standard KL penalty weight (Table 5: β1 = 0.01)
+    beta1: 0.01
+    ## Stage I first-turn KL penalty weight (Table 5: β2 = 0.25 for MBPP)
+    ## Higher than MATH value to more strictly constrain first-turn distribution
+    beta2: 0.25
+
+  ## Reward normalization: per-batch mean/std normalization for variance reduction
+  ## Not explicitly stated in paper; standard REINFORCE practice
+  normalize_rewards: true
+  reward_norm_eps: 1.0e-8
+
+  ## Offline data augmentation in Stage II (Section 5.3)
+  ## Paper mentions incorporating base model first-attempt solutions as offline prompts
+  ## Mixing ratio not specified; set to 0.0 to disable by default
+  offline_data_mix_ratio: 0.0
+
+  ## Discount factor for reward computation
+  ## Paper explicitly states γ = 0 (instantaneous reward only, Appendix A.2)
+  ## "equivalent to returns with discount factor γ = 0"
+  gamma: 0.0
+
+## ---------------------------------------------------------------------------
+## Dataset configuration
+## ---------------------------------------------------------------------------
+data:
+  math:
+    ## HuggingFace dataset identifier
+    dataset_name: "hendrycks/competition_math"
+    ## Train/test split following Lightman et al. (2023) — Section 6
+    ## "augment the MATH training set with 4500 problems from the test set,
+    ##  and report results on the remaining 500 problems (MATH500)"
+    num_test_problems: 500
+    num_extra_train_from_test: 4500
+    ## Evaluation uses zero-shot CoT prompting (Section 6)
+    prompt_style: "zero_shot_cot"
+
+  code:
+    ## Training dataset (Section 6)
+    train_dataset_name: "google-research-datasets/mbpp"
+    ## Test dataset for online self-correction (Section 6)
+    ## "we train on MBPP and report results on HumanEval"
+    test_dataset_name: "openai_humaneval"
+    ## Offline repair test dataset (Section 6)
+    ## Uses incorrect first-attempt programs generated from PaLM 2 (Ni et al., 2024)
+    mbpp_r_dataset_name: "mbpp_r"
+    ## MBPP uses 3-shot prompting for first attempts (Section 6)
+    prompt_style: "three_shot"
+    ## HumanEval uses zero-shot prompting (Section 6)
+    humaneval_prompt_style: "zero_shot"
+
+## ---------------------------------------------------------------------------
+## Reward function configuration
+## ---------------------------------------------------------------------------
+reward:
+  math:
+    ## Binary reward: 1.0 if answer matches ground truth, 0.0 otherwise (Section 3)
+    reward_type: "binary_answer_match"
+    ## Use sympy for symbolic equivalence checking, fallback to string match
+    use_sympy: true
+
+  code:
+    ## Binary reward: 1.0 if all test cases pass, 0.0 otherwise (Section 6)
+    reward_type: "binary_test_pass"
+    ## Execution timeout in seconds for sandboxed code execution
+    execution_timeout: 5
+    ## Maximum memory for subprocess execution (MB); not specified in paper
+    max_memory_mb: 512
+
+## ---------------------------------------------------------------------------
+## Evaluation configuration
+## ---------------------------------------------------------------------------
+evaluation:
+  ## Metrics reported in paper (Section 3 and Tables 2, 3, 4)
+  ## Accuracy@t1, Accuracy@t2, Δ(t1,t2), Δ^{i→c}(t1,t2), Δ^{c→i}(t1,t2)
+  metrics:
+    - "accuracy_t1"
+    - "accuracy_t2"
+    - "delta_t1_t2"
+    - "i2c_rate"
+    - "c2i_rate"
+
+  ## Checkpoint selection: highest training reward (Section 6)
+  checkpoint_metric: "train_reward_t2"
+  eval_every_n_steps: 100
+  save_every_n_steps: 500
+
+  ## Inference-compute scaling (Section 6.2, Figure 1 right)
+  ## "sample K solutions in parallel, then perform one round of self-correction"
+  inference_scaling:
+    enabled: false
+    ## Total solution budget per problem
+    solution_budget: 32
+    ## k for parallel branch: paper tests up to 32 parallel samples
+    k_values: [1, 2, 4, 8, 16, 32]
+
+  ## Multi-attempt scaling (Appendix A.1, Figure 8)
+  ## "performance of various models when asked to iteratively self-correct
+  ##  over multiple attempts, despite only being trained over two attempts"
+  multi_attempt:
+    enabled: false
+    num_attempts: 10
+
+  ## Edit distance analysis (Section 4, Figure 4)
+  edit_distance_analysis:
+    enabled: true
+    ## Ratio threshold below which an edit is considered "no edit"
+    no_edit_threshold: 0.01
+    ## Ratio threshold above which an edit is considered "large edit"
+    large_edit_threshold: 0.5
+
+## ---------------------------------------------------------------------------
+## SFT baseline configuration (Section 4, Table 1)
+## ---------------------------------------------------------------------------
+sft_baselines:
+  star:
+    ## "We run 3 iterations for STaR following the protocol in Singh et al. (2024)"
+    num_iterations: 3
+    ## Include correct-to-correct pairs in extended dataset D_STaR+
+    include_correct_pairs: false
+
+  pair_sft:
+    ## "only one iteration for Pair-SFT, following the protocol in Welleck et al. (2023)"
+    num_iterations: 1
+    ## Include correct-to-correct pairs in extended dataset D_SFT+
+    include_correct_pairs: false
+
+## ---------------------------------------------------------------------------
+## Ablation study configuration (Section 6.3, Table 4)
+## ---------------------------------------------------------------------------
+ablations:
+  ## (1) w/o multi-turn training: single-turn RL only
+  single_turn_only:
+    enabled: false
+
+  ## (2) w/o Stage I: run Stage II directly from base model
+  skip_stage1:
+    enabled: false
+
+  ## (3) w/o reward shaping: set alpha=0 in Stage II
+  no_reward_shaping:
+    enabled: false
+
+  ## (4) STaR instead of REINFORCE in Stage II
+  star_stage2:
+    enabled: false
+
+## ---------------------------------------------------------------------------
+## Distributed training configuration
+## ---------------------------------------------------------------------------
+distributed:
+  ## DeepSpeed ZeRO stage for memory efficiency
+  deepspeed_config: "configs/ds_zero2_config.json"
+  ## Number of gradient accumulation steps
+  ## Effective batch size = batch_size * gradient_accumulation_steps * num_gpus
+  gradient_accumulation_steps: 1
+
+## ---------------------------------------------------------------------------
+## Prompts — exact text from Appendix C of the paper
+## ---------------------------------------------------------------------------
+prompts:
+  math_system_prompt: >
+    You are a math expert. When you respond, respond only with the Solution
+    of the final Problem, thinking step by step. At the end of the Solution,
+    when you give your final answer, write it in the form
+    "Final Answer: The final answer is $answer$. I hope it is correct."
+
+  math_correction_instruction: >
+    There might be an error in the solution above because of lack of
+    understanding of the question. Please correct the error, if any, and
+    rewrite the solution. Only output the final solution! At the end of the
+    Solution, when you give your final answer, write it in the form
+    "Final Answer: The final answer is $answer$. I hope it is correct."
+
+  code_correction_instruction: >
+    There might be an error in the code above because of lack of understanding
+    of the question. Please correct the error, if any, and rewrite the solution.
+    Only output the final correct Python program!

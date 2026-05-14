@@ -1,0 +1,15 @@
+## config.yaml
+training:
+  learning_rate: 0.01  # Paper discusses small learning rates for convergence.
+  num_iterations: 2000  # Specified iterations for smaller MDP spaces.
+mdp:
+  state_space_sizes: [3, 9, 81]  # Sizes discussed in the paper.
+  action_space_sizes: [3, 9, 81] # Corresponding to the state spaces.
+  reward_variance_levels: ["no_variance", "low_variance", "high_variance", "max_variance"] # Levels outlined for experiments.
+projection_threshold: 1e-6  # Very small threshold ensuring validity of policies.
+evaluation:
+  plot_convergence: true  # Enables visualization as per simulations section.
+hardware:
+  gpu_acceleration: false  # Results are assumed to be computationally light; GPU use unclear.
+  experiment_notes: |
+    Hardware configuration is unspecified in the paper, but large MDP sizes might benefit from parallelization. Consider extending hardware delivery capability (multi-core CPU, GPU optional).

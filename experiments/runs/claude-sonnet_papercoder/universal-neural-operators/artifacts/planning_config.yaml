@@ -1,0 +1,391 @@
+## config.yaml
+# Configuration for reproducing "Towards Universal Neural Operators through Multiphysics Pretraining"
+# Only values explicitly stated in the paper are set here.
+# Values marked with "# UNSPECIFIED" are reasonable defaults from the FNO literature,
+# as the paper does not provide them.
+
+experiment:
+  name: "multiphysics_neural_operators"
+  seed: 42  # UNSPECIFIED - standard reproducibility practice
+  device: "cuda"  # UNSPECIFIED - assumed GPU
+
+## ---------------------------------------------------------------------------
+## Model configurations
+## The paper reports approximate parameter counts per model class.
+## Architecture hyperparameters (hidden_dim, n_modes, n_layers) are UNSPECIFIED
+## and set to standard FNO defaults.
+## ---------------------------------------------------------------------------
+
+models:
+  fno:
+    type: "fno"
+    hidden_dim: 64        # UNSPECIFIED - standard FNO default
+    n_modes: 16           # UNSPECIFIED - standard FNO default
+    n_layers: 4           # UNSPECIFIED - standard FNO default
+    n_dims: 2             # 2D for NS/RD, 1D for Burgers/Advection
+    activation: "gelu"    # UNSPECIFIED - modern FNO standard
+    target_params: 1.0e6  # Paper states ~10^6 parameters for FNO
+
+  mamba_fno:
+    type: "mamba_fno"
+    hidden_dim: 64        # UNSPECIFIED
+    n_modes: 16           # UNSPECIFIED
+    n_layers: 4           # UNSPECIFIED
+    n_dims: 2
+    activation: "gelu"    # UNSPECIFIED
+    target_params: 1.0e7  # Paper states ~10^7 parameters for MambaFNO
+    mamba:
+      d_state: 16         # UNSPECIFIED - Mamba paper default
+      d_conv: 4           # UNSPECIFIED - Mamba paper default
+      expand: 2           # UNSPECIFIED - Mamba paper default
+
+  perceiver_no:
+    type: "perceiver_no"
+    hidden_dim: 128       # UNSPECIFIED
+    n_modes: 16           # UNSPECIFIED
+    n_layers: 2           # UNSPECIFIED
+    n_dims: 2
+    target_params: 1.0e8  # Paper states ~10^8 parameters for Perceiver
+    perceiver:
+      latent_dim: 256     # UNSPECIFIED - Perceiver IO default
+      n_latents: 64       # UNSPECIFIED - estimated from Perceiver IO paper
+      n_heads: 8          # UNSPECIFIED - standard transformer default
+      n_blocks: 2         # UNSPECIFIED
+
+  coda_no:
+    type: "coda_no"
+    hidden_dim: 128       # UNSPECIFIED
+    n_modes: 16           # UNSPECIFIED
+    n_layers: 4           # UNSPECIFIED
+    n_dims: 2
+    n_heads: 8            # UNSPECIFIED
+    target_params: 1.0e8  # Paper states ~10^8 parameters for CoDA-NO
+
+  swin_v2:
+    type: "swin_v2"
+    target_params: 1.0e9  # Paper states ~10^9 parameters for Swin-v2
+    # Paper notation "(p.+s.)" suggests pretrained + fine-tuned
+    pretrained: true      # UNSPECIFIED - inferred from paper notation
+
+## ---------------------------------------------------------------------------
+## Adapter framework settings
+## The paper explicitly describes lifting and projection as problem-specific
+## adapters with a small number of parameters relative to the backbone.
+## ---------------------------------------------------------------------------
+
+adapter:
+  # Lifting: maps n_in input functions -> hidden_dim
+  # Projection: maps hidden_dim -> n_out output functions
+  # Both are described as small feed-forward networks (MLP)
+  lifting_hidden_multiplier: 2   # UNSPECIFIED - hidden_dim * 2 in MLP
+  projection_hidden_multiplier: 2  # UNSPECIFIED
+
+## ---------------------------------------------------------------------------
+## Training settings
+## The paper does NOT specify learning rate, batch size, epochs, or optimizer.
+## The following are standard defaults from the FNO literature.
+## Epoch times ARE reported in the paper (Tables 1 and 2) and are used
+## only for benchmarking, not as training hyperparameters.
+## ---------------------------------------------------------------------------
+
+training:
+  # UNSPECIFIED - all values below are FNO-literature defaults
+  optimizer: "adam"
+  pretrain:
+    lr: 1.0e-3            # UNSPECIFIED
+    weight_decay: 1.0e-4  # UNSPECIFIED
+    batch_size: 16        # UNSPECIFIED
+    n_epochs: 200         # UNSPECIFIED
+    scheduler: "cosine"   # UNSPECIFIED
+    scheduler_params:
+      T_max: 200          # UNSPECIFIED - matches n_epochs
+      eta_min: 1.0e-6     # UNSPECIFIED
+    checkpoint_dir: "checkpoints/pretrain"
+    save_every: 10        # UNSPECIFIED
+
+  finetune:
+    lr: 1.0e-4            # UNSPECIFIED - lower LR for fine-tuning
+    weight_decay: 1.0e-4  # UNSPECIFIED
+    batch_size: 16        # UNSPECIFIED
+    n_epochs: 100         # UNSPECIFIED
+    scheduler: "cosine"   # UNSPECIFIED
+    scheduler_params:
+      T_max: 100          # UNSPECIFIED
+      eta_min: 1.0e-6     # UNSPECIFIED
+    freeze_backbone: true  # Explicitly stated in paper: theta_F is fixed during fine-tuning
+    checkpoint_dir: "checkpoints/finetune"
+    save_every: 10        # UNSPECIFIED
+
+  loss: "mse"             # UNSPECIFIED - MSE is reported as a metric; used as training loss
+
+## ---------------------------------------------------------------------------
+## Evaluation metrics
+## Both metrics are explicitly defined/used in the paper.
+## ---------------------------------------------------------------------------
+
+evaluation:
+  metrics:
+    - "nmae"   # Explicitly defined in paper as equation (3): range-normalized MAE
+    - "mse"    # Explicitly reported in Tables 1 and 2
+  nmae_eps: 1.0e-8         # Small epsilon in NMAE denominator to avoid division by zero
+  report_epoch_time: true  # Paper reports "Avg. epoch (s)" in Tables 1 and 2
+  epoch_time_warmup: 1     # UNSPECIFIED - number of warmup epochs before timing
+  epoch_time_n_runs: 5     # UNSPECIFIED - number of timed epochs to average
+  output_dir: "results"
+
+## ---------------------------------------------------------------------------
+## Dataset settings
+## PDEBench is explicitly cited [20]. Gray-Scott, Burgers, Navier-Stokes,
+## Reaction-Diffusion, and Advection are all named in the paper.
+## Specific parameter values for pretrain/finetune splits are UNSPECIFIED.
+## ---------------------------------------------------------------------------
+
+data:
+  pdebench_root: "data/pdebench"
+  cache_root: "data/cache"
+  normalize: true          # UNSPECIFIED - standard practice
+
+  # Train/val/test split sizes - UNSPECIFIED, using PDEBench standard
+  n_train: 800             # UNSPECIFIED
+  n_val: 100               # UNSPECIFIED
+  n_test: 100              # UNSPECIFIED
+
+  ## -------------------------------------------------------------------------
+  ## Physics datasets used in the paper
+  ## -------------------------------------------------------------------------
+
+  burgers:
+    # Paper: "experiments were conducted using Burgers' equation"
+    # 1D Burgers from PDEBench: du/dt + u*du/dx = nu * d^2u/dx^2
+    filename_template: "1D_Burgers_Sols_Nu{nu}.hdf5"
+    n_dims: 1
+    n_in: 1    # Initial condition u(t=0, x)
+    n_out: 1   # Solution u(t, x)
+    # Paper uses different nu values for pretrain vs finetune (out-of-sample)
+    pretrain_params:
+      - nu: "0.01"    # UNSPECIFIED exact value - representative PDEBench value
+    finetune_params:
+      - nu: "0.001"   # UNSPECIFIED exact value - out-of-sample parameter
+
+  advection:
+    # Paper: "advective transport processes" and "Advection" in Experiment 3
+    # 1D Advection from PDEBench: du/dt + beta * du/dx = 0
+    filename_template: "1D_Advection_Sols_beta{beta}.hdf5"
+    n_dims: 1
+    n_in: 1    # Initial condition u(t=0, x)
+    n_out: 1   # Solution u(t, x)
+    pretrain_params:
+      - beta: "0.1"   # UNSPECIFIED exact value - representative PDEBench value
+
+  gray_scott:
+    # Paper: "Gray-Scott model of the reaction-diffusion process"
+    # du/dt = Du*lap(u) - u*v^2 + F*(1-u)
+    # dv/dt = Dv*lap(v) + u*v^2 - (F+k)*v
+    # Generated via numerical simulation (not in PDEBench)
+    n_dims: 2
+    n_in: 2    # Initial conditions [u(t=0), v(t=0)]
+    n_out: 2   # Solution fields [u(t=T), v(t=T)]
+    grid_size: 128    # UNSPECIFIED
+    n_steps: 1000     # UNSPECIFIED
+    dt: 1.0           # UNSPECIFIED
+    n_samples: 1000   # UNSPECIFIED
+    # Parameter regimes - UNSPECIFIED exact values, using known Gray-Scott regimes
+    pretrain_params:
+      F: 0.035        # UNSPECIFIED - "spots" regime
+      k: 0.065        # UNSPECIFIED
+      Du: 0.16        # UNSPECIFIED - standard Gray-Scott diffusion
+      Dv: 0.08        # UNSPECIFIED
+    finetune_params:
+      F: 0.055        # UNSPECIFIED - "stripes" regime (out-of-sample)
+      k: 0.062        # UNSPECIFIED
+      Du: 0.16        # UNSPECIFIED
+      Dv: 0.08        # UNSPECIFIED
+
+  navier_stokes:
+    # Paper: "Navier-Stokes equations for an incompressible flow"
+    # 2D incompressible NS from PDEBench
+    filename_template: "2D_NS_Sols_Re{Re}.hdf5"
+    n_dims: 2
+    n_in: 1    # Vorticity at t=0
+    n_out: 1   # Vorticity at subsequent timesteps
+    pretrain_params:
+      - Re: "100"     # UNSPECIFIED exact value
+    finetune_params:
+      - Re: "1000"    # UNSPECIFIED exact value - out-of-sample parameter
+
+  reaction_diffusion:
+    # Paper: "reaction-diffusion systems exhibiting pattern formation"
+    # 2D Reaction-Diffusion from PDEBench
+    filename_template: "2D_DiffReact_Sols_Nu{nu}.hdf5"
+    n_dims: 2
+    n_in: 2    # Initial conditions [u(t=0), v(t=0)]
+    n_out: 2   # Solution fields [u(t), v(t)]
+    pretrain_params:
+      - nu: "1.0"     # UNSPECIFIED exact value
+    finetune_params:
+      - nu: "2.0"     # UNSPECIFIED exact value - out-of-sample parameter
+    # Extended version with advection (Experiment 2)
+    extended_with_advection:
+      n_in: 4   # [u(t=0), v(t=0), vx_field, vy_field]
+      n_out: 2
+
+  heat:
+    # Paper: "added convection to the heat equation" (Experiment 2)
+    # du/dt = alpha * laplacian(u)
+    # Extended: du/dt = alpha * laplacian(u) - vx*du/dx - vy*du/dy
+    n_dims: 2
+    grid_size: 64     # UNSPECIFIED
+    n_steps: 200      # UNSPECIFIED
+    dt: 0.001         # UNSPECIFIED
+    n_samples: 1000   # UNSPECIFIED
+    alpha: 0.01       # UNSPECIFIED - thermal diffusivity
+    base:
+      n_in: 1         # Only initial condition u(t=0)
+      n_out: 1
+      with_convection: false
+    extended:
+      # Paper: "added convection to the heat equation" - new input functions added
+      n_in: 3         # [u(t=0), vx_field(x,y), vy_field(x,y)]
+      n_out: 1
+      with_convection: true
+
+## ---------------------------------------------------------------------------
+## Experiment configurations
+## Three scenarios explicitly described in Section 4 of the paper.
+## ---------------------------------------------------------------------------
+
+experiments:
+
+  exp1_out_of_sample:
+    # Paper Section 4: "cases where the pretraining equations and fine-tuning
+    # ones differed only in the coefficient values"
+    # Datasets: Burgers, Gray-Scott, Navier-Stokes
+    description: "Out-of-sample parameter values scenario"
+    pretrain_physics:
+      - "burgers_nu0p01"
+      - "gray_scott_pretrain"
+      - "ns_Re100"
+    finetune_physics: "burgers_nu0p001"  # Representative finetune target
+    models_to_run:
+      - "mamba_fno"
+      - "perceiver_no"
+      - "fno"
+      - "swin_v2"
+      - "coda_no"
+    # Expected results from Table 1 (paper values, for validation):
+    expected_results:
+      mamba_fno_pretrained:
+        mse: 1.009e-7
+        nmae_pct: 0.0120
+        avg_epoch_s: 21.91
+        params_approx: 1.0e7
+      mamba_fno_scratch:
+        mse: 1.193e-7
+        nmae_pct: 0.0213
+        avg_epoch_s: 40.14
+        params_approx: 1.0e7
+      perceiver_pretrained:
+        mse: 1.425e-7
+        nmae_pct: 0.0169
+        avg_epoch_s: 3.21
+        params_approx: 1.0e8
+      perceiver_scratch:
+        mse: 1.981e-7
+        nmae_pct: 0.0219
+        avg_epoch_s: 204.73
+        params_approx: 1.0e8
+      fno_scratch:
+        mse: 1.774e-7
+        nmae_pct: 0.0204
+        avg_epoch_s: 7.44
+        params_approx: 1.0e6
+      swin_v2:
+        mse: 4.391e-8
+        nmae_pct: 0.0092
+        avg_epoch_s: 101.3
+        params_approx: 1.0e9
+      coda_no_pretrained:
+        mse: 2.881e-7
+        nmae_pct: 0.0343
+        avg_epoch_s: 62.91
+        params_approx: 1.0e8
+      coda_no_scratch:
+        mse: 4.912e-7
+        nmae_pct: 0.0712
+        avg_epoch_s: 63.29
+        params_approx: 1.0e8
+
+  exp2_input_extension:
+    # Paper Section 4: "added convection to the heat equation and extended
+    # reaction-diffusion equations with advection"
+    description: "Input function set extension scenario"
+    pretrain_physics:
+      - "heat_base"
+    finetune_physics: "heat_extended"  # heat + convection (n_in: 1 -> 3)
+    models_to_run:
+      - "mamba_fno"
+      - "perceiver_no"
+      - "fno"
+      - "swin_v2"
+      - "coda_no"
+    # Expected results from Table 2 (paper values, for validation):
+    expected_results:
+      mamba_fno_pretrained:
+        mse: 3.91e-6
+        nmae_pct: 0.0041
+        avg_epoch_s: 131.2
+      mamba_fno_scratch:
+        mse: 4.291e-6
+        nmae_pct: 0.0054
+        avg_epoch_s: 261.1
+      perceiver_pretrained:
+        mse: 4.107e-6
+        nmae_pct: 0.0051
+        avg_epoch_s: 20.4
+      perceiver_scratch:
+        mse: 6.315e-6
+        nmae_pct: 0.0074
+        avg_epoch_s: 804.0
+      fno_scratch:
+        mse: 7.286e-6
+        nmae_pct: 0.0121
+        avg_epoch_s: 41.3
+      swin_v2:
+        mse: 6.276e-6
+        nmae_pct: 0.009
+        avg_epoch_s: 301.1
+      coda_no_pretrained:
+        mse: 1.043e-5
+        nmae_pct: 0.013
+        avg_epoch_s: 185.1
+      coda_no_scratch:
+        mse: 1.239e-5
+        nmae_pct: 0.018
+        avg_epoch_s: 181.9
+
+  exp3_multiphysics:
+    # Paper Section 4: "pre-training on multiphysics datasets" using PDEBench
+    # "transfer knowledge from the dynamics of advection and Burgers' equation
+    # to reaction-diffusion"
+    description: "General multi-physics pretraining and transfer"
+    pretrain_physics:
+      - "advection_beta0p1"   # Advection from PDEBench
+      - "burgers_nu0p01"      # Burgers from PDEBench
+    finetune_physics: "reaction_diffusion"  # Target: RD from PDEBench
+    models_to_run:
+      - "mamba_fno"
+      - "perceiver_no"
+      - "fno"
+      - "swin_v2"
+      - "coda_no"
+    # Results combined with Experiment 2 in Table 2
+
+## ---------------------------------------------------------------------------
+## Logging and output
+## ---------------------------------------------------------------------------
+
+logging:
+  level: "INFO"
+  log_dir: "logs"
+  tensorboard: true   # UNSPECIFIED - standard practice
+  log_every_n_steps: 10  # UNSPECIFIED

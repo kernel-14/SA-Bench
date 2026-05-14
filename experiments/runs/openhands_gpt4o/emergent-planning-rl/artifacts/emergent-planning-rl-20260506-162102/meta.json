@@ -1,0 +1,9 @@
+{
+  "paper_id": "emergent-planning-rl",
+  "run_id": "emergent-planning-rl-20260506-162102",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 548.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 30
+}

@@ -1,0 +1,12 @@
+torch
+transformers
+datasets
+accelerate
+deepspeed
+peft
+tqdm
+numpy
+scipy
+nltk
+openai
+pyyaml

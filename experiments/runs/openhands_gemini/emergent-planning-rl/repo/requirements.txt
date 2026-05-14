@@ -1,0 +1,6 @@
+torch==2.3.0
+torchvision==0.18.0
+numpy==1.26.4
+scikit-learn==1.5.0
+gym==0.26.2
+tensorboard==2.16.2

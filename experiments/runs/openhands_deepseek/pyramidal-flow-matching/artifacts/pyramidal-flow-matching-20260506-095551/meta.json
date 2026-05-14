@@ -1,0 +1,9 @@
+{
+  "paper_id": "pyramidal-flow-matching",
+  "run_id": "pyramidal-flow-matching-20260506-095551",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1681.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 34
+}

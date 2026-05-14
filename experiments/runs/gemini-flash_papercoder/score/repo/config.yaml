@@ -1,0 +1,80 @@
+## config.yaml
+# Base model configuration
+base_model_name: "google/gemma-2b" # Placeholder: paper uses Gemini 1.5 Flash/1.0 Pro. Replace with a suitable open-source alternative.
+task_type: "math" # or "code"
+
+# Paths
+math_train_path: "data/math_train_augmented.jsonl"
+math_eval_path: "data/math_test_500.jsonl"
+mbpp_train_path: "data/mbpp_train.jsonl"
+human_eval_path: "data/human_eval.jsonl"
+mbpp_r_path: "data/mbpp_r.jsonl" # Placeholder for MBPP-R with pre-generated incorrects
+checkpoint_dir: "checkpoints"
+log_dir: "logs"
+
+# Training Hyperparameters - Stage I (MATH)
+# From Table 5 (MATH)
+training_stage1_math:
+  learning_rate: 0.000005 # 5e-6
+  training_steps: 3000
+  batch_size: 512 # Number of rollouts to collect for each gradient update. Not necessarily LLM generations.
+  sampling_temperature: 1.0 # For generating responses during rollouts
+  alpha_reward_shaping: 10.0 # From Table 5, but not directly used in Stage I objective calculation for reward shaping. Carried over for consistency.
+  beta1_kl_penalty: 0.01 # General KL penalty
+  beta2_kl_penalty_stage1: 0.1 # Specific KL penalty for first turn in Stage I
+
+# Training Hyperparameters - Stage II (MATH)
+# From Table 5 (MATH)
+training_stage2_math:
+  learning_rate: 0.000005 # 5e-6
+  training_steps: 3000
+  batch_size: 512 # Number of rollouts to collect for each gradient update.
+  sampling_temperature: 1.0
+  alpha_reward_shaping: 10.0
+  beta1_kl_penalty: 0.01
+
+# Training Hyperparameters - Stage I (MBPP)
+# From Table 5 (MBPP)
+training_stage1_mbpp:
+  learning_rate: 0.00001 # 1e-5
+  training_steps: 1500
+  batch_size: 128
+  sampling_temperature: 1.0
+  alpha_reward_shaping: 10.0
+  beta1_kl_penalty: 0.01
+  beta2_kl_penalty_stage1: 0.25
+
+# Training Hyperparameters - Stage II (MBPP)
+# From Table 5 (MBPP)
+training_stage2_mbpp:
+  learning_rate: 0.00001 # 1e-5
+  training_steps: 1500
+  batch_size: 128
+  sampling_temperature: 1.0
+  alpha_reward_shaping: 10.0
+  beta1_kl_penalty: 0.01
+
+# Evaluation settings
+evaluation:
+  sampling_temperature: 0.0 # Greedy decoding
+  max_new_tokens: 1024 # Arbitrary, adjust based on task complexity
+  batch_size: 32 # Batch size for evaluation dataloader
+
+# PEFT (LoRA) settings (optional)
+use_peft: False # Set to True to use LoRA for fine-tuning
+peft_method: "lora"
+peft_lora_r: 16
+peft_lora_alpha: 32
+peft_lora_dropout: 0.05
+
+# Prompts (from Appendix C)
+prompts:
+  math_first_turn: "You are a math expert. When you respond, respond only with the Solution of the final Problem, thinking step by step. At the end of the Solution, when you give your final answer, write it in the form \"Final Answer: The final answer is \\\\boxed{{answer}}\\\\ . I hope it is correct.\""
+  math_second_turn_instruction: "There might be an error in the solution above because of lack of understanding of the question. Please correct the error, if any, and rewrite the solution. Only output the final solution! At the end of the Solution, when you give your final answer, write it in the form \"Final Answer: The final answer is \\\\boxed{{answer}}\\\\ . I hope it is correct.\""
+  mbpp_first_turn_prefix: "You are an expert Python programmer, and here is your task: " # To be followed by specific problem and 3-shot examples.
+  mbpp_second_turn_instruction: "# There might be an error in the code above because of lack of understanding of the question. Please correct the error, if any, and rewrite the solution. Only output the final correct Python program!"
+  human_eval_first_turn_prefix: "" # Paper implies zero-shot, just problem description
+  human_eval_second_turn_instruction: "# There might be an error in the code above because of lack of understanding of the question. Please correct the error, if any, and rewrite the solution. Only output the final correct Python program!"
+
+# Other settings
+seed: 42

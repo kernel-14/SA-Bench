@@ -1,0 +1,9 @@
+{
+  "paper_id": "pyramidal-flow-matching",
+  "run_id": "pyramidal-flow-matching-20260507-003113",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1280.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 51
+}

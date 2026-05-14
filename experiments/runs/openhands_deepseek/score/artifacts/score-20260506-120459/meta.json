@@ -1,0 +1,9 @@
+{
+  "paper_id": "score",
+  "run_id": "score-20260506-120459",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1407.7,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 35
+}

@@ -1,0 +1,9 @@
+{
+  "paper_id": "sam2",
+  "run_id": "sam2-20260506-215959",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 1540.8,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 54
+}

@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Implemented reproduction of core contributions from 'Exploring and Mitigating Adversarial Manipulation of Voting-Based Leaderboards.' The repository includes:\n\n1. **De-Anonymization Detectors**: Covers keyword-based prompts and training-based classifiers using text features (BoW, TF-IDF).\n2. **Reranking Simulation**: Bradley-Terry ranking system simulated to determine vote impacts on leaderboard positions.\n3. **Mitigation Strategies**: Authentication, rate limiting, and voting anomaly detection implemented.\n\nDocumentation outlines code structure, experimental focus, and areas for future expansion, adhering to the paper's methodology with adaptable scripts for broader testing setups.",
+  "steps": 23,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/voting-leaderboards/voting-leaderboards-20260505-165855/workspace/repo"
+}

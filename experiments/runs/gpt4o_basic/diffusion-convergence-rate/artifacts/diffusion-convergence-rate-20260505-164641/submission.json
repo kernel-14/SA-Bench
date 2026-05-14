@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "The core algorithms for the research paper 'Improved Convergence Rate for Diffusion Probabilistic Models' are implemented as Python scripts within `/home/submission/src`. This includes the forward diffusion process (`forward_process.py`), reverse diffusion process (`reverse_process.py`), and a randomized midpoint sampling algorithm (`sampler.py`) as described in the paper. Documentation explaining the functionality and use of these scripts is included in the `README.md` file. Advanced derivations and evaluations not central to the implementation were omitted due to time constraints.",
+  "steps": 21,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/diffusion-convergence-rate/diffusion-convergence-rate-20260505-164641/workspace/repo"
+}

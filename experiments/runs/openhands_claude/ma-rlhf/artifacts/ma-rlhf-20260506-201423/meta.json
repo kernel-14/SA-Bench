@@ -1,0 +1,9 @@
+{
+  "paper_id": "ma-rlhf",
+  "run_id": "ma-rlhf-20260506-201423",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 862.4,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 37
+}

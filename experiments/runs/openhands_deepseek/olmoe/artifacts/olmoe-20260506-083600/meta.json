@@ -1,0 +1,9 @@
+{
+  "paper_id": "olmoe",
+  "run_id": "olmoe-20260506-083600",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1565.8,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 42
+}

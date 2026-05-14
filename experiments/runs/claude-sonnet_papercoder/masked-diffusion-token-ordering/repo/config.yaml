@@ -1,0 +1,468 @@
+## config.yaml
+# Master configuration for reproducing:
+# "Train for the Worst, Plan for the Best: Understanding Token Ordering in Masked Diffusions"
+# All hyperparameters are taken directly from the paper. Values marked with
+# [INFERRED] are not explicitly stated and are reasonable approximations.
+
+## ---------------------------------------------------------------------------
+## Shared / global settings
+## ---------------------------------------------------------------------------
+project_name: masked_diffusion_token_ordering
+seed: 42
+device: cuda
+output_dir: outputs
+checkpoint_dir: checkpoints
+log_to_wandb: false
+
+## ---------------------------------------------------------------------------
+## Shared optimizer settings (paper: AdamW, β1=0.9, β2=0.95, wd=0.1,
+##   cosine LR schedule, max LR=4e-4, min LR=4e-5)
+## ---------------------------------------------------------------------------
+optimizer:
+  type: adamw
+  beta1: 0.9
+  beta2: 0.95
+  weight_decay: 0.1
+  grad_clip: 1.0
+
+lr_schedule:
+  type: cosine
+  max_lr: 4.0e-4
+  min_lr: 4.0e-5
+  warmup_steps: 1000   # [INFERRED] not stated; standard practice
+
+## ---------------------------------------------------------------------------
+## Noise schedule
+## Paper uses absorbing (masking) forward process with α_0≈1, α_1≈0.
+## Exact schedule type not stated; linear is the simplest valid choice.
+## ---------------------------------------------------------------------------
+noise_schedule:
+  type: linear          # α_t = 1 - t  →  α_0=1, α_1=0
+  mask_token_id: 0      # token 0 is the [MASK] token throughout
+
+## ---------------------------------------------------------------------------
+## Experiment: L&O-NAE-SAT  (Sections 3.3 and 4.2)
+## Paper details:
+##   - (N, P) pairs: (20,280) for error-imbalance; five pairs for adaptive eval
+##   - Sequence length 512, padded with 212 extra tokens when (N,P)=(20,280)
+##   - 19M MDM with RoPE
+##   - Standard training: 2 000 iterations
+##   - Proxy (Bayes-optimal approx): 50 000 iterations
+##   - Batch size 128 (shared training config)
+##   - Inference: 50 reverse steps, Gumbel coeff 0.5
+##   - Error imbalance: ℓ=11, 1 000 repeats
+## ---------------------------------------------------------------------------
+nae_sat:
+  experiment: nae_sat
+
+  ## Dataset
+  data:
+    ## Error-imbalance experiment (Section 3.3)
+    error_imbalance:
+      n_latent: 20
+      n_obs: 280
+      seq_len: 512        # N + P + pad = 20 + 280 + 212 = 512
+      pad_len: 212
+      train_size: 100000  # [INFERRED]
+      val_size: 10000     # [INFERRED]
+
+    ## Adaptive-inference experiment (Section 4.2, Table 1)
+    adaptive_instances:
+      - n_latent: 25
+        n_obs: 275
+      - n_latent: 30
+        n_obs: 270
+      - n_latent: 40
+        n_obs: 260
+      - n_latent: 50
+        n_obs: 250
+      - n_latent: 100
+        n_obs: 200
+    seq_len: 300          # N + P for the largest instance (100+200); [INFERRED]
+
+    ## Vocabulary: 0=MASK, 1/2/3=latent values, 4=PAD, 5=obs-value-0, 6=obs-value-1
+    ## Simplified encoding: 0=MASK, 1=latent-A, 2=latent-B, 3=latent-C,
+    ##                       1=obs-NAE-false (reuse), 2=obs-NAE-true (reuse), 4=PAD
+    vocab_size: 5         # {0,1,2,3,4}
+    mask_token_id: 0
+    pad_token_id: 4
+    batch_size: 128       # paper states batch size 128
+
+  ## Model — 19M bidirectional transformer with RoPE
+  ## 19M params: [INFERRED] 6 layers, 8 heads, d_model=512, d_ff=2048
+  model:
+    n_layers: 6           # [INFERRED] to reach ~19M params
+    n_heads: 8            # [INFERRED]
+    d_model: 512          # [INFERRED]
+    d_ff: 2048            # [INFERRED]
+    dropout: 0.1          # [INFERRED]
+    pos_emb_type: rope    # paper: "19M MDM with RoPE"
+    max_seq_len: 512
+    time_conditioned: false  # paper: time-embedding-free architecture
+
+  ## Training
+  training:
+    ## Standard MDM
+    max_iters: 2000       # paper: "trained for 2×10³ iterations"
+    ## Proxy MDM (Bayes-optimal approximation)
+    proxy_max_iters: 50000  # paper: "further train it for 5×10⁴ iterations"
+    batch_size: 128       # paper states batch size 128
+    num_workers: 4        # [INFERRED]
+
+  ## Evaluation — error imbalance (Section 3.3)
+  eval_error_imbalance:
+    ell: 11               # paper: "result corresponds to the case when ℓ=11"
+    n_repeats: 1000       # paper: "we repeat this process 1000 times"
+
+  ## Inference (Section 4.2)
+  inference:
+    n_steps: 50           # paper: "50 reverse sampling steps"
+    gumbel_coeff: 0.5     # paper: "Gumbel noise with a coefficient of 0.5"
+    strategies:
+      - vanilla
+      - top_probability
+      - top_margin
+
+## ---------------------------------------------------------------------------
+## Experiment: Sudoku puzzles  (Sections 4.2, 4.3, 4.5)
+## Paper details:
+##   - MDM: 6M GPT-2 model
+##   - ARM: 42M model (both with and without ordering)
+##   - LR = 0.001, batch size = 128, 300 epochs
+##   - Inference: 50 reverse steps, Gumbel coeff 0.5
+##   - Dataset: Shah et al. (2024) train/test; hard set from Radcliffe (2020)
+##   - Codebase: Ye et al. (2024)
+## ---------------------------------------------------------------------------
+sudoku:
+  experiment: sudoku
+
+  ## Dataset
+  data:
+    dataset_type: sudoku
+    data_path: data/sudoku          # Shah et al. (2024) dataset
+    hard_data_path: data/sudoku_hard  # Radcliffe (2020) remaining puzzles
+    seq_len: 81                     # 9×9 grid flattened
+    vocab_size: 11                  # 0=MASK, 1-9=digits, 10=empty [INFERRED]
+    mask_token_id: 0
+    batch_size: 128                 # paper: batch size 128
+    num_workers: 4                  # [INFERRED]
+
+  ## MDM model — 6M parameters
+  ## 6M params: [INFERRED] 4 layers, 8 heads, d_model=256, d_ff=1024
+  mdm_model:
+    n_layers: 4           # [INFERRED] to reach ~6M params
+    n_heads: 8            # [INFERRED]
+    d_model: 256          # [INFERRED]
+    d_ff: 1024            # [INFERRED]
+    dropout: 0.1          # [INFERRED]
+    pos_emb_type: learned # [INFERRED]; puzzle positions are not sequential
+    max_seq_len: 81
+    time_conditioned: false
+
+  ## ARM model — 42M parameters (paper: "42M" for both ARM variants)
+  ## 42M params: [INFERRED] 8 layers, 8 heads, d_model=512, d_ff=2048
+  arm_model:
+    n_layers: 8           # [INFERRED] to reach ~42M params
+    n_heads: 8            # [INFERRED]
+    d_model: 512          # [INFERRED]
+    d_ff: 2048            # [INFERRED]
+    dropout: 0.1          # [INFERRED]
+    pos_emb_type: learned # [INFERRED]
+    max_seq_len: 81
+
+  ## Training — paper: LR=0.001, batch=128, 300 epochs
+  training:
+    lr: 0.001             # paper: "learning rate to 0.001"
+    batch_size: 128       # paper: "batch size of 128"
+    epochs: 300           # paper: "train the model for 300 epochs"
+    num_workers: 4        # [INFERRED]
+    ## Override shared optimizer for puzzles (paper gives explicit LR)
+    optimizer:
+      type: adamw
+      beta1: 0.9          # [INFERRED]; consistent with shared config
+      beta2: 0.95         # [INFERRED]
+      weight_decay: 0.01  # [INFERRED]; lighter decay for smaller model
+      grad_clip: 1.0      # [INFERRED]
+
+  ## Inference
+  inference:
+    n_steps: 50           # paper: "50 reverse sampling steps"
+    gumbel_coeff: 0.5     # paper: "Gumbel noise with a coefficient of 0.5"
+    strategies:
+      - vanilla
+      - top_probability
+      - top_margin
+
+## ---------------------------------------------------------------------------
+## Experiment: Zebra (Einstein) puzzles  (Sections 4.2, 4.3)
+## Paper details:
+##   - MDM: 19M model
+##   - ARM: 42M model (with and without ordering)
+##   - Same LR/batch/epoch settings as Sudoku (shared training config)
+##   - Inference: 50 steps, Gumbel coeff 0.5
+##   - Dataset: Shah et al. (2024)
+## ---------------------------------------------------------------------------
+zebra:
+  experiment: zebra
+
+  ## Dataset
+  data:
+    dataset_type: zebra
+    data_path: data/zebra           # Shah et al. (2024) dataset
+    seq_len: 25                     # 5 houses × 5 attributes [INFERRED]
+    vocab_size: 32                  # [INFERRED] covers all attribute values + mask
+    mask_token_id: 0
+    batch_size: 128                 # consistent with paper's shared batch size
+    num_workers: 4                  # [INFERRED]
+
+  ## MDM model — 19M parameters (same architecture as NAE-SAT MDM)
+  mdm_model:
+    n_layers: 6           # [INFERRED] to reach ~19M params
+    n_heads: 8            # [INFERRED]
+    d_model: 512          # [INFERRED]
+    d_ff: 2048            # [INFERRED]
+    dropout: 0.1          # [INFERRED]
+    pos_emb_type: learned # [INFERRED]
+    max_seq_len: 25
+    time_conditioned: false
+
+  ## ARM model — 42M parameters (same as Sudoku ARM)
+  arm_model:
+    n_layers: 8           # [INFERRED]
+    n_heads: 8            # [INFERRED]
+    d_model: 512          # [INFERRED]
+    d_ff: 2048            # [INFERRED]
+    dropout: 0.1          # [INFERRED]
+    pos_emb_type: learned # [INFERRED]
+    max_seq_len: 25
+
+  ## Training — same explicit values as Sudoku
+  training:
+    lr: 0.001             # paper: "learning rate to 0.001"
+    batch_size: 128       # paper: "batch size of 128"
+    epochs: 300           # paper: "train the model for 300 epochs"
+    num_workers: 4        # [INFERRED]
+    optimizer:
+      type: adamw
+      beta1: 0.9          # [INFERRED]
+      beta2: 0.95         # [INFERRED]
+      weight_decay: 0.01  # [INFERRED]
+      grad_clip: 1.0      # [INFERRED]
+
+  ## Inference
+  inference:
+    n_steps: 50           # paper: "50 reverse sampling steps"
+    gumbel_coeff: 0.5     # paper: "Gumbel noise with a coefficient of 0.5"
+    strategies:
+      - vanilla
+      - top_probability
+      - top_margin
+
+## ---------------------------------------------------------------------------
+## Experiment: Scaling laws / π-learner  (Section 3.2)
+## Paper details:
+##   - SlimPajama dataset, sequence length L=2048
+##   - Learnable positional embeddings (not RoPE) for ALL models
+##   - AdamW: β1=0.9, β2=0.95, wd=0.1, cosine LR max=4e-4 min=4e-5
+##   - IsoFLOP analysis following Hoffmann et al. (2022): tokens = C/(6N)
+##   - Permutation types: identity (ARM), uniform random (MDM),
+##     closer (L/10 swaps), much-closer (√L swaps)
+##   - 3 permutation samples per non-identity distribution
+##   - Codebase: Nie et al. (2024)
+## ---------------------------------------------------------------------------
+scaling_law:
+  experiment: scaling_law
+
+  ## Dataset
+  data:
+    dataset_type: slimpajama
+    data_path: data/slimpajama      # cerebras/SlimPajama-627B on HuggingFace
+    seq_len: 2048                   # paper: "sequence length L is 2048"
+    batch_size: 512                 # [INFERRED]; standard for scaling experiments
+    num_workers: 8                  # [INFERRED]
+
+  ## Permutation distributions
+  permutations:
+    n_samples_per_dist: 3           # paper: "we sample three permutations"
+    distributions:
+      - name: identity              # ARM baseline (left-to-right)
+        type: identity
+        n_swaps: 0
+      - name: much_closer           # √L swaps from identity
+        type: swap_from_identity
+        n_swaps: sqrt_L             # paper: "√L swaps"
+      - name: closer                # L/10 swaps from identity
+        type: swap_from_identity
+        n_swaps: L_over_10          # paper: "L/10 swaps"
+      - name: uniform_random        # MDM-equivalent
+        type: uniform
+        n_swaps: null               # fully random permutation
+
+  ## Positional embedding: learnable for ALL models in this experiment
+  ## Paper: "we employ a learnable positional embedding layer for all
+  ##         experiments to correct this [RoPE inductive bias]"
+  pos_emb_type: learned
+
+  ## IsoFLOP analysis — following Hoffmann et al. (2022) and Nie et al. (2024)
+  isoflop:
+    ## FLOP budgets to evaluate (log-spaced)
+    flop_budgets:
+      - 1.0e18
+      - 3.0e18
+      - 1.0e19
+      - 3.0e19
+      - 1.0e20
+    ## For each budget C and model with N non-embedding params:
+    ##   training_tokens = C / (6 * N)
+    tokens_per_flop_formula: "C / (6 * N_params)"
+
+  ## Model size grid (non-embedding parameter counts) [INFERRED from TinyLlama]
+  model_sizes:
+    - label: 25M
+      n_layers: 6
+      n_heads: 6
+      d_model: 384
+      d_ff: 1536
+    - label: 50M
+      n_layers: 8
+      n_heads: 8
+      d_model: 512
+      d_ff: 2048
+    - label: 100M
+      n_layers: 12
+      n_heads: 8
+      d_model: 512
+      d_ff: 2048
+    - label: 200M
+      n_layers: 12
+      n_heads: 12
+      d_model: 768
+      d_ff: 3072
+    - label: 400M
+      n_layers: 16
+      n_heads: 16
+      d_model: 1024
+      d_ff: 4096
+
+  ## Shared training hyperparameters (paper-stated)
+  training:
+    max_lr: 4.0e-4          # paper: "maximum learning rate of 4×10⁻⁴"
+    min_lr: 4.0e-5          # paper: "minimum learning rate of 4×10⁻⁵"
+    optimizer:
+      type: adamw
+      beta1: 0.9            # paper: "β1=0.9"
+      beta2: 0.95           # paper: "β2=0.95"
+      weight_decay: 0.1     # paper: "weight decay of 0.1"
+      grad_clip: 1.0        # [INFERRED]
+    lr_schedule: cosine     # paper: "cosine learning rate schedule"
+
+## ---------------------------------------------------------------------------
+## Experiment: Text generation quality  (Section 4.2, Fig. 3)
+## Paper details:
+##   - 1.1B MDM pretrained on text data (baseline)
+##   - LLaMA-2-7B as evaluation LM for GenPPL
+##   - Unconditional generation
+##   - Temperature-augmented Top Probability Margin oracle
+##   - K set to match vanilla MDM expected unmasking count
+## ---------------------------------------------------------------------------
+text_generation:
+  experiment: text_generation
+
+  ## Pretrained MDM
+  mdm_model_path: pretrained/mdm_1.1B   # local path or HuggingFace model id
+
+  ## Evaluation LM
+  eval_lm: meta-llama/Llama-2-7b-hf    # paper: "LLaMA-7B as inference and evaluation"
+
+  ## Generation settings
+  generation:
+    n_samples: 1000         # [INFERRED]
+    seq_len: 256            # [INFERRED]; typical for unconditional text
+    n_steps: 256            # [INFERRED]; standard for 1.1B MDM
+
+  ## Oracle — temperature-augmented Top Probability Margin
+  ## Paper: "adding a certain level of temperature to the oracle is useful"
+  ## Exact σ not stated; exposed as tunable parameter
+  inference:
+    strategies:
+      - vanilla
+      - top_probability
+      - top_margin
+    noise_sigma: 0.1        # [INFERRED]; Gaussian noise for diversity
+    gumbel_coeff: 0.0       # not used for text (Gumbel used only for puzzles)
+    ## K selection: K = n_masked * (α_s - α_t) / (1 - α_t)
+    ## Paper: "we set the number of tokens to unmask K so that the number of
+    ##         unmasked tokens matches that of vanilla MDM inference in expectation"
+    k_selection: deterministic  # paper also notes stochastic (Binomial) works similarly
+
+## ---------------------------------------------------------------------------
+## Experiment: LLaDA-8B evaluation  (Section 4.4, Table 4)
+## Paper details:
+##   - LLaDA-8B-Instruct (Nie et al., 2025)
+##   - Inference only — no fine-tuning
+##   - Infilling tasks: non-autoregressive, output_len = masked span size
+##   - Instruction tasks: semi-autoregressive (following Nie et al. 2025)
+##   - Strategies: vanilla, top_probability, top_margin
+## ---------------------------------------------------------------------------
+llada_eval:
+  experiment: llada_eval
+
+  ## Model
+  model_name: GSAI-ML/LLaDA-8B-Instruct   # paper: "LLaDa 8B"
+  dtype: bfloat16           # [INFERRED]; standard for 8B inference
+  device: cuda
+
+  ## Tasks
+  tasks:
+    ## Infilling tasks (non-autoregressive)
+    infilling:
+      - name: humaneval_single    # HumanEval-Infill single-line (Bavarian et al. 2022)
+        type: infill
+        autoregressive: false
+      - name: humaneval_multi     # HumanEval-Infill multi-line
+        type: infill
+        autoregressive: false
+      - name: humaneval_split     # HumanEval-Infill split
+        type: infill
+        autoregressive: false
+      - name: rocstories          # ROCStories infill
+        type: infill
+        autoregressive: false
+    ## Instruction-answering tasks (semi-autoregressive)
+    instruction:
+      - name: math                # MATH benchmark
+        type: instruction
+        autoregressive: semi      # paper: "semi-autoregressive sampling strategy"
+      - name: mmlu                # MMLU
+        type: instruction
+        autoregressive: semi
+
+  ## Inference
+  inference:
+    ## Paper: follows Nie et al. (2025) sampling configuration for instruction tasks
+    n_steps: 256            # [INFERRED]; standard for LLaDA-8B
+    strategies:
+      - vanilla
+      - top_probability
+      - top_margin
+    gumbel_coeff: 0.0       # [INFERRED]; not mentioned for LLaDA experiments
+    noise_sigma: 0.0        # [INFERRED]
+    ## K selection formula (same as text generation)
+    k_selection: deterministic
+
+## ---------------------------------------------------------------------------
+## Inference oracle defaults (shared across experiments unless overridden)
+## ---------------------------------------------------------------------------
+oracles:
+  top_probability:
+    ## Certainty score: max_j p_θ(x^i = j | x_t)
+    ## Paper Section 4.1: "uncertainty of a position is estimated by the
+    ##   maximum probability assigned to any value in the vocabulary"
+    gumbel_coeff: 0.5       # for puzzles; set to 0.0 for text tasks
+    noise_sigma: 0.0
+
+  top_margin:
+    ## Certainty score: |p(x^i=j1|x_t) - p(x^i=j2|x_t)|  (j1, j2 = top-2)
+    ## Paper Section 4.1: "absolute difference between the two most probable values"
+    gumbel_coeff: 0.5       # for puzzles; set to 0.0 for text tasks
+    noise_sigma: 0.0        # for text tasks; set > 0 to preserve diversity

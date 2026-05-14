@@ -1,0 +1,154 @@
+# config.yaml — NaViL reproduction configuration (default: NaViL‑2B)
+# All values are taken directly from the paper’s Tables 6–8 and architectural descriptions.
+
+model:
+  variant: "2B"                                   # "2B" or "9B"
+  # Architecture details for the visual encoder
+  visual_encoder:
+    depth: 24                                     # Number of transformer layers (2B variant)
+    width: 1472                                   # Hidden dimension
+    mlp_width: 5888                               # FFN intermediate dimension
+    num_attention_heads: 23
+    patch_size: 16
+    rope_type: "2d"                               # 2D rotary position embeddings (bidirectional)
+  # Connector
+  connector:
+    pixel_shuffle_ratio: 2                        # Spatial downsampling factor (1/ratio in each dim)
+    mlp_hidden_dim: null                          # If null, equals visual_encoder.width → LLM width
+  # LLM with modality‑specific MoE
+  llm:
+    base_model: "internlm2-1_8b"                  # HuggingFace model identifier or path
+    num_experts: 2                                # per modality: visual and linguistic
+    attention_experts: true                       # MHA‑MMoE enabled
+    ffn_experts: true                             # FFN‑MMoE enabled
+    activation_per_expert: 1                      # top-1 gating
+  # Overall meta parameters
+  multi_scale:
+    enabled: true                                 # visual multi‑scale packing
+    tau: 0.7071                                   # downsampling rate = sqrt(2)/2
+    min_scale_area: 256                           # stop when image area < this threshold (pixels)
+  special_tokens:
+    begin_of_image: "<begin_of_image>"
+    end_of_image: "<end_of_image>"
+    end_of_line: "<end_of_line>"
+    end_of_scale: "<end_of_scale>"
+
+data:
+  # Paths to webdataset shards or dataset folders
+  s1_1:
+    raw_image_text: [
+      "/data/laion2b-shards/",
+      "/data/coyo700m-shards/",
+      "/data/wukong-shards/",
+      "/data/sa1b-shards/"
+    ]
+    synthetic_captions: "/data/synthetic_captions/"   # 200M captions by InternVL-8B
+    total_size: 500_000_000
+  s1_2:
+    multimodal: "/data/high_quality_multimodal/"       # 185M mixture (InternVL-2.5 style)
+    pure_language: "/data/pure_language/"
+    total_size: 185_000_000
+  s2:
+    sft_data: "/data/sft_mixture/"                    # 68M instructions (InternVL-2.5 style)
+    total_size: 68_000_000
+  # Image processing
+  image_size: 512                                    # padded image size (will be padded to multiple of 32)
+  max_patches_per_sample: 4096                        # default for S1.1, overridden per stage
+  batch_size: 1                                      # per-device batch size (global_batch = batch_size * num_devices * grad_accum)
+  num_workers: 8
+  tokenizer_name: "internlm2-1_8b"                   # same as base model, will be loaded
+
+training:
+  seed: 42
+  precision: "bf16"
+  gradient_accumulation_steps: 1
+  optimizer:
+    name: "AdamW"
+    beta1: 0.9
+    beta2: 0.95
+    epsilon: 1.0e-8
+  max_seq_length: 16384
+  # Stage‑specific configurations
+  stages:
+    s1_1:
+      description: "Multi-modal generative pre-training (vision‑only trainable)"
+      data_source: "s1_1"
+      max_patches: 4096
+      steps: 70000
+      global_batch_size: 7000
+      weight_decay: 0.05
+      learning_rate: 5.0e-5
+      lr_schedule: "constant_with_warmup"
+      warmup_steps: 200
+      freeze_pattern:
+        - "linguistic"                               # all linguistic MoE parameters and base LLM weights
+      multi_scale: true
+    s1_2:
+      description: "High‑quality alignment (unfreeze attention)"
+      data_source: "s1_2"
+      max_patches: 12188
+      steps: 40000
+      global_batch_size: 4614
+      weight_decay: 0.1
+      learning_rate: 5.0e-5
+      lr_schedule: "constant_with_warmup"
+      warmup_steps: 200
+      freeze_pattern:
+        # unfreeze attention layers, keep FFN frozen
+        - "linguistic.ffn"                           # freeze linguistic FFN parameters
+      multi_scale: true
+    s2:
+      description: "Supervised fine‑tuning (all parameters)"
+      data_source: "s2"
+      max_patches: 24576
+      steps: 30000
+      global_batch_size: 2234
+      weight_decay: 0.01
+      learning_rate: 2.0e-5
+      lr_schedule: "cosine_decay"
+      warmup_steps: 200
+      freeze_pattern: []                             # unfreeze everything
+      multi_scale: true
+
+# Evaluation configuration
+evaluation:
+  benchmarks:
+    - "MMVet"
+    - "MMMU_val"
+    - "MMBench_EN_test"
+    - "MME"                                          # sum perception + cognition
+    - "MathVista_MINI"
+    - "OCRBench"
+    - "CCBench"
+    - "TextVQA_val"
+    - "ScienceQA_IMG_test"
+    - "GQA_testdev"
+    - "DocVQA_test"
+    - "AI2D_test"
+    - "ChartQA_test"
+    - "InfographicVQA_test"
+  batch_size: 1
+  output_dir: "./eval_results"
+
+# Optional: 9B variant overrides (select via model.variant = "9B")
+model_9B:
+  visual_encoder:
+    depth: 32
+    width: 1792
+    mlp_width: 7168
+    num_attention_heads: 28
+  llm:
+    base_model: "qwen3-8b"
+  tokenizer_name: "qwen3-8b"
+  training:
+    stages:
+      s1_1:
+        steps: 50000
+        global_batch_size: 10300
+        multi_scale: false                           # disabled for speed in S1.1
+      s1_2:
+        steps: 33000
+        global_batch_size: 1792
+      s2:
+        steps: 6000
+        global_batch_size: 3520

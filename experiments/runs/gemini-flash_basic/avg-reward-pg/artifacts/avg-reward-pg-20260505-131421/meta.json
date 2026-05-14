@@ -1,0 +1,168 @@
+{
+  "case_id": "avg-reward-pg",
+  "run_id": "avg-reward-pg-20260505-131421",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 917765,
+    "total_output_tokens": 43982,
+    "total_tokens": 961747,
+    "estimated_cost_usd": 3.413,
+    "elapsed_seconds": 579.9,
+    "steps": 25,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 8.51,
+        "input_tokens": 1190,
+        "output_tokens": 117
+      },
+      {
+        "step": 2,
+        "elapsed_s": 7.59,
+        "input_tokens": 1310,
+        "output_tokens": 57
+      },
+      {
+        "step": 3,
+        "elapsed_s": 16.54,
+        "input_tokens": 6518,
+        "output_tokens": 1174
+      },
+      {
+        "step": 4,
+        "elapsed_s": 10.46,
+        "input_tokens": 11903,
+        "output_tokens": 615
+      },
+      {
+        "step": 5,
+        "elapsed_s": 7.01,
+        "input_tokens": 12144,
+        "output_tokens": 843
+      },
+      {
+        "step": 6,
+        "elapsed_s": 7.49,
+        "input_tokens": 14540,
+        "output_tokens": 998
+      },
+      {
+        "step": 7,
+        "elapsed_s": 25.65,
+        "input_tokens": 17081,
+        "output_tokens": 879
+      },
+      {
+        "step": 8,
+        "elapsed_s": 7.56,
+        "input_tokens": 19486,
+        "output_tokens": 968
+      },
+      {
+        "step": 9,
+        "elapsed_s": 13.62,
+        "input_tokens": 21879,
+        "output_tokens": 989
+      },
+      {
+        "step": 10,
+        "elapsed_s": 3.71,
+        "input_tokens": 24226,
+        "output_tokens": 120
+      },
+      {
+        "step": 11,
+        "elapsed_s": 10.13,
+        "input_tokens": 24344,
+        "output_tokens": 77
+      },
+      {
+        "step": 12,
+        "elapsed_s": 6.6,
+        "input_tokens": 31031,
+        "output_tokens": 360
+      },
+      {
+        "step": 13,
+        "elapsed_s": 103.31,
+        "input_tokens": 30176,
+        "output_tokens": 7631
+      },
+      {
+        "step": 14,
+        "elapsed_s": 17.5,
+        "input_tokens": 37697,
+        "output_tokens": 2012
+      },
+      {
+        "step": 15,
+        "elapsed_s": 30.57,
+        "input_tokens": 43149,
+        "output_tokens": 2853
+      },
+      {
+        "step": 16,
+        "elapsed_s": 9.96,
+        "input_tokens": 49091,
+        "output_tokens": 243
+      },
+      {
+        "step": 17,
+        "elapsed_s": 14.24,
+        "input_tokens": 51259,
+        "output_tokens": 495
+      },
+      {
+        "step": 18,
+        "elapsed_s": 78.3,
+        "input_tokens": 51485,
+        "output_tokens": 0
+      },
+      {
+        "step": 19,
+        "elapsed_s": 7.89,
+        "input_tokens": 51518,
+        "output_tokens": 358
+      },
+      {
+        "step": 20,
+        "elapsed_s": 94.58,
+        "input_tokens": 55871,
+        "output_tokens": 12259
+      },
+      {
+        "step": 21,
+        "elapsed_s": 9.6,
+        "input_tokens": 64839,
+        "output_tokens": 524
+      },
+      {
+        "step": 22,
+        "elapsed_s": 9.98,
+        "input_tokens": 65001,
+        "output_tokens": 434
+      },
+      {
+        "step": 23,
+        "elapsed_s": 23.19,
+        "input_tokens": 72265,
+        "output_tokens": 880
+      },
+      {
+        "step": 24,
+        "elapsed_s": 43.31,
+        "input_tokens": 73723,
+        "output_tokens": 8294
+      },
+      {
+        "step": 25,
+        "elapsed_s": 12.36,
+        "input_tokens": 86039,
+        "output_tokens": 802
+      }
+    ]
+  }
+}

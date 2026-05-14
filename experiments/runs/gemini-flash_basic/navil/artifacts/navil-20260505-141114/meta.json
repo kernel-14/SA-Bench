@@ -1,0 +1,174 @@
+{
+  "case_id": "navil",
+  "run_id": "navil-20260505-141114",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 690412,
+    "total_output_tokens": 25133,
+    "total_tokens": 715545,
+    "estimated_cost_usd": 2.4482,
+    "elapsed_seconds": 628.0,
+    "steps": 26,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 4.36,
+        "input_tokens": 1188,
+        "output_tokens": 133
+      },
+      {
+        "step": 2,
+        "elapsed_s": 7.63,
+        "input_tokens": 1302,
+        "output_tokens": 85
+      },
+      {
+        "step": 3,
+        "elapsed_s": 3.57,
+        "input_tokens": 4015,
+        "output_tokens": 280
+      },
+      {
+        "step": 4,
+        "elapsed_s": 7.57,
+        "input_tokens": 5887,
+        "output_tokens": 422
+      },
+      {
+        "step": 5,
+        "elapsed_s": 4.79,
+        "input_tokens": 7799,
+        "output_tokens": 303
+      },
+      {
+        "step": 6,
+        "elapsed_s": 6.88,
+        "input_tokens": 13176,
+        "output_tokens": 473
+      },
+      {
+        "step": 7,
+        "elapsed_s": 8.87,
+        "input_tokens": 13351,
+        "output_tokens": 1184
+      },
+      {
+        "step": 8,
+        "elapsed_s": 8.52,
+        "input_tokens": 15663,
+        "output_tokens": 827
+      },
+      {
+        "step": 9,
+        "elapsed_s": 6.5,
+        "input_tokens": 18035,
+        "output_tokens": 810
+      },
+      {
+        "step": 10,
+        "elapsed_s": 6.43,
+        "input_tokens": 20407,
+        "output_tokens": 787
+      },
+      {
+        "step": 11,
+        "elapsed_s": 5.39,
+        "input_tokens": 22782,
+        "output_tokens": 96
+      },
+      {
+        "step": 12,
+        "elapsed_s": 12.37,
+        "input_tokens": 22891,
+        "output_tokens": 816
+      },
+      {
+        "step": 13,
+        "elapsed_s": 8.74,
+        "input_tokens": 25219,
+        "output_tokens": 781
+      },
+      {
+        "step": 14,
+        "elapsed_s": 7.45,
+        "input_tokens": 27547,
+        "output_tokens": 806
+      },
+      {
+        "step": 15,
+        "elapsed_s": 7.19,
+        "input_tokens": 29875,
+        "output_tokens": 772
+      },
+      {
+        "step": 16,
+        "elapsed_s": 5.47,
+        "input_tokens": 32203,
+        "output_tokens": 90
+      },
+      {
+        "step": 17,
+        "elapsed_s": 65.73,
+        "input_tokens": 32339,
+        "output_tokens": 0
+      },
+      {
+        "step": 18,
+        "elapsed_s": 192.16,
+        "input_tokens": 32372,
+        "output_tokens": 0
+      },
+      {
+        "step": 19,
+        "elapsed_s": 98.46,
+        "input_tokens": 32405,
+        "output_tokens": 0
+      },
+      {
+        "step": 20,
+        "elapsed_s": 6.18,
+        "input_tokens": 32438,
+        "output_tokens": 753
+      },
+      {
+        "step": 21,
+        "elapsed_s": 73.29,
+        "input_tokens": 34401,
+        "output_tokens": 5789
+      },
+      {
+        "step": 22,
+        "elapsed_s": 22.63,
+        "input_tokens": 42577,
+        "output_tokens": 4033
+      },
+      {
+        "step": 23,
+        "elapsed_s": 12.53,
+        "input_tokens": 49881,
+        "output_tokens": 690
+      },
+      {
+        "step": 24,
+        "elapsed_s": 16.1,
+        "input_tokens": 51724,
+        "output_tokens": 2203
+      },
+      {
+        "step": 25,
+        "elapsed_s": 12.58,
+        "input_tokens": 59763,
+        "output_tokens": 1805
+      },
+      {
+        "step": 26,
+        "elapsed_s": 16.33,
+        "input_tokens": 61172,
+        "output_tokens": 1195
+      }
+    ]
+  }
+}

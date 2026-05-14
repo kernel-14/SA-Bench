@@ -1,0 +1,209 @@
+## config.yaml
+# Prioritized Generative Replay (PGR) - Master Configuration
+# All values sourced directly from the paper. Unspecified values are marked with comments.
+
+defaults:
+  - _self_
+
+## ─── Environment ────────────────────────────────────────────────────────────
+env:
+  name: "quadruped-walk"        # Options: quadruped-walk, cheetah-run, reacher-hard,
+                                #          finger-turn-hard, walker-walk, hopper-hop,
+                                #          Walker2d-v2, HalfCheetah-v2, Hopper-v2
+  type: "dmc"                   # Options: dmc, gym
+  pixel_obs: false              # True for pixel-based DMC tasks
+  image_size: 84                # Pixel observation size (H x W); standard DMC
+  frame_stack: 3                # Number of frames to stack for pixel obs
+  seed: 0
+
+## ─── Training Loop ──────────────────────────────────────────────────────────
+training:
+  total_steps: 100000           # 100K env steps (paper Sec. 5); 300K for finger-turn-hard
+  eval_freq: 5000               # Evaluate every N env steps (not stated; reasonable default)
+  eval_episodes: 10             # Episodes per evaluation (not stated; reasonable default)
+  seed: 0
+
+## ─── Replay Buffers ─────────────────────────────────────────────────────────
+buffer:
+  real_capacity: 1000000        # D_real size: 1M transitions (paper Sec. 4.3)
+  syn_capacity: 1000000         # D_syn size: 1M transitions (paper Sec. 4.3)
+                                # Scaled to 2M in UTD=40 scaling experiment (Sec. 5.3)
+
+## ─── Mixed Sampling ─────────────────────────────────────────────────────────
+sampling:
+  synthetic_ratio: 0.5          # r=0.5 baseline: 128 real + 128 synthetic per batch of 256
+                                # r=0.75 in scaling experiment (batch=512, 128 real + 384 syn)
+                                # r=0.875 causes catastrophic failure (paper Sec. 5.3)
+  batch_size: 256               # Baseline batch size (paper Sec. 5.3)
+                                # Scaled to 512 (r=0.75) and 1024 (larger network) in Sec. 5.3
+
+## ─── Policy: REDQ ───────────────────────────────────────────────────────────
+policy:
+  type: "redq"                  # Options: redq, sac, drqv2
+  hidden_dim: 256               # Baseline hidden width (paper Sec. 5.3)
+                                # Scaled to 512 in larger-network experiment
+  hidden_layers: 2              # Baseline hidden layers (paper Sec. 5.3)
+                                # Scaled to 3 in larger-network experiment
+  utd_ratio: 20                 # Update-to-data ratio (paper Sec. 5, matches SYNTHER)
+                                # Scaled to 40 in combined scaling experiment (Sec. 5.3)
+  ensemble_size: 10             # REDQ Q-network ensemble size (Chen et al., 2021)
+  subsample_size: 2             # Number of Q-networks subsampled per update (Chen et al., 2021)
+  gamma: 0.99                   # Discount factor (standard; not stated explicitly)
+  tau: 0.005                    # Target network EMA coefficient (standard SAC/REDQ)
+  lr: 3.0e-4                    # Learning rate (standard SAC/REDQ; not stated explicitly)
+  auto_alpha: true              # Automatic entropy tuning (standard SAC)
+
+## ─── Policy: DRQ-v2 (pixel-based) ──────────────────────────────────────────
+drqv2:
+  feature_dim: 50               # CNN encoder output dimension (Yarats et al., 2021)
+  hidden_dim: 1024              # Actor/critic MLP hidden dim (Yarats et al., 2021)
+  lr: 1.0e-4                    # DRQ-v2 learning rate (Yarats et al., 2021)
+
+## ─── Relevance Function ─────────────────────────────────────────────────────
+relevance:
+  type: "curiosity"             # Default: curiosity (ICM). Options: curiosity, td_error,
+                                #          return, reward, rnd
+  update_freq: 20               # ICM updated every 20 policy steps = 5% of all steps (paper Sec. 5)
+  icm:
+    latent_dim: 256             # ICM feature encoder output dimension (not stated; reasonable)
+    hidden_dim: 256             # ICM MLP hidden dimension (not stated; reasonable)
+    num_layers: 2               # ICM MLP depth (not stated; reasonable)
+    lr: 1.0e-3                  # ICM optimizer learning rate (not stated; reasonable)
+    ## Pixel-based ICM (Appendix A):
+    cnn_bottleneck_dim: 64      # CNN bottleneck latent dimension (paper Appendix A)
+    cnn_feature_dim: 512        # CNN feature output dimension (paper Appendix A)
+    cnn_num_layers: 3           # Number of CNN layers (paper Appendix A)
+    mlp_proj_dim: 512           # MLP projection dimension after CNN (paper Appendix A)
+    mlp_proj_layers: 2          # MLP projection depth (paper Appendix A)
+  rnd:
+    ## RND architecture (Appendix A):
+    cnn_bottleneck_dim: 64      # Same as ICM pixel encoder (paper Appendix A)
+    cnn_feature_dim: 512        # Same as ICM pixel encoder (paper Appendix A)
+    cnn_num_layers: 3           # Same as ICM pixel encoder (paper Appendix A)
+    mlp_proj_dim: 512           # Same as ICM pixel encoder (paper Appendix A)
+    mlp_proj_layers: 2          # Same as ICM pixel encoder (paper Appendix A)
+    lr: 1.0e-3                  # RND predictor learning rate (not stated; reasonable)
+  cts:
+    ## CTS pseudo-count (Appendix A):
+    obs_resize: 42              # Resize visual obs to 42x42 (paper Appendix A)
+    context_bins: 8             # CTS density model context bins (paper Appendix A)
+  eco:
+    ## Episodic Curiosity (Appendix A.2, DMLab only):
+    alpha: 0.03                 # ECO intrinsic reward scale (paper Appendix A.2)
+    beta: 0.5                   # ECO threshold (paper Appendix A.2)
+    memory_size: 200            # ECO memory buffer size |M| (paper Appendix A.2)
+    percentile: 90              # ECO aggregation percentile F (paper Appendix A.2)
+    embedder_output_dim: 512    # ResNet-18 embedder output dim (paper Appendix A.2)
+    mlp_hidden_dim: 512         # Comparator MLP hidden dim (paper Appendix A.2)
+    mlp_num_layers: 4           # Comparator MLP depth (paper Appendix A.2)
+
+## ─── Conditional Diffusion Model ────────────────────────────────────────────
+diffusion:
+  hidden_dim: 256               # Residual MLP hidden dimension (matches SYNTHER; paper Sec. 5)
+  num_layers: 4                 # Number of residual blocks (not stated; matches SYNTHER)
+  time_emb_dim: 128             # Sinusoidal time embedding dimension (not stated; standard)
+  cond_emb_dim: 128             # Condition (relevance score) embedding dimension (not stated)
+  num_timesteps: 100            # DDPM denoising steps (not stated; follows SYNTHER convention)
+  beta_start: 1.0e-4            # DDPM beta schedule start (standard DDPM)
+  beta_end: 0.02                # DDPM beta schedule end (standard DDPM)
+  lr: 3.0e-4                    # Diffusion model learning rate (not stated; standard)
+  ## Classifier-Free Guidance:
+  p_uncond: 0.25                # Probability of dropping condition during training (paper Sec. 5)
+  guidance_scale: 3.0           # CFG guidance scale omega at sampling time (NOT stated in paper;
+                                # recommended sweep: [1.5, 3.0, 5.0, 7.5])
+  ## Inner loop (Algorithm 1):
+  inner_loop_freq: 10000        # Retrain diffusion every 10K env steps (paper Appendix D / Fig. 9)
+  train_steps_per_loop: 10000   # Gradient steps per inner loop call (not stated; equals freq)
+  generation_batch_size: 1024   # Batch size for synthetic data generation (not stated)
+  ## Prompting strategy (Peebles et al., 2022):
+  top_k_fraction: 0.1           # Fraction of D_real with highest F-values used as conditions
+                                # (NOT stated in paper; recommended default 10%)
+
+## ─── Scaling Experiments (Section 5.3) ─────────────────────────────────────
+scaling:
+  ## Experiment (a): Larger network
+  larger_network:
+    enabled: false
+    hidden_dim: 512             # Scaled from 256 (paper Sec. 5.3)
+    hidden_layers: 3            # Scaled from 2 (paper Sec. 5.3)
+    batch_size: 1024            # Scaled from 256 to maintain per-parameter throughput (Sec. 5.3)
+  ## Experiment (b): Higher synthetic data ratio
+  high_syn_ratio:
+    enabled: false
+    synthetic_ratio: 0.75       # r=0.75: 128 real + 384 synthetic per batch of 512 (Sec. 5.3)
+    batch_size: 512             # Doubled from 256 (paper Sec. 5.3)
+  ## Experiment (c): Combined (larger network + high ratio + UTD=40)
+  combined:
+    enabled: false
+    hidden_dim: 512             # Larger MLP (paper Sec. 5.3)
+    hidden_layers: 3            # Larger MLP (paper Sec. 5.3)
+    synthetic_ratio: 0.75       # r=0.75 (paper Sec. 5.3)
+    batch_size: 512             # (paper Sec. 5.3)
+    utd_ratio: 40               # Doubled from 20 (paper Sec. 5.3)
+    syn_capacity: 2000000       # D_syn doubled to 2M to preserve diversity (paper Sec. 5.3)
+
+## ─── Exploration Bonus Baselines (Appendix B) ───────────────────────────────
+exploration:
+  ## Explicit bonus (Appendix B.1):
+  intrinsic_reward_weight: 0.1  # Curiosity bonus weight added to extrinsic reward (paper App. B.1)
+  ## NoisyNets (Appendix B.2, Fortunato et al., 2018):
+  noisy_nets:
+    enabled: false
+  ## Bootstrapped DQN (Appendix B.2, Osband et al., 2016):
+  boot_dqn:
+    enabled: false
+    mask_distribution: "bernoulli_1"  # All-ones mask = basic ensemble (paper App. B.2)
+
+## ─── Noisy Dynamics Experiment (Appendix C) ─────────────────────────────────
+noisy_dynamics:
+  enabled: false
+  noise_fraction: 0.20          # 20% of transitions receive isotropic Gaussian noise (App. C)
+  noise_target: "icm"           # Noise added to s and s' fed to ICM (paper App. C)
+
+## ─── DMLab Experiment (Appendix A.2) ────────────────────────────────────────
+dmlab:
+  obs_size: 84                  # First-person 84x84 RGB observations (paper App. A.2)
+  num_actions: 9                # Discrete action space (paper App. A.2)
+  action_repeat: 4              # Action repeat frequency (paper App. A.2)
+  episode_steps: 1800           # Steps per episode (paper App. A.2)
+  total_steps: 10000000         # 10M environment steps (paper App. A.2, Table 5)
+  seeds: 10                     # Number of seeds for DMLab (paper App. A.2, Table 5)
+  reward_sparse: 10             # Sparse reward value for reaching goal (paper App. A.2)
+  noisy_obs_size: 42            # Size of noisy TV patch (lower-right 42x42) (paper App. A.2)
+  policy_type: "ppo"            # PPO backbone for DMLab (paper App. A.2)
+
+## ─── Logging and Checkpointing ──────────────────────────────────────────────
+logging:
+  use_wandb: true
+  log_dir: "logs"
+  checkpoint_dir: "checkpoints"
+  checkpoint_freq: 10000        # Save checkpoint every N env steps (not stated; reasonable)
+  project_name: "prioritized-generative-replay"
+
+## ─── Hardware ───────────────────────────────────────────────────────────────
+hardware:
+  device: "cuda"
+  ## From Table 3 (paper):
+  ## VRAM for generation: ~6.67 GB (PGR) vs ~4.31 GB (SYNTHER)
+  ## Total train time: ~4.35 hours (PGR) vs ~4.17 hours (SYNTHER) on single GPU
+  ## Diffusion train time: ~1.61 hours (PGR) vs ~1.57 hours (SYNTHER)
+  ## Generation time: ~0.63 hours (PGR) vs ~0.62 hours (SYNTHER)
+  ## RL train time: ~2.11 hours (PGR) vs ~1.98 hours (SYNTHER)
+
+## ─── Evaluation Metrics ─────────────────────────────────────────────────────
+evaluation:
+  ## Main metrics (Tables 1, 2):
+  report_steps: 100000          # Report average return at 100K steps (paper Sec. 5)
+  num_seeds_main: 5             # Seeds for DMC experiments (paper Table 1)
+  num_seeds_gym: 3              # Seeds for OpenAI Gym experiments (paper Table 2)
+  ## Generation quality (Fig. 5):
+  mse_eval_epoch: 50000         # Evaluate generation MSE at step 50K (paper Sec. 5.2)
+  mse_num_samples: 10000        # Number of generated transitions for MSE eval (paper Sec. 5.2)
+  ## Dormant ratio (Fig. 6a):
+  dormant_threshold: 0.01       # Neuron activation threshold for dormant ratio (Sokar et al., 2023)
+  ## Relevance distribution (Fig. 6b):
+  relevance_eval_freq: 10000    # Evaluate F-value distribution every 10K steps (paper Sec. 5.2)
+  relevance_num_samples: 10000  # Transitions scored per evaluation (paper Sec. 5.2)
+  ## tSNE (Fig. 2):
+  tsne_num_samples: 10000       # Generations projected per tSNE plot (paper Sec. 4)
+  tsne_epochs: [1, 130, -1]     # Epochs at which tSNE is computed (paper Fig. 2)

@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced MR.Q algorithm components including StateEncoder, StateActionEncoder, Value and Policy Networks, their respective loss functions, prioritized experience replay, and key mechanisms. Assumptions and simplifications regarding multi-step returns and unrolled dynamics are documented in the README.",
+  "steps": 39,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/mrq/mrq-20260505-140838/workspace/repo"
+}

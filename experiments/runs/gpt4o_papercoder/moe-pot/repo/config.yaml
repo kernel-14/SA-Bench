@@ -1,0 +1,58 @@
+## config.yaml
+training:
+  learning_rate: 0.001  # From the paper's details for pretraining and fine-tuning
+  weight_decay: 1e-6  # Used in Adam optimizer
+  optimizer: "adam"  # Adam optimizer
+  epochs_pretraining: 1000  # Total number of pretraining epochs
+  warmup_epochs_pretraining: 200  # Warmup period during pretraining
+  epochs_finetuning: 200  # Total number of fine-tuning epochs
+  warmup_epochs_finetuning: 40  # Warmup epochs for fine-tuning
+  batch_size: 20  # Per-batch size used in pretraining (training on 8 GPUs)
+  downstream_epochs: 500  # Total epochs for downstream task fine-tuning
+  downstream_warmup_epochs: 100  # Warmup epochs for downstream tasks
+
+architecture:
+  patch_size: 8  # Used for spatial resolution
+  attention_heads: 4  # For Tiny model (default)
+  routed_experts: 16  # MoE design
+  shared_experts: 2  # Fixed number of shared experts
+  mo_layers: 4  # Number of transformer layers in the Tiny configuration
+  fourier_dim: 512  # Input/output dimension for Fourier layer (Tiny)
+  model_sizes:
+    tiny:
+      total_parameters: 30_000_000
+      activated_parameters: 17_000_000
+    small:
+      total_parameters: 166_000_000
+      activated_parameters: 90_000_000
+    medium:
+      total_parameters: 489_000_000
+      activated_parameters: 288_000_000
+
+datasets:
+  pretraining:
+    - "FNO_1e-5"
+    - "FNO_1e-3"
+    - "CNS_0.1_0.01"
+    - "SWE"
+    - "DR"
+    - "CFDBench"
+  finetuning:
+    subsets:
+      - "NS_1e-4"
+      - "CNS_1_0.01"
+  downstream:
+    - "Wave-Layer"
+    - "Wave-Gauss"
+
+evaluation:
+  metric: "L2RE"  # L2 relative error
+  rollout_steps: 100  # Multi-step error propagation during rollouts
+
+preprocessing:
+  resolution: 128  # Standardized spatial resolution (H x W)
+  noise_amplitude: 0.1  # From Gaussian noise used during training
+  normalization: true  # Dataset normalization enabled
+  masking: true  # Incorporates spatial masking for irregular domains
+  balanced_sampling: true  # Importance weights for dataset sampling
+  interpolation: true  # Both upscaling/downscaling supported

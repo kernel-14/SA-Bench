@@ -1,0 +1,9 @@
+{
+  "paper_id": "neural-operator-flow-matching-pde",
+  "run_id": "neural-operator-flow-matching-pde-20260506-173544",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 379.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 34
+}

@@ -1,0 +1,2 @@
+# Official repository (ICML 2025 Outstanding Paper)
+https://github.com/jakesnell/conformal-as-bayes-quad

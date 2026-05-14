@@ -1,0 +1,9 @@
+{
+  "paper_id": "ngpt",
+  "run_id": "ngpt-20260506-081813",
+  "model": "deepseek-v4-pro",
+  "max_iterations": 100,
+  "elapsed_s": 1066.5,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 24
+}

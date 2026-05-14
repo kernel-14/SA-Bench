@@ -1,0 +1,8 @@
+{
+  "paper_id": "adjoint-matching",
+  "run_id": "adjoint-matching-20260507-201807",
+  "model": "gpt-4o",
+  "error": "No module named 'browsergym'",
+  "traceback": "Traceback (most recent call last):\n  File \"/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/run_openhands_batch.py\", line 115, in run_one_paper\n    import openhands.agenthub  # noqa: F401 \u2014 trigger agent registration\n  File \"/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/baselines/OpenHands/openhands/agenthub/__init__.py\", line 6, in <module>\n    from openhands.agenthub import (  # noqa: E402\n  File \"/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/baselines/OpenHands/openhands/agenthub/browsing_agent/__init__.py\", line 1, in <module>\n    from openhands.agenthub.browsing_agent.browsing_agent import BrowsingAgent\n  File \"/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/baselines/OpenHands/openhands/agenthub/browsing_agent/browsing_agent.py\", line 3, in <module>\n    from browsergym.core.action.highlevel import HighLevelActionSet\nModuleNotFoundError: No module named 'browsergym'\n",
+  "elapsed_s": 0.0
+}

@@ -1,0 +1,358 @@
+## config.yaml
+
+## Hi-MAR: Hierarchical Masked Autoregressive Models with Low-Resolution Token Pivots
+## Configuration file covering all training, model, and evaluation settings
+## extracted directly from the paper. Values marked [UNCLEAR] are not stated
+## in the paper and use reasonable defaults based on referenced baselines (MAR).
+
+## ---------------------------------------------------------------------------
+## Model architecture variants
+## ---------------------------------------------------------------------------
+model:
+  ## One of: "B" (Base), "L" (Large), "H" (Huge), "S" (Small, COCO only)
+  size: "B"
+
+  variants:
+    B:
+      transformer_layers: 24
+      hidden_size: 768
+      ## num_heads = hidden_size // 64, following ViT/MAR convention
+      num_heads: 12
+      ffn_mult: 4
+      diff_head1:
+        num_layers: 6
+        hidden_size: 1024
+      diff_head2:
+        num_layers: 6
+        hidden_size: 512
+      total_params_M: 244
+
+    L:
+      transformer_layers: 32
+      hidden_size: 1024
+      num_heads: 16
+      ffn_mult: 4
+      diff_head1:
+        num_layers: 8
+        hidden_size: 1280
+      diff_head2:
+        num_layers: 8
+        hidden_size: 512
+      total_params_M: 529
+
+    H:
+      transformer_layers: 40
+      hidden_size: 1280
+      num_heads: 20
+      ffn_mult: 4
+      diff_head1:
+        num_layers: 12
+        hidden_size: 1536
+      diff_head2:
+        num_layers: 12
+        hidden_size: 768
+      total_params_M: 1090
+
+    ## Hi-MAR-S: lightweight variant for MS-COCO, comparable to U-ViT-S/2 (Deep).
+    ## Architecture details not explicitly stated in the paper; estimated from
+    ## parameter count (~33M, matching U-ViT-S/2 Deep). [UNCLEAR]
+    S:
+      transformer_layers: 12
+      hidden_size: 512
+      num_heads: 8
+      ffn_mult: 4
+      diff_head1:
+        num_layers: 4
+        hidden_size: 512
+      diff_head2:
+        num_layers: 4
+        hidden_size: 256
+      total_params_M: 33  ## approximate, [UNCLEAR]
+
+  ## Shared architecture settings
+  latent_dim: 16          ## KL-16 VAE output channel dimension
+  high_res_tokens: 256    ## 16x16 spatial grid for 256x256 images with KL-16 VAE
+  low_res_tokens: 64      ## 8x8 spatial grid for 128x128 images with KL-16 VAE
+  high_res: 256           ## input image resolution for Phase 2
+  low_res: 128            ## input image resolution for Phase 1
+
+  ## Scale-aware Transformer: sinusoidal scale embedding dimension
+  ## matches hidden_size of the selected variant
+  scale_embed_dim: null   ## set to hidden_size at runtime
+
+  ## Scale IDs: 0 = low-resolution phase, 1 = high-resolution phase
+  scale_id_low: 0
+  scale_id_high: 1
+
+## ---------------------------------------------------------------------------
+## VAE Tokenizer
+## ---------------------------------------------------------------------------
+vae:
+  ## Pre-trained KL-16 VAE from MAR (Li et al., 2024)
+  ## Checkpoint available at: https://github.com/LTH14/mar
+  ckpt_path: "pretrained/kl16.ckpt"
+  ## Scale factor used by MAR's KL-16 VAE
+  scale_factor: 0.2325
+  ## VAE is frozen throughout all training
+  frozen: true
+
+## ---------------------------------------------------------------------------
+## Diffusion noise schedule (shared by both diffusion heads)
+## ---------------------------------------------------------------------------
+diffusion:
+  timesteps: 1000
+  ## Cosine schedule following improved DDPM (Nichol & Dhariwal, 2021)
+  ## MAR uses cosine schedule; paper does not specify otherwise
+  schedule: "cosine"  ## [UNCLEAR — paper does not specify; cosine follows MAR]
+
+## ---------------------------------------------------------------------------
+## Masking strategy
+## ---------------------------------------------------------------------------
+masking:
+  ## Phase 1 (low-resolution): uniform masking ratio in [0.7, 1.0]
+  ## Stated explicitly in paper Section 4.2
+  phase1:
+    strategy: "uniform"
+    ratio_min: 0.7
+    ratio_max: 1.0
+
+  ## Phase 2 (high-resolution): cosine masking schedule following MaskGIT
+  ## Stated explicitly in paper Section 4.2
+  phase2:
+    strategy: "cosine"
+
+  ## MS-COCO masking: Beta distribution with alpha=4, beta=1
+  ## Stated explicitly in paper Section 4.2
+  coco:
+    strategy: "beta"
+    alpha: 4.0
+    beta: 1.0
+
+## ---------------------------------------------------------------------------
+## Classifier-Free Guidance (CFG)
+## ---------------------------------------------------------------------------
+cfg:
+  ## CFG dropout probability during training (randomly drop conditioning)
+  ## Not stated in paper; 0.1 follows MAR convention [UNCLEAR]
+  dropout_prob: 0.1
+
+  ## CFG scale at inference for ImageNet
+  ## Not stated in paper; 2.9 follows MAR convention [UNCLEAR]
+  scale_imagenet: 2.9
+
+  ## For "w/o CFG" setting: CFG is only turned off for Phase 2 dense token
+  ## prediction; Phase 1 still uses CFG. Stated in paper Section 4.3.
+  phase1_cfg_always: true
+
+## ---------------------------------------------------------------------------
+## Training: Class-Conditional ImageNet
+## ---------------------------------------------------------------------------
+training_imagenet:
+  ## All values stated explicitly in paper Section 4.2 unless marked [UNCLEAR]
+  dataset: "imagenet"
+  resolution: 256
+  num_classes: 1000
+
+  optimizer: "AdamW"
+  beta1: 0.9
+  beta2: 0.95
+  weight_decay: 0.02
+  learning_rate: 1.0e-4
+  lr_schedule: "constant"   ## constant LR after warmup, stated in paper
+  warmup_epochs: 100        ## linear warmup for 100 epochs, stated in paper
+  epochs: 800               ## stated in paper
+
+  ## Global batch size not stated in paper; 2048 follows MAR [UNCLEAR]
+  batch_size: 2048
+
+  ## Gradient clipping not stated in paper; 1.0 is standard [UNCLEAR]
+  grad_clip: 1.0
+
+  ## Mixed precision training [UNCLEAR — inferred from H100 GPU usage]
+  mixed_precision: true
+
+  ## EMA not mentioned for ImageNet in paper; included for completeness [UNCLEAR]
+  use_ema: false
+  ema_momentum: 0.9999
+
+  ## Hardware stated in paper Section 4.2
+  hardware: "80GB H100 GPUs"
+
+  ## Checkpoint saving frequency [UNCLEAR]
+  save_every_epochs: 50
+  output_dir: "outputs/imagenet"
+
+## ---------------------------------------------------------------------------
+## Training: Text-to-Image MS-COCO
+## ---------------------------------------------------------------------------
+training_coco:
+  ## All values stated explicitly in paper Section 4.2 unless marked [UNCLEAR]
+  dataset: "coco"
+  resolution: 256
+  num_classes: 0  ## no class labels; text conditioning via CLIP
+
+  optimizer: "AdamW"
+  ## beta1/beta2 not stated for COCO; using AdamW defaults [UNCLEAR]
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.03        ## stated in paper
+  learning_rate: 8.0e-4     ## stated in paper
+  lr_schedule: "linear_warmup"
+  warmup_steps: 8000        ## stated in paper (8K-step linear warmup)
+
+  ## Total training steps/epochs not stated in paper [UNCLEAR]
+  ## Following AutoNAT-L reference as suggested in reproduction plan
+  epochs: 300  ## [UNCLEAR]
+
+  ## EMA stated explicitly in paper Section 4.2
+  use_ema: true
+  ema_momentum: 0.9999
+
+  ## Batch size not stated for COCO [UNCLEAR]
+  batch_size: 512
+
+  ## Gradient clipping [UNCLEAR]
+  grad_clip: 1.0
+
+  mixed_precision: true
+
+  save_every_epochs: 10
+  output_dir: "outputs/coco"
+
+## ---------------------------------------------------------------------------
+## Text encoder (MS-COCO task)
+## ---------------------------------------------------------------------------
+text_encoder:
+  ## Stated in paper Section 4.1: CLIP text encoder following Stable Diffusion
+  model_name: "openai/clip-vit-large-patch14"
+  ## CLIP output dimension for ViT-L/14
+  embed_dim: 768
+  max_seq_len: 77
+  ## CLIP is frozen during training
+  frozen: true
+
+## ---------------------------------------------------------------------------
+## Inference / Sampling
+## ---------------------------------------------------------------------------
+inference:
+  ## Number of autoregressive steps per phase
+  ## Stated explicitly in paper Section 4.2 and Figure 4
+  phase1_steps: 32    ## low-resolution phase; optimal per Figure 4(a)
+  phase2_steps: 4     ## high-resolution phase; nearly saturated FID per Figure 4(b)
+
+  ## Inner DDPM steps for diffusion heads at inference
+  ## Phase 2 DiT head uses fewer steps due to heavier architecture
+  ## "4 steps" mentioned in paper Section 3.3 for Phase 2 [paper states 4]
+  diff_head1_inference_steps: 100  ## [UNCLEAR — paper does not specify for Phase 1]
+  diff_head2_inference_steps: 4    ## stated in paper Section 3.3
+
+  ## Cosine unmasking schedule used at inference for both phases
+  unmasking_schedule: "cosine"
+
+  ## Speed/accuracy trade-off experiment settings (Section 4.5, Figure 3)
+  speed_accuracy:
+    phase1_steps_fixed: 32
+    phase2_steps_sweep: [1, 2, 4, 6, 8]
+    batch_size: 128   ## stated in paper Section 4.5
+    hardware: "H100 GPU (single)"
+
+## ---------------------------------------------------------------------------
+## Evaluation
+## ---------------------------------------------------------------------------
+evaluation:
+  ## ImageNet evaluation: 50K generated samples, stated in paper Section 4.2
+  imagenet:
+    num_samples: 50000
+    metrics:
+      - "FID"       ## Frechet Inception Distance (Heusel et al., 2017)
+      - "IS"        ## Inception Score (Salimans et al., 2016)
+      - "Precision" ## Kynkaanniemi et al., 2019
+      - "Recall"    ## Kynkaanniemi et al., 2019
+    resolution: 256
+
+  ## MS-COCO evaluation: 30K samples from validation set, stated in paper Section 4.2
+  ## Following U-ViT (Bao et al., 2023) protocol
+  coco:
+    num_samples: 30000
+    split: "val"
+    metrics:
+      - "FID"
+    resolution: 256
+
+  ## T2I-CompBench evaluation (Huang et al., 2023), stated in paper Section 4.4
+  t2i_compbench:
+    enabled: true
+    aspects:
+      - "color_binding"
+      - "shape_binding"
+      - "texture_binding"
+      - "spatial_relationship"
+      - "non_spatial_relationship"
+      - "complex_composition"
+
+## ---------------------------------------------------------------------------
+## Dataset paths (user must set these)
+## ---------------------------------------------------------------------------
+data:
+  imagenet_root: "data/imagenet"
+  imagenet_train_split: "train"
+  imagenet_val_split: "val"
+
+  coco_root: "data/coco"
+  coco_train_ann: "data/coco/annotations/captions_train2014.json"
+  coco_val_ann: "data/coco/annotations/captions_val2014.json"
+
+  num_workers: 8
+  pin_memory: true
+
+## ---------------------------------------------------------------------------
+## Ablation study configurations (Table 5 in paper)
+## ---------------------------------------------------------------------------
+ablation:
+  ## Row 1: MAR baseline (no hierarchical structure)
+  baseline_mar:
+    pivots: null
+    diff_head1: null
+    diff_head2: "mlp"
+    scale_vector: false
+    expected_fid: 2.31
+
+  ## Row 2: Visual token pivots (ground-truth low-res tokens) — training-inference discrepancy
+  visual_token_pivots:
+    pivots: "visual_tokens"
+    diff_head1: "mlp"
+    diff_head2: "mlp"
+    scale_vector: false
+    expected_fid: 2.28
+
+  ## Row 3: Conditional token pivots — mitigates discrepancy
+  conditional_token_pivots:
+    pivots: "conditional_tokens"
+    diff_head1: "mlp"
+    diff_head2: "mlp"
+    scale_vector: false
+    expected_fid: 2.07
+
+  ## Row 4: + Diffusion Transformer head in Phase 2
+  conditional_plus_dit_head2:
+    pivots: "conditional_tokens"
+    diff_head1: "mlp"
+    diff_head2: "transformer"
+    scale_vector: false
+    expected_fid: 1.98
+
+  ## Row 5: + Diffusion Transformer head in both phases (no improvement over row 4)
+  conditional_plus_dit_both:
+    pivots: "conditional_tokens"
+    diff_head1: "transformer"
+    diff_head2: "transformer"
+    scale_vector: false
+    expected_fid: 1.98
+
+  ## Row 6: Full Hi-MAR-B (all components enabled)
+  full_himar_b:
+    pivots: "conditional_tokens"
+    diff_head1: "mlp"
+    diff_head2: "transformer"
+    scale_vector: true
+    expected_fid: 1.93

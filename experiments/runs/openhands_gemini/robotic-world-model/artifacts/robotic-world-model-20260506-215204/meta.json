@@ -1,0 +1,9 @@
+{
+  "paper_id": "robotic-world-model",
+  "run_id": "robotic-world-model-20260506-215204",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 475.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 33
+}

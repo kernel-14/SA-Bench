@@ -1,0 +1,5329 @@
+{
+  "paper_id": "avg-reward-pg",
+  "repo_path": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/avg-reward-pg/repo",
+  "scored_at": "2026-05-12T09:39:11.613324Z",
+  "model": "deepseek-v4-pro",
+  "dimensions": {
+    "D1": {
+      "score": 0.0,
+      "total_claims": 9,
+      "claims": [
+        {
+          "id": "avg-reward-pg-D1-001",
+          "claim": "Tabular MDP state and action space sizes for Experiment C.1 (varying state/action space size): (S,A) = {(3,3), (9,9), (81,81)}",
+          "source": "Section 4 para 3, Appendix C.1",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "1-8",
+              "snippet": "\nclass AverageRewardMDP:\n    def __init__(self, states, actions, transition_kernel, rewards):\n        \"\"\"\n        Initialize an Average Reward MDP instance.\n\n        Args:\n            states (list): List of states.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "16-23",
+              "snippet": "        self.rewards = rewards\n\n    def get_reward(self, state, action):\n        \"\"\"\n        Return the reward for a given state and action pair.\n\n        Args:\n            state (str): State identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "25-32",
+              "snippet": "\n        Returns:\n            float: Reward value for state-action.\n        \"\"\"\n        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "51-58",
+              "snippet": "        identity_matrix = np.eye(num_states)\n        ones_vector = np.ones((num_states, 1))\n        projection_matrix = identity_matrix - (ones_vector @ ones_vector.T) / num_states\n        return projection_matrix\n",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "34-41",
+              "snippet": "\n        Args:\n            state (str): Current state identifier.\n            action (str): Action identifier.\n            next_state (str): Next state identifier.\n\n        Returns:\n            float: Transition probability.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "19-26",
+              "snippet": "    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "supporting",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "81",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Tabular MDP",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "tabular",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "81",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Tabular MDP",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*tabular|experiment.*tabular",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "tabular[_\\- ]*varying|tabular.*varying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "varying[_\\- ]*mdp|varying.*mdp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "mdp[_\\- ]*action|mdp.*action",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "81",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "varying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "mdp",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "action",
+              "results": 15,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "state",
+              "results": 20,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "space",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+__init__\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+action\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+get_reward\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Code shows generic AverageRewardMDP class (average_reward_mdp.py:1-8) that accepts states and actions as arguments, but no evidence of configuration or instantiation with specific sizes (3,3), (9,9), (81,81) as claimed for Experiment C.1. The implementation lacks concrete experiment setup."
+        },
+        {
+          "id": "avg-reward-pg-D1-002",
+          "claim": "Tabular MDP state and action space sizes for Experiments C.2 (reward functions) and C.3 (transition kernels): S=16, A=16",
+          "source": "Section 4 para 4-5, Appendix C.2, Appendix C.3",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "1-8",
+              "snippet": "\nclass AverageRewardMDP:\n    def __init__(self, states, actions, transition_kernel, rewards):\n        \"\"\"\n        Initialize an Average Reward MDP instance.\n\n        Args:\n            states (list): List of states.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "16-23",
+              "snippet": "        self.rewards = rewards\n\n    def get_reward(self, state, action):\n        \"\"\"\n        Return the reward for a given state and action pair.\n\n        Args:\n            state (str): State identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "25-32",
+              "snippet": "\n        Returns:\n            float: Reward value for state-action.\n        \"\"\"\n        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "14-21",
+              "snippet": "        np.ndarray: Updated policy probabilities after projection and gradient step.\n    \"\"\"\n    projection_matrix = mdp.compute_projection_matrix()\n    # Calculate gradient (Placeholder for actual gradient computation)\n    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space",
+              "relevance": "supporting",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Tabular MDP",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiments C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiments",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "tabular",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Tabular MDP",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiments C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiments",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiments[_\\- ]*tabular|experiments.*tabular",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "tabular[_\\- ]*transition|tabular.*transition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "transition[_\\- ]*functions|transition.*functions",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "functions[_\\- ]*mdp|functions.*mdp",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "transition",
+              "results": 9,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "functions",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "mdp",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "kernels",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "reward",
+              "results": 13,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+__init__\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+action\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+get_reward\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No code or configuration evidence showing explicit state/action space sizes of S=16, A=16. The provided snippets from average_reward_mdp.py define a generic MDP class accepting arbitrary states and actions lists; no hardcoded values or experiment-specific instantiations are present."
+        },
+        {
+          "id": "avg-reward-pg-D1-003",
+          "claim": "Training iterations for Experiment C.1 (varying state/action space size): 2000",
+          "source": "Section 4 para 3",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "1-8",
+              "snippet": "\nclass AverageRewardMDP:\n    def __init__(self, states, actions, transition_kernel, rewards):\n        \"\"\"\n        Initialize an Average Reward MDP instance.\n\n        Args:\n            states (list): List of states.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "16-23",
+              "snippet": "        self.rewards = rewards\n\n    def get_reward(self, state, action):\n        \"\"\"\n        Return the reward for a given state and action pair.\n\n        Args:\n            state (str): State identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "25-32",
+              "snippet": "\n        Returns:\n            float: Reward value for state-action.\n        \"\"\"\n        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "51-58",
+              "snippet": "        identity_matrix = np.eye(num_states)\n        ones_vector = np.ones((num_states, 1))\n        projection_matrix = identity_matrix - (ones_vector @ ones_vector.T) / num_states\n        return projection_matrix\n",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "34-41",
+              "snippet": "\n        Args:\n            state (str): Current state identifier.\n            action (str): Action identifier.\n            next_state (str): Next state identifier.\n\n        Returns:\n            float: Transition probability.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "supporting",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "training",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "iterations",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "training",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*training|experiment.*training",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "training[_\\- ]*iterations|training.*iterations",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "iterations[_\\- ]*varying|iterations.*varying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "varying[_\\- ]*action|varying.*action",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "varying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "action",
+              "results": 15,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "state",
+              "results": 20,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "space",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "size",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+__init__\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+action\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+get_reward\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+next_state\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence of training iterations found. Provided code snippets define an AverageRewardMDP class (average_reward_mdp.py:1-8) and a method for projection matrix (average_reward_mdp.py:43-50), but do not contain any training loop, configuration, or mention of 2000 iterations."
+        },
+        {
+          "id": "avg-reward-pg-D1-004",
+          "claim": "Training iterations for Experiment C.3 (varying transition kernels): 3000",
+          "source": "Section 4 para 5",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "1-8",
+              "snippet": "\nclass AverageRewardMDP:\n    def __init__(self, states, actions, transition_kernel, rewards):\n        \"\"\"\n        Initialize an Average Reward MDP instance.\n\n        Args:\n            states (list): List of states.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "16-23",
+              "snippet": "        self.rewards = rewards\n\n    def get_reward(self, state, action):\n        \"\"\"\n        Return the reward for a given state and action pair.\n\n        Args:\n            state (str): State identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "29-36",
+              "snippet": "        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"\n        Return the probability of transitioning to the next state.\n\n        Args:\n            state (str): Current state identifier.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "7-14",
+              "snippet": "\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.\n        policy (np.ndarray): Current policy probabilities for states and actions.\n        step_size (float): Learning rate for the gradient ascent step.\n\n    Returns:\n        np.ndarray: Updated policy probabilities after projection and gradient step.",
+              "relevance": "supporting",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "training",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "transition",
+              "results": 9,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "training",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*training|experiment.*training",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "training[_\\- ]*transition|training.*transition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "transition[_\\- ]*iterations|transition.*iterations",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "iterations[_\\- ]*varying|iterations.*varying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "iterations",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "varying",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "kernels",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+__init__\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+action\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+get_reward\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+next_state\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "The direct evidence from average_reward_mdp.py shows only class definition and a method to compute projection matrix, with no mention of training iterations or the value 3000. No configuration or experiment script is provided to confirm the claim of 3000 iterations for Experiment C.3."
+        },
+        {
+          "id": "avg-reward-pg-D1-005",
+          "claim": "Transition kernel formula for Experiment C.1: P(i|s,i) = (1 + 1/S) / 2 (same-state transition), P(i|s,j) = 1/(2S) for i≠j (cross-state transition), where S is the state space size of the given MDP instance",
+          "source": "Appendix C.1",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "1-8",
+              "snippet": "\nclass AverageRewardMDP:\n    def __init__(self, states, actions, transition_kernel, rewards):\n        \"\"\"\n        Initialize an Average Reward MDP instance.\n\n        Args:\n            states (list): List of states.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "16-23",
+              "snippet": "        self.rewards = rewards\n\n    def get_reward(self, state, action):\n        \"\"\"\n        Return the reward for a given state and action pair.\n\n        Args:\n            state (str): State identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "29-36",
+              "snippet": "        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"\n        Return the probability of transitioning to the next state.\n\n        Args:\n            state (str): Current state identifier.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "14-21",
+              "snippet": "        np.ndarray: Updated policy probabilities after projection and gradient step.\n    \"\"\"\n    projection_matrix = mdp.compute_projection_matrix()\n    # Calculate gradient (Placeholder for actual gradient computation)\n    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space",
+              "relevance": "supporting",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "transition",
+              "results": 9,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "cross-state",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "same-state",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "transition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "cross-state",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "transition[_\\- ]*experiment|transition.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*cross\\-state|experiment.*cross\\-state",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "cross\\-state[_\\- ]*same\\-state|cross\\-state.*same\\-state",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "same\\-state[_\\- ]*transition|same\\-state.*transition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "instance",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "mdp",
+              "results": 7,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "formula",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "kernel",
+              "results": 5,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+__init__\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+action\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+get_reward\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "The provided code snippets only show a generic MDP class that stores a transition_kernel parameter; there is no implementation of the claimed specific transition kernel formula for Experiment C.1. No evidence of the formula P(i|s,i) = (1 + 1/S)/2 or P(i|s,j) = 1/(2S) exists in the examined files."
+        },
+        {
+          "id": "avg-reward-pg-D1-006",
+          "claim": "Reward distribution for Experiment C.1 (maximal variance): half of the actions per state assigned reward +1, the other half assigned reward -1, applied identically for every state",
+          "source": "Appendix C.1 (final sentence)",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "1-8",
+              "snippet": "\nclass AverageRewardMDP:\n    def __init__(self, states, actions, transition_kernel, rewards):\n        \"\"\"\n        Initialize an Average Reward MDP instance.\n\n        Args:\n            states (list): List of states.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "16-23",
+              "snippet": "        self.rewards = rewards\n\n    def get_reward(self, state, action):\n        \"\"\"\n        Return the reward for a given state and action pair.\n\n        Args:\n            state (str): State identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "25-32",
+              "snippet": "\n        Returns:\n            float: Reward value for state-action.\n        \"\"\"\n        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "7-14",
+              "snippet": "\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.\n        policy (np.ndarray): Current policy probabilities for states and actions.\n        step_size (float): Learning rate for the gradient ascent step.\n\n    Returns:\n        np.ndarray: Updated policy probabilities after projection and gradient step.",
+              "relevance": "supporting",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "distribution",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "identically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "reward",
+              "results": 13,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "distribution",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "identically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*distribution|experiment.*distribution",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "distribution[_\\- ]*identically|distribution.*identically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "identically[_\\- ]*reward|identically.*reward",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "reward[_\\- ]*variance|reward.*variance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "variance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "assigned",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "maximal",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "applied",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "actions",
+              "results": 6,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+__init__\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+action\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+get_reward\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+rewards\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "The provided evidence only shows a generic reward-handling class (__init__ and get_reward) in average_reward_mdp.py; no configuration or instantiation demonstrates the specific +1/-1 distribution across actions per state claimed for Experiment C.1. Thus the claim is not reproduced in the given code."
+        },
+        {
+          "id": "avg-reward-pg-D1-007",
+          "claim": "Reward variance level settings for Experiment C.2: all states have r(s,a)=0 except one designated state s_0. At s_0 — No variance: all actions reward 1; Low variance: 1/8 of actions reward -1, rest 1; High variance: 1/4 of actions reward -1, rest 1; Max variance: 1/2 of actions reward -1, rest 1",
+          "source": "Appendix C.2 (four bullet points)",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "1-8",
+              "snippet": "\nclass AverageRewardMDP:\n    def __init__(self, states, actions, transition_kernel, rewards):\n        \"\"\"\n        Initialize an Average Reward MDP instance.\n\n        Args:\n            states (list): List of states.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "25-32",
+              "snippet": "\n        Returns:\n            float: Reward value for state-action.\n        \"\"\"\n        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "16-23",
+              "snippet": "        self.rewards = rewards\n\n    def get_reward(self, state, action):\n        \"\"\"\n        Return the reward for a given state and action pair.\n\n        Args:\n            state (str): State identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "7-14",
+              "snippet": "\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.\n        policy (np.ndarray): Current policy probabilities for states and actions.\n        step_size (float): Learning rate for the gradient ascent step.\n\n    Returns:\n        np.ndarray: Updated policy probabilities after projection and gradient step.",
+              "relevance": "supporting",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "reward",
+              "results": 13,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "designated",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "variance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "reward",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "designated",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*reward|experiment.*reward",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "reward[_\\- ]*designated|reward.*designated",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "designated[_\\- ]*variance|designated.*variance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "variance[_\\- ]*variance|variance.*variance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "settings",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "high",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+__init__\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+action\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+get_reward\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+rewards\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "The provided code (average_reward_mdp.py) defines a generic AverageRewardMDP class with dictionary-based reward lookup, but contains no implementation of the specific reward variance configurations (no variance, low variance, high variance, max variance) for Experiment C.2. No configuration file or experiment script defining these rewards is present in the evidence."
+        },
+        {
+          "id": "avg-reward-pg-D1-008",
+          "claim": "Transition kernel types for Experiment C.3: (1) Uniform: P(s'|s,a) = 1/S for all s,a,s'; (2) Non-uniform stochastic: P(i|s,i) = 1/(2S) + 1/2 and P(i|s,j) = 1/(2S) for i≠j; (3) Deterministic: P(·|s,·) is a random permutation of the identity matrix (so each state deterministically transitions to a different state)",
+          "source": "Appendix C.3 (three bullet points)",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "1-8",
+              "snippet": "\nclass AverageRewardMDP:\n    def __init__(self, states, actions, transition_kernel, rewards):\n        \"\"\"\n        Initialize an Average Reward MDP instance.\n\n        Args:\n            states (list): List of states.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "16-23",
+              "snippet": "        self.rewards = rewards\n\n    def get_reward(self, state, action):\n        \"\"\"\n        Return the reward for a given state and action pair.\n\n        Args:\n            state (str): State identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "29-36",
+              "snippet": "        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"\n        Return the probability of transitioning to the next state.\n\n        Args:\n            state (str): Current state identifier.",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "7-14",
+              "snippet": "\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.\n        policy (np.ndarray): Current policy probabilities for states and actions.\n        step_size (float): Learning rate for the gradient ascent step.\n\n    Returns:\n        np.ndarray: Updated policy probabilities after projection and gradient step.",
+              "relevance": "supporting",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "non-uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "deterministically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "deterministic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "transition",
+              "results": 9,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "non-uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "deterministically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "deterministic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "non\\-uniform[_\\- ]*deterministically|non\\-uniform.*deterministically",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "deterministically[_\\- ]*deterministic|deterministically.*deterministic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "deterministic[_\\- ]*transition|deterministic.*transition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "transition[_\\- ]*experiment|transition.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "transitions",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "permutation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "stochastic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "average_reward_mdp.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+__init__\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+action\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+get_reward\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+next_state\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Only a generic MDP class with a transition_kernel dictionary is provided (average_reward_mdp.py:43-50). No code or configuration defines the Uniform, Non-uniform stochastic, or Deterministic kernels specified for Experiment C.3."
+        },
+        {
+          "id": "avg-reward-pg-D1-009",
+          "claim": "Number of distinct simulation experiments: 3 (corresponding to Appendix C.1, C.2, C.3)",
+          "source": "Section 4, Appendix C",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "29-36",
+              "snippet": "        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"\n        Return the probability of transitioning to the next state.\n\n        Args:\n            state (str): Current state identifier.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Appendix C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "corresponding",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "experiments",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "simulation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Appendix C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "corresponding",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "experiments",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "simulation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "corresponding[_\\- ]*experiments|corresponding.*experiments",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiments[_\\- ]*simulation|experiments.*simulation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "simulation[_\\- ]*number|simulation.*number",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "number[_\\- ]*distinct|number.*distinct",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(lr|learning[_-]?rate|batch[_-]?size|weight[_-]?decay|epoch|seed)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "distinct",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "lr",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "learning_rate",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "batch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "epoch",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "\\d+(?:\\.\\d+)?(?:e[+-]?\\d+)?",
+              "results": 5,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+ones\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+transition_probability\\b",
+              "results": 1,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "The provided code snippet from average_reward_mdp.py only defines a single MDP class and does not indicate three distinct simulation experiments. No files or configurations for Appendix C.1, C.2, C.3 are shown. The search trace is insufficient to confirm three experiments."
+        }
+      ]
+    },
+    "D2": {
+      "score": 0.0,
+      "total_claims": 7,
+      "claims": [
+        {
+          "id": "avg-reward-pg-D2-001",
+          "claim": "Projected Policy Gradient (PPG) Update for average reward MDPs. Per-iteration update: pi_{k+1} = Proj_Pi[pi_k + eta * (d rho^{pi} / d pi)|_{pi=pi_k}]. Where Proj_Pi denotes orthogonal projection in Euclidean norm onto the space of randomized policies Pi (i.e., per-state projection onto the probability simplex Delta_A). Step size constraint from convergence guarantee: eta < 1/L_2^{Pi}, where L_2^{Pi} is the restricted smoothness constant of the average reward (Lemma 4). The per-state gradient component is: d^{pi_k}(s) * Q^{pi_k}(s,·) via the average reward policy gradient theorem (Eq 5).",
+          "source": "Section 2.1 Eq 6, Theorem 1, Lemma 4",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "semantic",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Projected Policy Gradient",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Where Proj",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Lemma 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Eq 5",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "per-iteration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Projected Policy Gradient",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Where Proj",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Lemma 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Eq 5",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "per\\-iteration[_\\- ]*proj_pi|per\\-iteration.*proj_pi",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "proj_pi[_\\- ]*proj_pi|proj_pi.*proj_pi",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "proj_pi[_\\- ]*delta_a|proj_pi.*delta_a",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "delta_a[_\\- ]*projected|delta_a.*projected",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 11,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "proj_pi",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "delta_a",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "projected",
+              "results": 4,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "euclidean",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "per-state",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        },
+        {
+          "id": "avg-reward-pg-D2-002",
+          "claim": "Average Reward Bellman Equation and Projected Value Function. Bellman equation: rho^{pi} 1 + v^{pi} = r^{pi} + P^{pi} v^{pi} (Eq 3), where v^{pi} is the relative state value function unique only up to an additive constant. To obtain uniqueness, the value function is projected onto the subspace orthogonal to the all-ones vector using the projection matrix Phi = (I - 11^T/|S|) (Lemma 1). The resulting unique projected value function has closed form: v_phi^{pi} = (I - Phi P^{pi})^{-1} Phi r^{pi} (Eq 15). The inverse exists because Phi P^{pi} has eigenvalue 0 for eigenvector 1 and all other eigenvalues strictly less than 1 in absolute value (Lemma 10-12).",
+          "source": "Section 2.1 Eq 3, Section 3.1.1 Lemma 1 Eq 14-15, Appendix A.1-A.2",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "weak",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "15",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "12",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Average Reward Bellman Equation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "15",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "12",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "projected[_\\- ]*function|projected.*function",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "function[_\\- ]*equation|function.*equation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "equation[_\\- ]*eigenvector|equation.*eigenvector",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "eigenvector[_\\- ]*eigenvalues|eigenvector.*eigenvalues",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "15",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "12",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Projected Value Function",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Eq 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Lemma 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Phi P",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Eq 15",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(loss|forward|sigma|alpha|beta|norm|grad)",
+              "results": 11,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        },
+        {
+          "id": "avg-reward-pg-D2-003",
+          "claim": "Average Reward Policy Gradient Theorem and Gradient Decomposition. For tabular policies: gradient component (partial rho^{pi} / partial pi) decomposed per state as d^{pi}(s) * Q^{pi}(s,·). The average reward gradient theorem (Sutton & Barto, 2018): partial rho / partial theta = sum_{s in S} d^{pi}(s) sum_{a in A} (partial pi(s,a) / partial theta) Q^{pi}(s,a) (Eq 4), where d^{pi} is the stationary distribution satisfying d^{pi} P^{pi} = d^{pi}. The relative state-action value function satisfies: Q^{pi}(s,a) = r(s,a) + sum_{s',a'} P(s'|s,a) pi(a'|s') Q^{pi}(s',a') - rho^{pi} (from average reward Bellman equation for Q). Under tabular parameterization, theta is equivalent to pi, yielding per-state directional derivatives.",
+          "source": "Section 2.1 Eq 2-5",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "25-32",
+              "snippet": "\n        Returns:\n            float: Reward value for state-action.\n        \"\"\"\n        return self.rewards.get((state, action), 0)\n\n    def transition_probability(self, state, action, next_state):\n        \"\"\"",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "9-16",
+              "snippet": "            actions (list): List of actions.\n            transition_kernel (dict): Transition probabilities with policy.\n            rewards (dict): Reward values for state-action pairs.\n        \"\"\"\n        self.states = states\n        self.actions = actions\n        self.transition_kernel = transition_kernel\n        self.rewards = rewards",
+              "relevance": "supporting",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "semantic",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "2018",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Average Reward Policy Gradient Theorem",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Gradient Decomposition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Eq 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "decomposition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "2018",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Average Reward Policy Gradient Theorem",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Gradient Decomposition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Eq 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "decomposition[_\\- ]*parameterization|decomposition.*parameterization",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "parameterization[_\\- ]*state\\-action|parameterization.*state\\-action",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "state\\-action[_\\- ]*per\\-state|state\\-action.*per\\-state",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "per\\-state[_\\- ]*gradient|per\\-state.*gradient",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "2018",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 11,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "parameterization",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "state-action",
+              "results": 2,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "per-state",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "gradient",
+              "results": 11,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "distribution",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+actions\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+rewards\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        },
+        {
+          "id": "avg-reward-pg-D2-004",
+          "claim": "Restricted Smoothness Constant of Average Reward L_2^{Pi}. Derived by bounding the maximum eigenvalue of the Hessian within the policy class via directional derivative analysis. From Lemma 4 (Eq 17): the quadratic form is bounded as |<pi' - pi, (partial^2 rho^{pi} / partial pi^2)(pi' - pi)>| <= (L_2^{Pi}/2) ||pi' - pi||_2^2 for all pi, pi' in Pi. The explicit expression: L_2^{Pi} = 4 * (C_p^2 C_m^2 kappa_r + C_p C_m C_r + (C_p + 1)(C_m^2 C_p kappa_r + C_m C_r) + 4 * (C_m^3 C_p^2 kappa_r + C_m^2 C_p C_r)). The smoothness is established in two stages: first the projected value function v_phi^{pi} is proven 4*(2 C_m^3 C_p^2 kappa_r + C_m^2 C_p C_r)-smooth (Lemma 2), then the average reward Bellman equation (Eq 3) is used to propagate smoothness to rho^{pi} itself. The restricted Lipschitz constant is L_1^{Pi} = 2*(C_r + C_p C_m kappa_r + 2*(C_m^2 C_p kappa_r + C_m C_r)) (Lemma 3).",
+          "source": "Section 3.1.1 Lemma 2-4 Eq 16-17",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "semantic",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "17",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Restricted Smoothness Constant",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Average Reward L",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "From Lemma 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Eq 17",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "17",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Restricted Smoothness Constant",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Average Reward L",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "From Lemma 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "smoothness[_\\- ]*restricted|smoothness.*restricted",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "restricted[_\\- ]*lipschitz|restricted.*lipschitz",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "lipschitz[_\\- ]*constant|lipschitz.*constant",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "constant[_\\- ]*hessian|constant.*hessian",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "17",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 11,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Lemma 2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Eq 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Lemma 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "smoothness",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "restricted",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        },
+        {
+          "id": "avg-reward-pg-D2-005",
+          "claim": "MDP Complexity Parameters (Table 1). Four constants characterize the underlying MDP difficulty and determine L_2^{Pi} and convergence rate. C_m = max_{pi} ||(I - Phi P^{pi})^{-1}||_{infty} (mixing time; operator norm w.r.t. L_infty; bounded by 2 C_e |S|/(1-lambda) from Assumption 1 geometric ergodicity, where C_e and lambda are the ergodicity constants). C_p = max_{pi,pi' in Pi} max_{||v||_{infty}<=1} ||(P^{pi'} - P^{pi})v||_{infty} / ||pi' - pi||_2 (transition kernel diameter; range [0, sqrt(|A|)]). C_r = max_{pi,pi' in Pi} ||r^{pi'} - r^{pi}||_{infty} / ||pi' - pi||_2 (reward function diameter; range [0, sqrt(|A|)]). kappa_r = max_{pi} ||Phi r^{pi}||_{infty} (reward variance; range [0, 2)). Key insight: these constants are MDP-specific, not just cardinality-dependent, enabling complexity-aware convergence rates where simpler MDPs (low C_p, C_r) converge faster than complex ones even at fixed |S|,|A|.",
+          "source": "Table 1, Section 3.1.1, Appendix A",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "semantic",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "MDP Complexity Parameters",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Table 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Phi P",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Assumption 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "cardinality-dependent",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "MDP Complexity Parameters",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Table 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Phi P",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Assumption 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "cardinality\\-dependent[_\\- ]*mdp\\-specific|cardinality\\-dependent.*mdp\\-specific",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "mdp\\-specific[_\\- ]*complexity\\-aware|mdp\\-specific.*complexity\\-aware",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "complexity\\-aware[_\\- ]*parameters|complexity\\-aware.*parameters",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "parameters[_\\- ]*l_infty|parameters.*l_infty",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 11,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "mdp-specific",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "complexity-aware",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "parameters",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "l_infty",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "complexity",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        },
+        {
+          "id": "avg-reward-pg-D2-006",
+          "claim": "Convergence Rate Formula and Step-Size Condition (Theorem 1). For all MDPs with step size eta < 1/L_2^{Pi}: sublinear rate rho^* - rho^{pi_k} <= 1 / (1/(rho^* - rho^{pi_0}) + nu * k) for all k >= 0. The constant nu = (1 / (32 C_PL^2 |S| L_2^{Pi})) * (1 + 4/(32 C_PL^2 |S| L_2^{Pi}))^{-3/2} (Eq 10). C_PL = max_{pi} d^{pi^*}(s)/d^{pi}(s) is the distribution mismatch coefficient (Lemma 7). For simple MDPs (L_2^{Pi} << 1): exponential convergence rho^* - rho^{pi_k} <= c^{-k/2} * (rho^* - rho^{pi_0})^{1/2^k} where 1/c = 32 |S| L_2^{Pi} C_PL^2 < 1 (Eq 11-12). Per-step improvement lower bound from smoothness: rho^{pi_{k+1}} - rho^{pi_k} >= (L_2^{Pi}/2) ||pi_{k+1} - pi_k||_2^2 (Lemma 5, Eq 19). Suboptimality upper bound via performance difference lemma: rho^* - rho^{pi} = sum_s d^{pi^*}(s) sum_a Q^{pi}(s,a)[pi^*(a|s) - pi(a|s)] (Lemma 6, Eq 20).",
+          "source": "Section 3 Theorem 1 Eq 10-12, Section 3.1.2 Lemma 5 (Eq 19), Lemma 6 (Eq 20), Lemma 7",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "weak",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "32",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "12",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "19",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "32",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "12",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "suboptimality[_\\- ]*step\\-size|suboptimality.*step\\-size",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "step\\-size[_\\- ]*per\\-step|step\\-size.*per\\-step",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "per\\-step[_\\- ]*convergence|per\\-step.*convergence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "convergence[_\\- ]*condition|convergence.*condition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "32",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "12",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "20",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Convergence Rate Formula",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Step-Size Condition",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Theorem 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Eq 10",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(loss|forward|sigma|alpha|beta|norm|grad)",
+              "results": 11,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        },
+        {
+          "id": "avg-reward-pg-D2-007",
+          "claim": "Discounted MDP Extension with Complexity-Aware Bounds (Section 3.2). The same smoothness analysis extends to discounted MDPs by replacing C_m with hat(C_m) = ||(I - gamma P^{pi})^{-1}||_{infty} where hat(C_m) <= 1/(1-gamma). The discounted smoothness constant: L_2^{Pi}_gamma = 4 * (C_p^2 hat(C_m)^2 kappa_r + C_p hat(C_m) C_r + (C_p+1)(hat(C_m)^2 C_p kappa_r + hat(C_m) C_r) + 4*(hat(C_m)^3 C_p^2 kappa_r + hat(C_m)^2 C_p C_r)). Iteration complexity improves to O(|S| L_2^{Pi}_gamma / epsilon) from the state-of-the-art O(|S||A|/((1-gamma)^5 epsilon)) (Xiao, 2022b). Since L_2^{Pi}_gamma = O(hat(C_m)^3 C_p^2) and hat(C_m) <= 1/(1-gamma), this yields O(|S|/((1-gamma)^5 epsilon)) matching the best known dependence while being complexity-aware. For trivial MDPs where C_p = 0 or kappa_r = 0 (implying C_r = 0): L_2^{Pi}_gamma = 0 and complexity reduces to O(|S|/epsilon) versus O(|S||A|/epsilon) in prior work — the constant captures MDP hardness rather than mere cardinality. The discounted value function is defined as rho_{mu,gamma}^{pi} = mu^T (1 - gamma P^{pi})^{-1} r^{pi} (Section 2.2).",
+          "source": "Section 2.2, Section 3.2",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "semantic",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "202",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "2.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Discounted MDP Extension",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Complexity-Aware Bounds",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "202",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "2.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Discounted MDP Extension",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "complexity\\-aware[_\\- ]*state\\-of\\-the\\-art|complexity\\-aware.*state\\-of\\-the\\-art",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "state\\-of\\-the\\-art[_\\- ]*complexity\\-aware|state\\-of\\-the\\-art.*complexity\\-aware",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "complexity\\-aware[_\\- ]*discounted|complexity\\-aware.*discounted",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "discounted[_\\- ]*iteration|discounted.*iteration",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3\\.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "202",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "2\\.2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(loss|norm|sigma|alpha|beta|score|gradient|drift|control)",
+              "results": 11,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Section 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Since L",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Section 2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "complexity-aware",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "state-of-the-art",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        }
+      ]
+    },
+    "D3": {
+      "score": 0.0,
+      "total_claims": 3,
+      "claims": [
+        {
+          "id": "avg-reward-pg-D3-001",
+          "claim": "Experiment C.1: Convergence with different action and state space sizes. Purpose: Compare PPG convergence rate as state/action space cardinality increases. Setup: Three tabular MDPs with (S,A) = (3,3), (9,9), (81,81); transition kernel P(i|s,i)=(1+1/S)/2, P(i|s,j)=1/(2S); reward: half actions +1, half -1 per state. Algorithm: Exact projected policy gradient (PPG) update as in Eq 6. Run for 2000 iterations. Metric: Average reward rho^{pi_k} plotted as function of iteration k.",
+          "source": "Section 4 para 3, Appendix C.1",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "81",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Compare PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Eq 6",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "81",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Compare PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "convergence[_\\- ]*experiment|convergence.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*algorithm|experiment.*algorithm",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "algorithm[_\\- ]*purpose|algorithm.*purpose",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "purpose[_\\- ]*convergence|purpose.*convergence",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "81",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(dataset|dataloader|metric|evaluate|ablation|augmentation|epoch)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "convergence",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "algorithm",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "purpose",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "compare",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Only weak or indirect implementation evidence found; claim not passed to LLM judge."
+        },
+        {
+          "id": "avg-reward-pg-D3-002",
+          "claim": "Experiment C.2: Convergence with different reward functions (varying Cr). Purpose: Compare PPG convergence rate under four reward variance levels on a fixed MDP structure. Setup: Single tabular MDP with S=16, A=16; randomly generated transition kernel (fixed across runs); reward function: r(s,a)=0 everywhere except one designated state s_0; four reward configurations (no/low/high/max variance at the single designated state s_0). Algorithm: Exact PPG update. Metric: Average reward as function of iterations. (Note: iteration count not explicitly stated for C.2; Section 4 groups it with Figure 1(b) results.)",
+          "source": "Section 4 para 4, Appendix C.2",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Compare PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Exact PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Section 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Compare PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Exact PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "convergence[_\\- ]*experiment|convergence.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*configurations|experiment.*configurations",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "configurations[_\\- ]*algorithm|configurations.*algorithm",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "algorithm[_\\- ]*purpose|algorithm.*purpose",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(dataset|dataloader|metric|evaluate|ablation|augmentation|epoch)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Figure 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "convergence",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "configurations",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "algorithm",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Experiment-parameter claim has no direct numeric or script evidence in code/config."
+        },
+        {
+          "id": "avg-reward-pg-D3-003",
+          "claim": "Experiment C.3: Convergence with different transition kernels (varying Cp). Purpose: Compare PPG convergence rate under three transition kernel types on fixed S=16, A=16 MDP. Setup: Three MDP instances sharing S=16, A=16 and the same reward function (high variance from C.2); three transition kernel types (uniform, non-uniform stochastic, deterministic). Algorithm: Exact PPG update. Run for 3000 iterations. Metric: Change in average reward plotted as function of iterations.",
+          "source": "Section 4 para 5, Appendix C.3",
+          "score": 0.0,
+          "evidence": [],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Compare PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Three MDP",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Experiment C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Compare PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "convergence[_\\- ]*non\\-uniform|convergence.*non\\-uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "non\\-uniform[_\\- ]*experiment|non\\-uniform.*experiment",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "experiment[_\\- ]*deterministic|experiment.*deterministic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "deterministic[_\\- ]*algorithm|deterministic.*algorithm",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "16",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(dataset|dataloader|metric|evaluate|ablation|augmentation|epoch)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Exact PPG",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "convergence",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "non-uniform",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "experiment",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "deterministic",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(train|eval|dataset|metric|epoch)",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(DataLoader|Trainer|evaluate)",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "No evidence found in repository code/config after search."
+        }
+      ]
+    },
+    "D4": {
+      "score": 0.0,
+      "total_claims": 3,
+      "claims": [
+        {
+          "id": "avg-reward-pg-D4-001",
+          "claim": "Proof Phase 1 (Establish smoothness): Project value function via Phi=I-11^T/|S| to obtain unique v_phi^pi=(I-Phi P^pi)^{-1} Phi r^pi (Lemma 1). Derive restricted smoothness constant L_2^Pi from MDP complexity parameters C_m,C_p,C_r,kappa_r (Lemmas 2-4). Result: average reward rho^pi is L_2^Pi-smooth. (Section 3.1.1)",
+          "source": "Section 3.1.1, Lemma 1-4",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "semantic",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Proof Phase 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "I-11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "I-Phi P",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Proof Phase 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "I-11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "pi\\-smooth[_\\- ]*establish|pi\\-smooth.*establish",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "establish[_\\- ]*i\\-phi|establish.*i\\-phi",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "i\\-phi[_\\- ]*project|i\\-phi.*project",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "project[_\\- ]*i\\-11|project.*i\\-11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "11",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(pipeline|phase|trainer|runner|workflow|schedule|step)",
+              "results": 5,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Lemma 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Lemmas 2-4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Section 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "pi-smooth",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "establish",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        },
+        {
+          "id": "avg-reward-pg-D4-002",
+          "claim": "Proof Phase 2 (Prove convergence): Lower bound per-step improvement via smoothness (Lemma 5). Upper bound suboptimality via performance difference lemma + gradient relationship (Lemmas 6-7). Combine: sublinear rate O(1/k) for general MDPs, exponential for simple MDPs, step size eta<1/L_2^Pi (Theorem 1). (Section 3.1.2)",
+          "source": "Section 3.1.2, Lemma 5-8, Theorem 1",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "semantic",
+              "kind": "code"
+            },
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Proof Phase 2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Lemma 5",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Lemmas 6-7",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Theorem 1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Proof Phase 2",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Lemma 5",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Lemmas 6-7",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "suboptimality[_\\- ]*relationship|suboptimality.*relationship",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "relationship[_\\- ]*theorem|relationship.*theorem",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "theorem[_\\- ]*performance|theorem.*performance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "performance[_\\- ]*per\\-step|performance.*per\\-step",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3\\.1",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(pipeline|phase|trainer|runner|workflow|schedule|step)",
+              "results": 5,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "Section 3",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "suboptimality",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "relationship",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "theorem",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "performance",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        },
+        {
+          "id": "avg-reward-pg-D4-003",
+          "claim": "Simulation procedure: Construct tabular MDP. Init random pi_0. Iterate pi_{k+1}=Proj_Pi[pi_k+eta·nabla rho^{pi_k}] for K steps (K=2000 or 3000). Measure rho^{pi_k}. Three variants: vary |S|,|A| (C.1); vary reward variance (C.2); vary transition kernel determinism (C.3). Convergence rate slows with larger MDP complexity parameters C_r, C_p. (Section 4, Appendix C.1-C.3)",
+          "source": "Section 4, Appendix C.1-C.3",
+          "score": 0.0,
+          "evidence": [
+            {
+              "file": "average_reward_mdp.py",
+              "lines": "43-50",
+              "snippet": "        return self.transition_kernel.get((state, action, next_state), 0)\n\n    def compute_projection_matrix(self):\n        \"\"\"\n        Compute the projection matrix to the subspace orthogonal to the all-ones vector.\n        \"\"\"\n        import numpy as np\n        num_states = len(self.states)",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "2-9",
+              "snippet": "import numpy as np\n\ndef projected_policy_gradient(mdp, policy, step_size):\n    \"\"\"\n    Perform one iteration of the projected policy gradient algorithm on the MDP.\n\n    Args:\n        mdp (AverageRewardMDP): The MDP instance containing states, actions, rewards, and transition probabilities.",
+              "relevance": "direct",
+              "kind": "code"
+            },
+            {
+              "file": "policy_gradient.py",
+              "lines": "18-25",
+              "snippet": "    gradient = np.zeros_like(policy) # Replace with actual computation\n    # Perform gradient ascent update\n    updated_policy = policy + step_size * gradient\n    # Project updated policy back into feasible space\n    projected_policy = projection_matrix @ updated_policy\n    return projected_policy\n",
+              "relevance": "semantic",
+              "kind": "code"
+            }
+          ],
+          "search_rounds": 3,
+          "search_trace": [
+            {
+              "round": 1,
+              "tool": "list_files",
+              "query": ".",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Section 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "Appendix C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "grep_exact",
+              "query": "convergence",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Section 4",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 1,
+              "tool": "search_config",
+              "query": "Appendix C",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "convergence[_\\- ]*simulation|convergence.*simulation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "simulation[_\\- ]*proj_pi|simulation.*proj_pi",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "proj_pi[_\\- ]*construct|proj_pi.*construct",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "construct[_\\- ]*pi_k\\+eta|construct.*pi_k\\+eta",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "2000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "3000",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_regex",
+              "query": "(pipeline|phase|trainer|runner|workflow|schedule|step)",
+              "results": 5,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "simulation",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "proj_pi",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "construct",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "pi_k+eta",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 2,
+              "tool": "grep_exact",
+              "query": "measure",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "trace_imports",
+              "query": "policy_gradient.py",
+              "results": 3,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+compute_projection_matrix\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+gradient\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+policy\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+projected_policy_gradient\\b",
+              "results": 1,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+step_size\\b",
+              "results": 0,
+              "error": null
+            },
+            {
+              "round": 3,
+              "tool": "grep_regex",
+              "query": "(def|class)\\s+zeros_like\\b",
+              "results": 0,
+              "error": null
+            }
+          ],
+          "judge_reasoning": "Theorem/proof-style claim only has one strong implementation signal; treated as unsupported."
+        }
+      ]
+    }
+  },
+  "overall_score": 0.0
+}

@@ -1,0 +1,132 @@
+## config.yaml
+
+# ============================================================
+# Reproduction settings for "Adversarial Manipulation of Voting-Based Leaderboards"
+# ============================================================
+
+# ---------- General ----------
+seed: 42
+output_dir: "outputs"
+cache_dir: "caches"
+
+# ---------- Model List ----------
+models:
+  - claude-3-5-sonnet-20240620
+  - gemini-1.5-pro
+  - gpt-4o-mini-2024-07-18
+  - gemma-2-27b-it
+  - llama-3.1-70b-instruct
+  - mixtral-8x7b-instruct-v0.1
+  - qwen2-72b-instruct
+  # Extend with the full 22-model list from Appendix A.1 when resources allow
+
+# ---------- Prompt Datasets ----------
+prompt_categories:
+  english: "lmsys-chat-1m/english"
+  chinese: "lmsys-chat-1m/chinese"
+  spanish: "lmsys-chat-1m/spanish"
+  indonesian: "lmsys-chat-1m/indonesian"
+  persian: "lmsys-chat-1m/persian"
+  coding: "alpaca-code"
+  math: "math"
+  safety: "advbench"
+
+# Dataset file paths (relative or absolute)
+dataset_paths:
+  lmsys_chat_root: "./datasets/lmsys-chat-1m"
+  math_path: "./datasets/math"
+  advbench_path: "./datasets/advbench"
+  alpaca_code_path: "./datasets/alpaca-code"
+
+# ---------- Data Collection ----------
+num_prompts_per_category: 200          # Number of prompts to sample per category
+num_responses_per_prompt: 50           # Responses collected per (prompt, model) pair
+max_output_tokens: 512                 # Maximum generation length (tokens)
+temperature: null                      # Use default temperature from each API / model
+top_p: null                            # Use default top_p
+
+# ---------- Detector Configuration ----------
+detector:
+  # Feature types to evaluate (used for training-based detector)
+  feature_types:
+    - bow
+    - tfidf
+    - length_word
+    - length_char
+  # Classifier settings
+  classifier: "logistic_regression"
+  test_size: 0.2
+  random_state: 42
+  # Identity-probing prompts
+  identity_prompts:
+    - "Who are you?"
+    - "Which model are you?"
+    - "What is your model name?"
+    - "How should I refer to you as an AI?"
+    - "How would you define your role or identity as an AI?"
+  identity_num_queries: 1000           # Per prompt for accuracy calculation
+  keyword_map:                         # Model family / organization to detect
+    claude: ["Claude", "Anthropic"]
+    gemini: ["Gemini", "Google", "Bard"]
+    gpt: ["GPT", "OpenAI"]
+    gemma: ["Gemma", "Google"]
+    llama: ["Llama", "Meta"]
+    mixtral: ["Mixtral", "Mistral"]
+    qwen: ["Qwen", "Alibaba"]
+
+# ---------- API Access ----------
+api:
+  openai_key_env: "OPENAI_API_KEY"
+  anthropic_key_env: "ANTHROPIC_API_KEY"
+  google_key_env: "GOOGLE_API_KEY"
+  together_key_env: "TOGETHER_API_KEY"
+  max_retries: 3
+  request_interval: 0.5                # Seconds between requests (to respect rate limits)
+
+# ---------- Simulation (Vote Manipulation) ----------
+simulation:
+  # Leaderboard setup
+  num_models: 130                      # Total models on the synthetic leaderboard
+  initial_rating_mean: 1000
+  initial_rating_std: 200
+  k_factor: 4                          # Elo K-factor
+  tie_prob: 0.345                      # Probability of a tie (matches historical data)
+  num_genuine_votes: 1600000           # Genuine votes to establish baseline rankings
+  # Attacker behavior
+  attacker_accuracy: 0.95
+  non_target_strategy: "do_nothing"    # Options: do_nothing, random_upvote, vote_tie, vote_tie_both_bad
+  # Target models and movements (subset for quick tests; extend with paper's tables)
+  target_models:
+    high:
+      - "chatgpt-4o-latest"
+      - "gemini-1.5-pro-exp-0801"
+      - "gpt-4o-2024-05-13"
+      - "gpt-4o-mini-2024-07-18"
+      - "claude-3-5-sonnet-20240620"
+    low:
+      - "llama-13b"                     # Placeholder; use real low-ranked names
+  target_movements:
+    high: [1, 2, 3, 4, 5]              # Rank change for highly ranked models
+    low: [1, 2, 5, 10, 20, 50]         # Rank change for low-ranked models
+  # Ablation settings (if enabled)
+  ablations:
+    vary_accuracy: [1.0, 0.95, 0.9]
+    non_target_strategies:
+      - "do_nothing"
+      - "random_upvote"
+      - "vote_tie"
+      - "vote_tie_both_bad"
+
+# ---------- Mitigation Experiments ----------
+mitigation:
+  enabled: false                       # Set to true to run Section 4.3 experiments
+  noise_scales: [0, 10, 20, 50]        # Std of Gaussian noise added to released ratings
+  significance_level: 0.01
+  num_null_simulations: 1000           # For p-value calculation
+  num_attacker_votes: 100              # Sequence length for detection experiment
+  strategies: ["naive", "smart"]       # Attacker strategies: random or mimic perturbed leaderboard
+
+# ---------- Output Settings ----------
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

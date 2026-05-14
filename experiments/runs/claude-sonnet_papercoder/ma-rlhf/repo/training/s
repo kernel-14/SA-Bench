@@ -1,0 +1,745 @@
+## training/sft_trainer.py
+"""Supervised Fine-Tuning (SFT) trainer for the MA-RLHF pipeline.
+
+This module implements SFTTrainer, which performs Stage 1 of the MA-RLHF
+pipeline: fine-tuning the base language model on human-preferred responses.
+The SFT checkpoint initializes both the reward model (Stage 2) and the PPO
+policy (Stage 3).
+
+This trainer is task-agnostic — all task-specific formatting is handled
+upstream by DatasetLoader.format_sft_sample(). The trainer receives a
+pre-formatted HuggingFace Dataset and runs standard causal LM fine-tuning
+with cross-entropy loss computed only on response tokens (labels != -100).
+
+Paper alignments:
+  - Section 2.2: SFT stage description.
+  - Appendix B.2: Training details (batch sizes, epochs, learning rates).
+  - Table 5: All hyperparameters per model size and task.
+  - config.yaml sft section: Default hyperparameters.
+
+Dependencies:
+    External: torch, transformers, datasets
+    Internal:
+        config.py (SFTConfig)
+        models/policy_model.py (PolicyModel)
+        utils/logging_utils.py (LoggingUtils)
+        utils/checkpoint_utils.py (CheckpointUtils)
+"""
+
+import logging
+import os
+from typing import Any, Dict, List, Optional
+
+import torch
+import torch.nn.functional as F
+from datasets import Dataset
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
+from transformers import get_cosine_schedule_with_warmup
+
+from config import SFTConfig
+from models.policy_model import PolicyModel
+from utils.checkpoint_utils import CheckpointUtils
+from utils.logging_utils import LoggingUtils
+
+logger = logging.getLogger(__name__)
+
+
+def _sft_collate_fn(
+    batch: List[Dict[str, Any]],
+    pad_token_id: int,
+) -> Dict[str, torch.Tensor]:
+    """Collate a list of SFT samples into a padded batch.
+
+    Pads all sequences to the length of the longest sequence in the batch
+    using right-padding for SFT (labels are right-aligned). Padding tokens
+    in labels are set to -100 so they are ignored by the cross-entropy loss.
+
+    Args:
+        batch: List of dicts, each with keys 'input_ids', 'attention_mask',
+            'labels'. All values are 1D LongTensors of potentially different
+            lengths (though DatasetLoader produces fixed-length tensors, this
+            collate function handles variable lengths for robustness).
+        pad_token_id: Token ID used for padding input_ids and attention_mask.
+            Labels are padded with -100 (cross-entropy ignore index).
+
+    Returns:
+        A dict with keys 'input_ids', 'attention_mask', 'labels', each
+        containing a 2D LongTensor of shape [batch_size, max_seq_len].
+    """
+    # Determine the maximum sequence length in this batch.
+    max_len: int = max(sample["input_ids"].size(0) for sample in batch)
+
+    padded_input_ids: List[torch.Tensor] = []
+    padded_attention_masks: List[torch.Tensor] = []
+    padded_labels: List[torch.Tensor] = []
+
+    for sample in batch:
+        input_ids: torch.Tensor = sample["input_ids"]
+        attention_mask: torch.Tensor = sample["attention_mask"]
+        labels: torch.Tensor = sample["labels"]
+
+        seq_len: int = input_ids.size(0)
+        pad_len: int = max_len - seq_len
+
+        if pad_len > 0:
+            # Right-pad input_ids with pad_token_id.
+            input_ids = torch.cat([
+                input_ids,
+                torch.full((pad_len,), pad_token_id, dtype=torch.long),
+            ])
+            # Right-pad attention_mask with 0 (padding tokens are masked out).
+            attention_mask = torch.cat([
+                attention_mask,
+                torch.zeros(pad_len, dtype=torch.long),
+            ])
+            # Right-pad labels with -100 (ignored by cross-entropy loss).
+            labels = torch.cat([
+                labels,
+                torch.full((pad_len,), -100, dtype=torch.long),
+            ])
+
+        padded_input_ids.append(input_ids)
+        padded_attention_masks.append(attention_mask)
+        padded_labels.append(labels)
+
+    return {
+        "input_ids": torch.stack(padded_input_ids, dim=0),
+        "attention_mask": torch.stack(padded_attention_masks, dim=0),
+        "labels": torch.stack(padded_labels, dim=0),
+    }
+
+
+class SFTTrainer:
+    """Supervised Fine-Tuning trainer for Stage 1 of the MA-RLHF pipeline.
+
+    Wraps a PolicyModel and a formatted dataset, runs standard causal LM
+    fine-tuning, and saves the fine-tuned checkpoint. The SFT checkpoint
+    is used to initialize the reward model and PPO policy in subsequent
+    stages.
+
+    This trainer is task-agnostic. All task-specific formatting (TL;DR,
+    HH-RLHF, WebGPT, APPS) is handled upstream by DatasetLoader before
+    data reaches this class.
+
+    Attributes:
+        model: The PolicyModel being fine-tuned.
+        dataset: Pre-formatted training dataset from DatasetLoader.
+        config: SFTConfig with all training hyperparameters.
+        eval_dataset: Optional evaluation dataset for perplexity tracking.
+        dataloader: DataLoader wrapping the training dataset.
+        eval_dataloader: DataLoader wrapping the eval dataset, or None.
+        optimizer: AdamW optimizer with weight decay.
+        scheduler: Cosine LR scheduler with linear warmup.
+        total_training_steps: Total number of optimizer steps across all epochs.
+        log_interval: How often to log metrics (from config.yaml: 10).
+        save_interval: How often to save checkpoints (from config.yaml: 500).
+        output_dir: Directory where the final SFT checkpoint is saved.
+        checkpoint_dir: Directory where intermediate checkpoints are saved.
+    """
+
+    def __init__(
+        self,
+        model: PolicyModel,
+        dataset: Dataset,
+        config: SFTConfig,
+        eval_dataset: Optional[Dataset] = None,
+        log_interval: int = 10,
+        save_interval: int = 500,
+        output_dir: str = "./outputs/sft",
+        logging_utils: Optional[LoggingUtils] = None,
+    ) -> None:
+        """Initialize the SFT trainer.
+
+        Sets up the DataLoader, optimizer, and LR scheduler. The optimizer
+        applies weight decay to all parameters except bias terms and
+        LayerNorm weights, following standard practice.
+
+        Args:
+            model: PolicyModel initialized from the base pretrained model
+                (e.g., google/gemma-2b). This model will be fine-tuned
+                in-place during train().
+            dataset: Pre-formatted training dataset. Each sample must have
+                keys 'input_ids', 'attention_mask', 'labels' as LongTensors.
+                Produced by DatasetLoader.format_sft_sample().
+            config: SFTConfig with all training hyperparameters. Values
+                are sourced from config.yaml sft section and per-task
+                YAML overrides in configs/*.yaml.
+            eval_dataset: Optional evaluation dataset for perplexity
+                tracking. Same format as dataset. If None, evaluate()
+                will return empty metrics.
+            log_interval: Number of training steps between metric logs.
+                Default 10 matches config.yaml log_interval.
+            save_interval: Number of training steps between checkpoint
+                saves. Default 500 matches config.yaml save_interval.
+            output_dir: Directory where the final SFT model checkpoint
+                is saved via model.save_pretrained(). Intermediate
+                checkpoints are saved to output_dir/checkpoints/.
+            logging_utils: Optional LoggingUtils instance for wandb and
+                TensorBoard logging. If None, only Python logging is used.
+        """
+        self.model: PolicyModel = model
+        self.dataset: Dataset = dataset
+        self.config: SFTConfig = config
+        self.eval_dataset: Optional[Dataset] = eval_dataset
+        self.log_interval: int = log_interval
+        self.save_interval: int = save_interval
+        self.output_dir: str = output_dir
+        self.logging_utils: Optional[LoggingUtils] = logging_utils
+
+        # Checkpoint directory for intermediate saves.
+        self.checkpoint_dir: str = os.path.join(output_dir, "checkpoints")
+
+        # Determine the pad token ID from the model's tokenizer.
+        # Gemma models use eos_token as pad_token (set in PolicyModel.__init__).
+        self.pad_token_id: int = (
+            model.tokenizer.pad_token_id
+            if model.tokenizer.pad_token_id is not None
+            else model.tokenizer.eos_token_id
+        )
+
+        # --- DataLoader ---
+        # Use a closure to capture pad_token_id in the collate function.
+        def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+            return _sft_collate_fn(batch, self.pad_token_id)
+
+        self.dataloader: DataLoader = DataLoader(
+            dataset,
+            batch_size=config.batch_size,
+            shuffle=True,
+            drop_last=False,
+            collate_fn=collate_fn,
+            num_workers=0,  # 0 for compatibility with HuggingFace datasets.
+            pin_memory=True,
+        )
+
+        # Eval DataLoader (no shuffle for reproducible evaluation).
+        self.eval_dataloader: Optional[DataLoader] = None
+        if eval_dataset is not None:
+            self.eval_dataloader = DataLoader(
+                eval_dataset,
+                batch_size=config.batch_size,
+                shuffle=False,
+                drop_last=False,
+                collate_fn=collate_fn,
+                num_workers=0,
+                pin_memory=True,
+            )
+
+        # Total training steps = epochs * steps_per_epoch.
+        # Used for LR scheduler and warmup computation.
+        self.total_training_steps: int = (
+            config.epochs * len(self.dataloader)
+        )
+
+        logger.info(
+            "SFTTrainer initialized: epochs=%d, steps_per_epoch=%d, "
+            "total_steps=%d, batch_size=%d, lr=%.2e.",
+            config.epochs,
+            len(self.dataloader),
+            self.total_training_steps,
+            config.batch_size,
+            config.learning_rate,
+        )
+
+        # --- Optimizer and Scheduler ---
+        self.optimizer: AdamW = self._get_optimizer()
+        self.scheduler = self._get_scheduler(self.optimizer)
+
+        logger.info(
+            "Optimizer: AdamW(lr=%.2e, betas=(%.2f, %.3f), "
+            "eps=%.1e, weight_decay=%.4f).",
+            config.learning_rate,
+            config.adam_beta1,
+            config.adam_beta2,
+            config.adam_epsilon,
+            config.weight_decay,
+        )
+        logger.info(
+            "Scheduler: cosine with warmup_steps=%d / total_steps=%d.",
+            int(config.warmup_ratio * self.total_training_steps),
+            self.total_training_steps,
+        )
+
+    # ------------------------------------------------------------------
+    # Primary training interface
+    # ------------------------------------------------------------------
+
+    def train(self) -> None:
+        """Run the full SFT training loop.
+
+        Iterates over all epochs and batches, computes the causal LM loss
+        on response tokens, backpropagates, clips gradients, and steps the
+        optimizer and scheduler. Logs metrics every log_interval steps and
+        saves checkpoints every save_interval steps.
+
+        After all epochs complete, saves the final model checkpoint to
+        self.output_dir via model.save_pretrained().
+
+        The model is set to train() mode at the start of each epoch and
+        eval() mode during evaluation (if called separately).
+
+        Gradient clipping uses config.max_grad_norm = 1.0 (config.yaml).
+        """
+        logger.info(
+            "Starting SFT training: %d epochs, %d total steps.",
+            self.config.epochs,
+            self.total_training_steps,
+        )
+
+        global_step: int = 0
+
+        for epoch in range(self.config.epochs):
+            # Set model to training mode at the start of each epoch.
+            self.model.model.train()
+
+            epoch_loss_sum: float = 0.0
+            epoch_step_count: int = 0
+
+            logger.info(
+                "Epoch %d / %d started.", epoch + 1, self.config.epochs
+            )
+
+            for batch in self.dataloader:
+                # Move batch tensors to the model's device.
+                batch = self._move_batch_to_device(batch)
+
+                # Forward pass and loss computation.
+                loss: torch.Tensor = self._compute_loss(batch)
+
+                # Backward pass.
+                # Check for DeepSpeed engine (has .backward() method).
+                if hasattr(self.model.model, "backward"):
+                    # DeepSpeed engine: use engine.backward() and engine.step().
+                    self.model.model.backward(loss)
+                    # Gradient clipping is handled by DeepSpeed internally
+                    # when configured via ds_config. For non-DS, clip manually.
+                    self.model.model.step()
+                else:
+                    # Standard PyTorch training.
+                    loss.backward()
+
+                    # Gradient clipping (config.max_grad_norm = 1.0).
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.model.parameters(),
+                        self.config.max_grad_norm,
+                    )
+
+                    self.optimizer.step()
+                    self.scheduler.step()
+                    self.optimizer.zero_grad()
+
+                global_step += 1
+                epoch_loss_sum += loss.item()
+                epoch_step_count += 1
+
+                # --- Logging ---
+                if global_step % self.log_interval == 0:
+                    current_lr: float = self._get_current_lr()
+                    metrics: Dict[str, float] = {
+                        "sft/loss": loss.item(),
+                        "sft/lr": current_lr,
+                        "sft/epoch": float(epoch + 1),
+                        "sft/global_step": float(global_step),
+                    }
+
+                    logger.info(
+                        "Step %d | loss=%.4f | lr=%.2e",
+                        global_step,
+                        loss.item(),
+                        current_lr,
+                    )
+
+                    if self.logging_utils is not None:
+                        self.logging_utils.log_metrics(metrics, global_step)
+
+                # --- Checkpointing ---
+                if global_step % self.save_interval == 0:
+                    logger.info(
+                        "Saving intermediate checkpoint at step %d.",
+                        global_step,
+                    )
+                    CheckpointUtils.save_checkpoint(
+                        model=self.model.model,
+                        optimizer=self.optimizer,
+                        scheduler=self.scheduler,
+                        step=global_step,
+                        path=self.checkpoint_dir,
+                    )
+
+            # End of epoch: log epoch-level summary.
+            avg_epoch_loss: float = (
+                epoch_loss_sum / epoch_step_count
+                if epoch_step_count > 0
+                else 0.0
+            )
+            logger.info(
+                "Epoch %d / %d complete. avg_loss=%.4f.",
+                epoch + 1,
+                self.config.epochs,
+                avg_epoch_loss,
+            )
+
+            if self.logging_utils is not None:
+                self.logging_utils.log_metrics(
+                    {
+                        "sft/epoch_avg_loss": avg_epoch_loss,
+                        "sft/epoch": float(epoch + 1),
+                    },
+                    global_step,
+                )
+
+        # --- Final model save ---
+        logger.info(
+            "SFT training complete. Saving final model to '%s'.",
+            self.output_dir,
+        )
+        os.makedirs(self.output_dir, exist_ok=True)
+        self.model.save_pretrained(self.output_dir)
+
+        logger.info(
+            "SFT model saved to '%s'. Total steps: %d.",
+            self.output_dir,
+            global_step,
+        )
+
+    def evaluate(self, eval_dataset: Optional[Dataset] = None) -> Dict[str, float]:
+        """Compute perplexity on the evaluation dataset.
+
+        Perplexity is computed only on response tokens (where labels != -100),
+        consistent with how the training loss is computed. This gives a
+        meaningful measure of how well the model has learned to generate
+        responses.
+
+        Args:
+            eval_dataset: Optional evaluation dataset. If provided, overrides
+                self.eval_dataset for this call. If None, uses self.eval_dataset.
+                If both are None, returns empty metrics with a warning.
+
+        Returns:
+            A dict with keys:
+                - 'perplexity': float, exp(mean cross-entropy loss per token)
+                - 'loss': float, mean cross-entropy loss per token
+            Returns {'perplexity': float('inf'), 'loss': float('inf')} if
+            no evaluation data is available.
+        """
+        # Determine which eval dataset to use.
+        active_eval_dataset: Optional[Dataset] = (
+            eval_dataset if eval_dataset is not None else self.eval_dataset
+        )
+
+        if active_eval_dataset is None:
+            logger.warning(
+                "evaluate() called but no eval_dataset is available. "
+                "Returning empty metrics."
+            )
+            return {"perplexity": float("inf"), "loss": float("inf")}
+
+        # Build eval DataLoader if not already built or if a new dataset is given.
+        if eval_dataset is not None or self.eval_dataloader is None:
+            def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+                return _sft_collate_fn(batch, self.pad_token_id)
+
+            active_eval_loader: DataLoader = DataLoader(
+                active_eval_dataset,
+                batch_size=self.config.batch_size,
+                shuffle=False,
+                drop_last=False,
+                collate_fn=collate_fn,
+                num_workers=0,
+                pin_memory=True,
+            )
+        else:
+            active_eval_loader = self.eval_dataloader
+
+        # Set model to eval mode.
+        self.model.model.eval()
+
+        total_loss: float = 0.0
+        total_tokens: int = 0
+
+        with torch.no_grad():
+            for batch in active_eval_loader:
+                batch = self._move_batch_to_device(batch)
+
+                # Compute loss (same as training, but no backward pass).
+                loss, n_tokens = self._compute_loss_with_token_count(batch)
+
+                total_loss += loss.item() * n_tokens
+                total_tokens += n_tokens
+
+        # Restore model to train mode.
+        self.model.model.train()
+
+        if total_tokens == 0:
+            logger.warning(
+                "evaluate() found no valid response tokens. "
+                "Check that labels are correctly formatted (non-(-100) values)."
+            )
+            return {"perplexity": float("inf"), "loss": float("inf")}
+
+        mean_loss: float = total_loss / total_tokens
+        perplexity: float = float(torch.exp(torch.tensor(mean_loss)).item())
+
+        logger.info(
+            "Evaluation complete: loss=%.4f, perplexity=%.2f "
+            "(%d tokens evaluated).",
+            mean_loss,
+            perplexity,
+            total_tokens,
+        )
+
+        return {"perplexity": perplexity, "loss": mean_loss}
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _compute_loss(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+        """Compute the causal LM cross-entropy loss on response tokens.
+
+        Uses the standard shifted next-token prediction objective. The loss
+        is computed only on response tokens (where labels != -100), which
+        ensures the model learns to generate responses without memorizing
+        prompt tokens.
+
+        Args:
+            batch: Dict with keys 'input_ids', 'attention_mask', 'labels'.
+                All tensors are on the model's device (moved by the caller).
+                - input_ids: [batch_size, seq_len]
+                - attention_mask: [batch_size, seq_len]
+                - labels: [batch_size, seq_len], -100 for prompt/padding
+
+        Returns:
+            Scalar loss tensor. Gradients flow through this tensor during
+            the backward pass.
+        """
+        input_ids: torch.Tensor = batch["input_ids"]
+        attention_mask: torch.Tensor = batch["attention_mask"]
+        labels: torch.Tensor = batch["labels"]
+
+        # Forward pass: get logits over vocabulary.
+        # Shape: [batch_size, seq_len, vocab_size]
+        outputs = self.model.forward(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            output_hidden_states=False,
+        )
+        logits: torch.Tensor = outputs.logits
+
+        vocab_size: int = logits.size(-1)
+
+        # Shifted next-token prediction:
+        # - shift_logits[b, t, :] predicts token at position t+1
+        # - shift_labels[b, t] is the ground truth token at position t+1
+        # Shape: [batch_size, seq_len-1, vocab_size]
+        shift_logits: torch.Tensor = logits[:, :-1, :].contiguous()
+        # Shape: [batch_size, seq_len-1]
+        shift_labels: torch.Tensor = labels[:, 1:].contiguous()
+
+        # Flatten for cross-entropy: [batch * (seq_len-1), vocab_size]
+        # and [batch * (seq_len-1)].
+        # ignore_index=-100 masks out prompt tokens and padding.
+        loss: torch.Tensor = F.cross_entropy(
+            shift_logits.view(-1, vocab_size),
+            shift_labels.view(-1),
+            ignore_index=-100,
+            reduction="mean",
+        )
+
+        return loss
+
+    def _compute_loss_with_token_count(
+        self,
+        batch: Dict[str, torch.Tensor],
+    ) -> tuple:
+        """Compute loss and count valid response tokens for perplexity.
+
+        Same as _compute_loss() but also returns the number of valid
+        (non-ignored) tokens, needed for computing perplexity correctly
+        when averaging across batches of different sizes.
+
+        Args:
+            batch: Same format as _compute_loss().
+
+        Returns:
+            A tuple (loss, n_tokens) where:
+                - loss: Scalar mean cross-entropy loss over valid tokens.
+                - n_tokens: Number of valid (non-(-100)) label tokens.
+        """
+        input_ids: torch.Tensor = batch["input_ids"]
+        attention_mask: torch.Tensor = batch["attention_mask"]
+        labels: torch.Tensor = batch["labels"]
+
+        outputs = self.model.forward(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            output_hidden_states=False,
+        )
+        logits: torch.Tensor = outputs.logits
+        vocab_size: int = logits.size(-1)
+
+        shift_logits: torch.Tensor = logits[:, :-1, :].contiguous()
+        shift_labels: torch.Tensor = labels[:, 1:].contiguous()
+
+        # Count valid tokens (where labels != -100).
+        n_tokens: int = int((shift_labels != -100).sum().item())
+
+        if n_tokens == 0:
+            # No valid tokens in this batch (all prompt or padding).
+            dummy_loss: torch.Tensor = torch.tensor(
+                0.0, device=logits.device, dtype=logits.dtype
+            )
+            return dummy_loss, 0
+
+        loss: torch.Tensor = F.cross_entropy(
+            shift_logits.view(-1, vocab_size),
+            shift_labels.view(-1),
+            ignore_index=-100,
+            reduction="mean",
+        )
+
+        return loss, n_tokens
+
+    def _get_optimizer(self) -> AdamW:
+        """Create an AdamW optimizer with selective weight decay.
+
+        Applies weight decay to all parameters except bias terms and
+        LayerNorm weights. This is standard practice for transformer
+        fine-tuning and prevents over-regularization of normalization layers.
+
+        Weight decay groups:
+          - decay_params: All parameters with ndim >= 2 (weight matrices).
+          - no_decay_params: Bias terms (ndim == 1) and LayerNorm weights.
+
+        Returns:
+            AdamW optimizer configured with hyperparameters from SFTConfig.
+            Learning rate, betas, epsilon, and weight_decay are all sourced
+            from config.yaml sft section.
+        """
+        # Separate parameters into decay and no-decay groups.
+        # LayerNorm weights are identified by their parameter name containing
+        # 'norm' or 'ln', and bias terms by name ending with 'bias'.
+        decay_params: List[torch.nn.Parameter] = []
+        no_decay_params: List[torch.nn.Parameter] = []
+
+        no_decay_names: tuple = ("bias", "layer_norm", "layernorm", "ln_")
+
+        for name, param in self.model.model.named_parameters():
+            if not param.requires_grad:
+                continue
+
+            # Check if this parameter should have weight decay applied.
+            is_no_decay: bool = any(
+                nd_name in name.lower() for nd_name in no_decay_names
+            )
+
+            # Also skip 1D parameters (biases, LayerNorm scales/biases).
+            if is_no_decay or param.ndim == 1:
+                no_decay_params.append(param)
+            else:
+                decay_params.append(param)
+
+        optimizer_grouped_parameters = [
+            {
+                "params": decay_params,
+                "weight_decay": self.config.weight_decay,
+            },
+            {
+                "params": no_decay_params,
+                "weight_decay": 0.0,
+            },
+        ]
+
+        logger.debug(
+            "Optimizer parameter groups: decay=%d params, no_decay=%d params.",
+            len(decay_params),
+            len(no_decay_params),
+        )
+
+        optimizer: AdamW = AdamW(
+            optimizer_grouped_parameters,
+            lr=self.config.learning_rate,
+            betas=(self.config.adam_beta1, self.config.adam_beta2),
+            eps=self.config.adam_epsilon,
+        )
+
+        return optimizer
+
+    def _get_scheduler(self, optimizer: AdamW):
+        """Create a cosine LR scheduler with linear warmup.
+
+        Uses transformers.get_cosine_schedule_with_warmup with warmup
+        steps computed from config.warmup_ratio * total_training_steps.
+
+        Warmup ratio from config.yaml:
+          - All Gemma models: warmup_ratio = 0.1
+          - CodeGemma models: warmup_ratio = 0.0 (no warmup)
+
+        Args:
+            optimizer: The AdamW optimizer to schedule.
+
+        Returns:
+            A LambdaLR scheduler that implements cosine decay with warmup.
+        """
+        num_warmup_steps: int = int(
+            self.config.warmup_ratio * self.total_training_steps
+        )
+
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer=optimizer,
+            num_warmup_steps=num_warmup_steps,
+            num_training_steps=self.total_training_steps,
+        )
+
+        logger.debug(
+            "LR scheduler: cosine with warmup. "
+            "warmup_steps=%d, total_steps=%d.",
+            num_warmup_steps,
+            self.total_training_steps,
+        )
+
+        return scheduler
+
+    def _move_batch_to_device(
+        self,
+        batch: Dict[str, torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
+        """Move all batch tensors to the model's device.
+
+        Determines the device from the model's first parameter. This
+        handles both single-GPU and multi-GPU (DeepSpeed) setups.
+
+        Args:
+            batch: Dict of string keys to LongTensors.
+
+        Returns:
+            The same dict with all tensors moved to the model's device.
+        """
+        # Determine device from the model's parameters.
+        try:
+            device: torch.device = next(
+                self.model.model.parameters()
+            ).device
+        except StopIteration:
+            # No parameters (shouldn't happen with a real model).
+            device = torch.device("cpu")
+
+        return {
+            key: value.to(device) if isinstance(value, torch.Tensor) else value
+            for key, value in batch.items()
+        }
+
+    def _get_current_lr(self) -> float:
+        """Get the current learning rate from the optimizer.
+
+        Returns the learning rate of the first parameter group, which
+        corresponds to the decay parameters group. Both groups share the
+        same LR schedule (only weight_decay differs between groups).
+
+        Returns:
+            Current learning rate as a float.
+        """
+        if self.optimizer.param_groups:
+            return float(self.optimizer.param_groups[0]["lr"])
+        return float(self.config.learning_rate)

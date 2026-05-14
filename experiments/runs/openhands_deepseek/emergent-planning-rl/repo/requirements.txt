@@ -1,0 +1,8 @@
+torch>=1.10.0
+numpy>=1.21.0
+matplotlib>=3.5.0
+tensorboard>=2.8.0
+gym>=0.23.0
+tqdm>=4.62.0
+scikit-learn>=1.0.0
+einops>=0.4.0

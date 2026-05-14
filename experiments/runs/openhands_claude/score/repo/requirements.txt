@@ -1,0 +1,15 @@
+torch>=2.1.0
+transformers>=4.40.0
+datasets>=2.18.0
+accelerate>=0.28.0
+peft>=0.10.0
+tqdm>=4.66.0
+numpy>=1.26.0
+scipy>=1.12.0
+sympy>=1.12
+antlr4-python3-runtime==4.11.0
+math-verify>=0.1.0
+Levenshtein>=0.25.0
+jsonlines>=4.0.0
+wandb>=0.16.0
+omegaconf>=2.3.0

@@ -1,0 +1,299 @@
+## config.yaml
+## MoE-POT: Mixture-of-Experts Pre-training Operator Transformer
+## Configuration file covering all model sizes, training settings,
+## datasets, and experiment modes as described in the paper.
+
+## ---------------------------------------------------------------------------
+## Model Configurations (Table 5 in paper)
+## ---------------------------------------------------------------------------
+models:
+  tiny:
+    model_size: "tiny"
+    attn_dim: 512
+    mlp_dim: 512
+    num_layers: 4
+    num_heads: 4
+    num_routed_experts: 16
+    num_shared_experts: 2
+    top_k: 4
+    total_params_target: "30M"
+    activated_params_target: "17M"
+
+  small:
+    model_size: "small"
+    attn_dim: 1024
+    mlp_dim: 1024
+    num_layers: 6
+    num_heads: 8
+    num_routed_experts: 16
+    num_shared_experts: 2
+    top_k: 4
+    total_params_target: "166M"
+    activated_params_target: "90M"
+
+  medium:
+    model_size: "medium"
+    attn_dim: 1024
+    mlp_dim: 2048
+    num_layers: 8
+    num_heads: 8
+    num_routed_experts: 16
+    num_shared_experts: 2
+    top_k: 4
+    total_params_target: "489M"
+    activated_params_target: "288M"
+
+## ---------------------------------------------------------------------------
+## Architecture Hyperparameters (shared across all model sizes)
+## ---------------------------------------------------------------------------
+architecture:
+  patch_size: 8                  ## P=8, from ablation Table 8 (optimal)
+  input_timesteps: 10            ## T=10 frames as input
+  target_resolution: 128         ## H=W=128, standardized spatial resolution
+  max_channels: 4                ## Max channels across datasets (CNS has 4: rho,vx,vy,p)
+  modes_x: 8                     ## Fourier modes in x (16x16 token grid, half Nyquist)
+  modes_y: 8                     ## Fourier modes in y
+  load_balance_weight: 0.1       ## w_bal for CV-based load balancing loss
+
+## ---------------------------------------------------------------------------
+## Pre-training Settings (Section 5, Appendix B.3)
+## ---------------------------------------------------------------------------
+pretraining:
+  num_epochs: 1000
+  learning_rate: 1.0e-3          ## Adam lr = 1e-3
+  weight_decay: 1.0e-6           ## Adam weight decay
+  beta1: 0.9                     ## Adam beta_1
+  beta2: 0.9                     ## Adam beta_2 (paper specifies 0.9, not 0.999)
+  batch_size: 20                 ## Total batch size across all GPUs
+  warmup_epochs: 200             ## First 200 epochs as warm-up in One-cycle schedule
+  lr_schedule: "one_cycle"       ## One-cycle learning rate schedule
+  noise_injection: true          ## Inject noise during pre-training only
+  noise_scale: 0.01              ## Scalar epsilon for noise: N(0, epsilon*||u^{<t}||*I)
+  num_gpus: 8                    ## 8x RTX 4090 (24GB each)
+  gpu_type: "RTX4090"
+  dataset_weights:               ## w_k=1 for all datasets (equal weighting)
+    fno_ns_1e5: 1
+    fno_ns_1e3: 1
+    pdebench_cns_0p1_0p01: 1
+    pdebench_swe: 1
+    pdebench_dr: 1
+    cfdbench: 1
+
+## ---------------------------------------------------------------------------
+## Fine-tuning Settings (Appendix B.3)
+## ---------------------------------------------------------------------------
+finetuning:
+  num_epochs: 200
+  learning_rate: 1.0e-3
+  warmup_epochs: 40              ## First 40 of 200 epochs as warm-up
+  lr_schedule: "one_cycle"
+  freeze_router: true            ## Freeze router-gating network during fine-tuning
+  noise_injection: false         ## No noise during fine-tuning
+  ## Optimizer inherits beta1, beta2, weight_decay from pretraining
+
+## ---------------------------------------------------------------------------
+## Downstream Task Fine-tuning Settings (Appendix B.3)
+## ---------------------------------------------------------------------------
+downstream:
+  num_epochs: 500
+  learning_rate: 1.0e-3
+  warmup_epochs: 100             ## First 100 of 500 epochs as warm-up
+  lr_schedule: "one_cycle"
+  freeze_router: true
+  noise_injection: false
+
+## ---------------------------------------------------------------------------
+## Datasets (Appendix B.1, B.5, Tables 6 and 7)
+## ---------------------------------------------------------------------------
+datasets:
+  ## Pre-training and fine-tuning datasets
+  pretraining:
+    fno_ns_1e5:
+      name: "FNO-NS (1e-5)"
+      source: "FNO"              ## From FNO benchmark (Li et al., 2020)
+      pde_type: "navier_stokes"
+      viscosity: 1.0e-5
+      domain: "[0,1]^2"
+      variables: ["vorticity"]
+      num_channels: 1
+      train_size: 1000
+      test_size: 200
+      finetune_size: 1000
+      file_format: "mat"         ## scipy.io.loadmat
+
+    fno_ns_1e3:
+      name: "FNO-NS (1e-3)"
+      source: "FNO"
+      pde_type: "navier_stokes"
+      viscosity: 1.0e-3
+      domain: "[0,1]^2"
+      variables: ["vorticity"]
+      num_channels: 1
+      train_size: 1000
+      test_size: 200
+      finetune_size: 1000
+      file_format: "mat"
+
+    pdebench_cns_0p1_0p01:
+      name: "PDEBench-CNS (0.1, 0.01)"
+      source: "PDEBench"         ## Takamoto et al., 2022
+      pde_type: "compressible_navier_stokes"
+      eta: 0.1                   ## Dynamic shear viscosity
+      zeta: 0.01                 ## Bulk viscosity
+      domain: "[0,1]^2 x [0,1]"
+      variables: ["rho", "vx", "vy", "p"]
+      num_channels: 4
+      train_size: 9000
+      test_size: 200
+      finetune_size: 9000
+      file_format: "hdf5"
+
+    pdebench_swe:
+      name: "PDEBench-SWE"
+      source: "PDEBench"
+      pde_type: "shallow_water_equations"
+      domain: "[-1,1]^2 x [0,5]"
+      variables: ["h"]           ## Water depth
+      num_channels: 1
+      train_size: 900
+      test_size: 60
+      finetune_size: 900
+      file_format: "hdf5"
+
+    pdebench_dr:
+      name: "PDEBench-DR"
+      source: "PDEBench"
+      pde_type: "diffusion_reaction"
+      domain: "[-2.5,2.5]^2 x [0,1]"
+      variables: ["u"]           ## Density field
+      num_channels: 1
+      train_size: 900
+      test_size: 60
+      finetune_size: 900
+      file_format: "hdf5"
+
+    cfdbench:
+      name: "CFDBench"
+      source: "CFDBench"         ## Luo et al., 2023
+      pde_type: "incompressible_navier_stokes"
+      domain: "irregular"        ## Irregular geometries
+      variables: ["vx", "vy", "p"]
+      num_channels: 3
+      has_mask: true             ## Extra mask channel for irregular geometry
+      train_size: 9000
+      test_size: 1000
+      finetune_size: 9000
+      file_format: "hdf5"
+
+  ## Downstream task datasets (Table 7)
+  downstream:
+    fno_ns_1e4:
+      name: "NS (1e-4)"
+      source: "FNO"
+      pde_type: "navier_stokes"
+      viscosity: 1.0e-4
+      variables: ["vorticity"]
+      num_channels: 1
+      train_size: 2000
+      test_size: 200
+      file_format: "mat"
+      relation: "in_distribution"  ## Close to NS(1e-3) pre-training data
+
+    pdebench_cns_1_0p01:
+      name: "CNS (1, 0.01)"
+      source: "PDEBench"
+      pde_type: "compressible_navier_stokes"
+      eta: 1.0
+      zeta: 0.01
+      variables: ["rho", "vx", "vy", "p"]
+      num_channels: 4
+      train_size: 2000
+      test_size: 200
+      file_format: "hdf5"
+      relation: "in_distribution"
+
+    pdearena:
+      name: "PDEArena"
+      source: "PDEArena"         ## Gupta & Brandstetter, 2022
+      pde_type: "navier_stokes"
+      domain: "[0,32]^2 x [0,24]"
+      variables: ["vx", "vy", "p"]
+      num_channels: 3
+      train_size: 2000
+      test_size: 200
+      file_format: "hdf5"
+      relation: "out_of_distribution"  ## Different mathematical structure
+
+## ---------------------------------------------------------------------------
+## Data Preprocessing (Appendix B.1)
+## ---------------------------------------------------------------------------
+preprocessing:
+  target_resolution: 128         ## Standardize all datasets to 128x128
+  upsample_mode: "bilinear"      ## For datasets with lower resolution
+  downsample_mode: "area"        ## For datasets with higher resolution
+  channel_pad_value: 1.0         ## Constant fill value for channel padding
+  normalize: true                ## Per-channel normalization
+
+## ---------------------------------------------------------------------------
+## Evaluation Settings
+## ---------------------------------------------------------------------------
+evaluation:
+  metric: "L2RE"                 ## L2 Relative Error: ||pred-gt||_2 / ||gt||_2
+  rollout_steps: 10              ## Predict next 10 steps given first 10
+  zero_shot: true                ## Evaluate pre-trained model without fine-tuning
+  inference_warmup_runs: 10      ## Warmup runs before timing
+  inference_timed_runs: 100      ## Timed runs for inference benchmark
+
+## ---------------------------------------------------------------------------
+## Ablation Study Settings (Tables 4 and 8)
+## ---------------------------------------------------------------------------
+ablation:
+  model_size: "tiny"             ## All ablations use MoE-POT-Tiny
+  ## Number of routed experts ablation
+  num_routed_experts_grid: [8, 16, 32]
+  default_num_routed_experts: 16  ## Selected: balance of performance and cost
+  ## Top-K selection ablation
+  top_k_grid: [1, 2, 4]
+  default_top_k: 4               ## Selected: optimal trade-off
+  ## Number of heads ablation
+  num_heads_grid: [2, 4, 8]
+  default_num_heads: 4           ## Selected: h=4 for efficiency (Tiny model)
+  ## Patch size ablation
+  patch_size_grid: [4, 8, 16]
+  default_patch_size: 8          ## Selected: P=8 for optimal performance
+
+## ---------------------------------------------------------------------------
+## Interpretability Analysis (Section 5.4, Appendix B.4)
+## ---------------------------------------------------------------------------
+interpretability:
+  analysis_block_idx: 2          ## Block 2 achieves 97.7% classification accuracy
+  num_experts: 16                ## Full softmax over 16 routed experts
+  classification_method: "cross_entropy"  ## f(I0, Yi) = -sum_k I0_k * log(Yi_k)
+  target_accuracy: 0.977         ## 97.7% dataset classification accuracy
+
+## ---------------------------------------------------------------------------
+## Scaling Experiment Settings (Section 5.3)
+## ---------------------------------------------------------------------------
+scaling:
+  model_sizes: ["tiny", "small", "medium"]
+  activated_params: [17, 90, 288]   ## In millions
+  total_params: [30, 166, 489]      ## In millions
+  compare_with_dpot: true
+
+## ---------------------------------------------------------------------------
+## Paths
+## ---------------------------------------------------------------------------
+paths:
+  data_root: "./data/raw"
+  checkpoint_dir: "./checkpoints"
+  log_dir: "./logs"
+  results_dir: "./results"
+
+## ---------------------------------------------------------------------------
+## Logging
+## ---------------------------------------------------------------------------
+logging:
+  use_wandb: false               ## Set true to enable Weights & Biases logging
+  log_interval: 10               ## Log every N training steps
+  save_interval: 50              ## Save checkpoint every N epochs
+  project_name: "moe-pot"

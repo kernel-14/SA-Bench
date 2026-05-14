@@ -1,0 +1,30 @@
+## config.yaml
+training:
+  learning_rate: 1e-3  # Based on FNO learning rate mentioned in the paper.
+  batch_size: 32       # Batch size is not explicitly mentioned; using a common default for reproducibility.
+  epochs: 100          # Pretraining phase duration.
+
+fine_tuning:
+  learning_rate: 5e-4  # Typical rate for transfer/fine-tuning as described with Mamba-SSM.
+  batch_size: 32       # Fine-tuning phase batch size, assumed consistent.
+  epochs: 50           # Fine-tuning phase duration as described in the paper.
+
+model:
+  type: "Fourier Neural Operator"  # Default baseline model; can be changed to "Mamba-SSM" or "Perceiver IO".
+  hidden_modes: 16                # FNO-specific parameter (from the paper).
+  layers: 4                       # Number of layers used in FNO.
+  latent_size: 128                # Used for Perceiver IO latent space representation.
+
+datasets:
+  pretraining_data_path: "data/pretraining_set/"  # Path to pretraining PDE datasets.
+  fine_tuning_data_path: "data/fine_tuning_set/"  # Path to fine-tuning PDE datasets.
+  test_data_path: "data/test_set/"                # Path to test datasets.
+  synthetic_generation: False  # Assume datasets exist. If True, data generation scenarios must be implemented.
+
+evaluation:
+  metrics: "NMAE"  # Normalized Mean Absolute Error (default metric in the paper).
+
+random_seed: 42  # Seed for reproducibility.
+logging:
+  log_dir: "logs/"  # Directory for experiment logs.
+  checkpoint_dir: "checkpoints/"  # Directory for model checkpoints.

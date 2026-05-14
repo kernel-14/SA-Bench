@@ -1,0 +1,102 @@
+{
+  "case_id": "diffusion-convergence-rate",
+  "run_id": "diffusion-convergence-rate-20260505-132308",
+  "model_name": "gemini-2.5-flash",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 163353,
+    "total_output_tokens": 20810,
+    "total_tokens": 184163,
+    "estimated_cost_usd": 0.8022,
+    "elapsed_seconds": 323.9,
+    "steps": 14,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 11.02,
+        "input_tokens": 1188,
+        "output_tokens": 256
+      },
+      {
+        "step": 2,
+        "elapsed_s": 3.02,
+        "input_tokens": 1308,
+        "output_tokens": 63
+      },
+      {
+        "step": 3,
+        "elapsed_s": 22.46,
+        "input_tokens": 4381,
+        "output_tokens": 327
+      },
+      {
+        "step": 4,
+        "elapsed_s": 8.12,
+        "input_tokens": 5710,
+        "output_tokens": 774
+      },
+      {
+        "step": 5,
+        "elapsed_s": 4.9,
+        "input_tokens": 8220,
+        "output_tokens": 458
+      },
+      {
+        "step": 6,
+        "elapsed_s": 6.05,
+        "input_tokens": 10255,
+        "output_tokens": 538
+      },
+      {
+        "step": 7,
+        "elapsed_s": 13.85,
+        "input_tokens": 12471,
+        "output_tokens": 1759
+      },
+      {
+        "step": 8,
+        "elapsed_s": 20.64,
+        "input_tokens": 13105,
+        "output_tokens": 844
+      },
+      {
+        "step": 9,
+        "elapsed_s": 7.85,
+        "input_tokens": 15845,
+        "output_tokens": 0
+      },
+      {
+        "step": 10,
+        "elapsed_s": 19.59,
+        "input_tokens": 15878,
+        "output_tokens": 333
+      },
+      {
+        "step": 11,
+        "elapsed_s": 43.57,
+        "input_tokens": 16836,
+        "output_tokens": 0
+      },
+      {
+        "step": 12,
+        "elapsed_s": 81.73,
+        "input_tokens": 16869,
+        "output_tokens": 0
+      },
+      {
+        "step": 13,
+        "elapsed_s": 75.88,
+        "input_tokens": 16902,
+        "output_tokens": 15113
+      },
+      {
+        "step": 14,
+        "elapsed_s": 5.14,
+        "input_tokens": 24385,
+        "output_tokens": 345
+      }
+    ]
+  }
+}

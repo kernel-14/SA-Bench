@@ -1,0 +1,238 @@
+## config.yaml
+
+# Common hyperparameters (fixed across all benchmarks)
+common:
+  discount_factor: 0.99
+  replay_buffer_capacity: 1_000_000
+  batch_size: 256
+  target_update_frequency: 250        # T_target (steps)
+  replay_ratio: 1                     # updates per environment step
+  optimizer:
+    type: "AdamW"
+    weight_decay: 1.0e-4
+    betas: [0.9, 0.999]
+    eps: 1.0e-8
+  hidden_dim: 512
+  zs_dim: 512
+  zsa_dim: 512
+  za_dim: 256
+  activation_hidden: "ELU"            # hidden layers in encoder & value
+  activation_policy: "ReLU"           # policy hidden layers
+  weight_init: "xavier_uniform"
+  bias_init: 0.0
+  reward_bins: 65
+  reward_range: [-10, 10]             # linear spacing for symexp bins
+  exploration_noise_std: 0.2          # sigma
+  exploration_noise_clip: 0.3         # c (for continuous)
+  initial_random_steps: 10000         # warmup exploration
+  gradient_clip_norm: 20              # policy gradients only
+
+# Encoder specific
+encoder:
+  learning_rate: 3.0e-4
+  dynamics_loss_weight: 0.1
+  reward_loss_weight: 0.1
+  terminal_loss_weight: 0.1           # activated after first terminal seen
+  horizon: 5                          # H_Enc (unroll length)
+  # Reward prediction uses two-hot categorical cross-entropy
+  # Losses summed over horizon steps
+
+# Value function specific
+value:
+  learning_rate: 3.0e-4
+  multi_step_horizon: 3               # H_Q (n-step returns)
+  target_policy_noise: 0.2            # sigma
+  target_policy_noise_clip: 0.3       # c
+  min_clip_double: true               # use min over two Q-targets
+  huber_delta: 1.0
+
+# Policy network specific
+policy:
+  learning_rate: 3.0e-4
+  pre_activ_loss_weight: 1.0e-5       # lambda_pre-activ
+  gumbel_softmax_tau: 10.0
+
+# LAP (Prioritized replay) specific
+lap:
+  alpha: 0.4                          # smoothing for priority
+  min_priority: 1.0
+
+# Target network & reward scaling
+target:
+  update_frequency: 250               # same as target_update_frequency for clarity
+  reward_scaling: "running_mean_buffer"  # computed from absolute rewards, updated each target copy
+
+# Evaluation settings
+evaluation:
+  num_episodes: 10
+  # Evaluation frequencies are benchmark-specific
+
+# Benchmark-specific settings
+benchmarks:
+  gym_locomotion:
+    tasks: ["Ant-v4", "HalfCheetah-v4", "Hopper-v4", "Humanoid-v4", "Walker2d-v4"]
+    total_timesteps: 1_000_000
+    action_repeat: 1
+    eval_frequency: 5000               # every 5k steps
+    normalization: "TD3"
+    # Normalization reference scores (from paper appendix)
+    random_scores:
+      Ant-v4: -70.288
+      HalfCheetah-v4: -289.415
+      Hopper-v4: 18.791
+      Humanoid-v4: 120.423
+      Walker2d-v4: 2.791
+    TD3_scores:
+      Ant-v4: 3942
+      HalfCheetah-v4: 10574
+      Hopper-v4: 3226
+      Humanoid-v4: 5165
+      Walker2d-v4: 3946
+
+  dmc_proprioceptive:
+    tasks:  # 28 default tasks from paper
+      - "acrobot-swingup"
+      - "ball_in_cup-catch"
+      - "cartpole-balance"
+      - "cartpole-balance_sparse"
+      - "cartpole-swingup"
+      - "cartpole-swingup_sparse"
+      - "cheetah-run"
+      - "dog-run"
+      - "dog-stand"
+      - "dog-trot"
+      - "dog-walk"
+      - "finger-spin"
+      - "finger-turn_easy"
+      - "finger-turn_hard"
+      - "fish-swim"
+      - "hopper-hop"
+      - "hopper-stand"
+      - "humanoid-run"
+      - "humanoid-stand"
+      - "humanoid-walk"
+      - "pendulum-swingup"
+      - "quadruped-run"
+      - "quadruped-walk"
+      - "reacher-easy"
+      - "reacher-hard"
+      - "walker-run"
+      - "walker-stand"
+      - "walker-walk"
+    total_timesteps: 500_000           # 500k env steps (1M frames due to action repeat)
+    action_repeat: 2
+    eval_frequency: 5000
+    normalization: "raw_1000"          # divide raw reward by 1000
+
+  dmc_visual:
+    tasks:  # same 28 tasks
+      - "acrobot-swingup"
+      - "ball_in_cup-catch"
+      - "cartpole-balance"
+      - "cartpole-balance_sparse"
+      - "cartpole-swingup"
+      - "cartpole-swingup_sparse"
+      - "cheetah-run"
+      - "dog-run"
+      - "dog-stand"
+      - "dog-trot"
+      - "dog-walk"
+      - "finger-spin"
+      - "finger-turn_easy"
+      - "finger-turn_hard"
+      - "fish-swim"
+      - "hopper-hop"
+      - "hopper-stand"
+      - "humanoid-run"
+      - "humanoid-stand"
+      - "humanoid-walk"
+      - "pendulum-swingup"
+      - "quadruped-run"
+      - "quadruped-walk"
+      - "reacher-easy"
+      - "reacher-hard"
+      - "walker-run"
+      - "walker-stand"
+      - "walker-walk"
+    total_timesteps: 500_000
+    action_repeat: 2
+    eval_frequency: 5000
+    normalization: "raw_1000"
+    image_size: [84, 84]
+    frame_stack: 3                     # RGB frames
+
+  atari:
+    tasks: # 57 games, list from paper appendix C.4
+      - "Alien"
+      - "Amidar"
+      - "Assault"
+      - "Asterix"
+      - "Asteroids"
+      - "Atlantis"
+      - "BankHeist"
+      - "BattleZone"
+      - "BeamRider"
+      - "Berzerk"
+      - "Bowling"
+      - "Boxing"
+      - "Breakout"
+      - "Centipede"
+      - "ChopperCommand"
+      - "CrazyClimber"
+      - "Defender"
+      - "DemonAttack"
+      - "DoubleDunk"
+      - "Enduro"
+      - "FishingDerby"
+      - "Freeway"
+      - "Frostbite"
+      - "Gopher"
+      - "Gravitar"
+      - "Hero"
+      - "IceHockey"
+      - "Jamesbond"
+      - "Kangaroo"
+      - "Krull"
+      - "KungFuMaster"
+      - "MontezumaRevenge"
+      - "MsPacman"
+      - "NameThisGame"
+      - "Phoenix"
+      - "Pitfall"
+      - "Pong"
+      - "PrivateEye"
+      - "Qbert"
+      - "Riverraid"
+      - "RoadRunner"
+      - "Robotank"
+      - "Seaquest"
+      - "Skiing"
+      - "Solaris"
+      - "SpaceInvaders"
+      - "StarGunner"
+      - "Tennis"
+      - "TimePilot"
+      - "Tutankham"
+      - "UpNDown"
+      - "Venture"
+      - "VideoPinball"
+      - "WizardOfWor"
+      - "YarsRevenge"
+      - "Zaxxon"
+    total_timesteps: 2_500_000         # 2.5M env steps (10M frames due to action repeat)
+    action_repeat: 4
+    eval_frequency: 100000
+    normalization: "Human"
+    sticky_actions: true
+    sticky_action_prob: 0.25
+    # Normalization scores from paper appendix
+    human_scores:
+      Alien: 7127.7
+      Amidar: 1719.5
+      # ... (remaining scores from Table in paper)
+      Zaxxon: 9173.3
+    random_scores:
+      Alien: 227.8
+      Amidar: 5.8
+      # ... (remaining scores)
+      Zaxxon: 32.5

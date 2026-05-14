@@ -1,0 +1,3 @@
+# No public official repository yet (Meta FAIR, ICLR 2025)
+# Authors: Scott Fujimoto, Pierluca D'Oro, Amy Zhang, Yuandong Tian, Michael Rabbat
+# Watch: https://github.com/sfujim (author hosts TD3/TD7/BCQ here)

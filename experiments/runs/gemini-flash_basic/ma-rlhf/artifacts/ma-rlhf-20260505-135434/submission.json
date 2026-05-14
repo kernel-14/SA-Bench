@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced the MA-RLHF framework, including n-gram macro action generation, MA-PPO objective with GAE, and its integration into an RLHF training loop. Implemented policy and value network updates and handled hidden state extraction from a Hugging Face CausalLM. Documented all simplifications and placeholders.",
+  "steps": 27,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/ma-rlhf/ma-rlhf-20260505-135434/workspace/repo"
+}

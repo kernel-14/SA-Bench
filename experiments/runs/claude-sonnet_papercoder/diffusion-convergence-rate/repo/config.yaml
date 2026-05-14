@@ -1,0 +1,139 @@
+## config.yaml
+## Configuration for reproducing "Instance-dependent Convergence Theory for Diffusion Models"
+## All values are taken directly from the paper. See comments for source references.
+
+experiment:
+  ## Random seed for reproducibility (covariance diagonal construction)
+  seed: 42
+  ## Output directory for all generated figures
+  figure_dir: "figures"
+  ## Device: "cpu" or "cuda"
+  device: "cpu"
+
+sampler:
+  ## Number of rounds K (Section 2.2, Appendix A: "We implement the proposed sampler
+  ## in Section 2.2 with K=10")
+  K: 10
+  ## Schedule constants c0 and c1 (Section 2.2, Eq. 9).
+  ## Paper states "sufficiently large constants c0, c1 > 0" with "c1/c0 sufficiently large".
+  ## Exact values not given; these are the smallest reasonable choices satisfying the conditions.
+  c0: 2.0
+  c1: 10.0
+
+## Three experimental configurations from Appendix A, Figure 2.
+## "d=10, k=10; d=100, k=10; d=500, k=100"
+## Target: d-dimensional Gaussian, zero mean, diagonal covariance.
+## First k diagonal entries ~ Unif(0, 10); remaining d-k entries = 0.
+experiments:
+  - label: "fig2a"
+    d: 10
+    k_active: 10
+  - label: "fig2b"
+    d: 100
+    k_active: 10
+  - label: "fig2c"
+    d: 500
+    k_active: 100
+
+## Range of T values to sweep for convergence plots (Figure 2).
+## Paper does not specify exact values; log-spaced range inferred from figure appearance.
+T_values: [50, 100, 200, 500, 1000, 2000, 5000]
+
+## Theoretical convergence rates for comparison plots (Figures 1 and 3).
+## All formulas taken directly from Section 1.1 and Section 3.2.
+theoretical_rates:
+  ## This work: min{d, d^(2/3)*L^(1/3), d^(1/3)*L} * eps^(-2/3)  [Theorem 1, Eq. 14]
+  ours:
+    formula: "min(d, d^(2/3)*L^(1/3), d^(1/3)*L) * eps^(-2/3)"
+  ## Benton et al. (2023): d * eps^(-2)
+  benton2023:
+    formula: "d * eps^(-2)"
+  ## Li and Yan (2024a): d * eps^(-1)
+  li_yan2024:
+    formula: "d * eps^(-1)"
+  ## Li and Cai (2024): d^(5/4) * eps^(-1/2)
+  li_cai2024:
+    formula: "d^(5/4) * eps^(-1/2)"
+  ## Li and Jiao (2024): d^(1/3) * L * eps^(-2/3)
+  li_jiao2024:
+    formula: "d^(1/3) * L * eps^(-2/3)"
+
+## Figure 1 plot settings (Section 1.1, Figure 1 caption).
+## Left subplot: iteration complexity vs L, eps = O(1).
+## Right subplot: iteration complexity vs eps, L = infinity.
+figure1:
+  d: 100
+  eps_fixed: 1.0
+  ## L range for left subplot: from 1 to d^2
+  L_min: 1.0
+  L_max: 10000.0
+  L_num_points: 200
+  ## eps range for right subplot
+  eps_min: 0.001
+  eps_max: 0.5
+  eps_num_points: 200
+  ## Proxy value for L = infinity (right subplot)
+  L_inf_proxy: 1.0e12
+
+## Figure 3 plot settings (Appendix B, Figure 3 caption).
+## TV distance vs L for fixed T in {O(d), O(d^1.5), O(d^2)}.
+figure3:
+  d: 100
+  ## T = O(d), T = O(d^1.5), T = O(d^2)
+  T_cases:
+    - label: "T=O(d)"
+      T_multiplier: 1.0
+      T_exponent: 1.0
+    - label: "T=O(d^1.5)"
+      T_multiplier: 1.0
+      T_exponent: 1.5
+    - label: "T=O(d^2)"
+      T_multiplier: 1.0
+      T_exponent: 2.0
+  L_min: 1.0
+  L_max: 10000.0
+  L_num_points: 200
+
+## Numerical precision settings
+numerics:
+  ## Use float64 throughout for stability
+  dtype: "float64"
+  ## Minimum clamp value for diagonal covariance entries before inversion
+  sigma_min_clamp: 1.0e-12
+  ## Tolerance for schedule verification
+  schedule_verify_tol: 1.0e-4
+
+## Plot styling
+plotting:
+  dpi: 300
+  figsize_figure2: [15, 5]
+  figsize_figure1: [12, 5]
+  figsize_figure3: [15, 5]
+  save_formats: ["pdf", "png"]
+  ## Colors for each method in comparison plots
+  colors:
+    ours: "red"
+    benton2023: "blue"
+    li_yan2024: "green"
+    li_cai2024: "orange"
+    li_jiao2024: "purple"
+  ## Line styles
+  linestyles:
+    ours: "-"
+    benton2023: "--"
+    li_yan2024: "-."
+    li_cai2024: ":"
+    li_jiao2024: (0, 3, 1, 1)
+  ## Labels for legend
+  labels:
+    ours: "This work"
+    benton2023: "Benton et al. (2023)"
+    li_yan2024: "Li & Yan (2024a)"
+    li_cai2024: "Li & Cai (2024)"
+    li_jiao2024: "Li & Jiao (2024)"
+  ## Empirical result styling (Figure 2)
+  empirical_color: "blue"
+  theoretical_color: "black"
+  theoretical_linestyle: "--"
+  empirical_marker: "o"
+  empirical_markersize: 5

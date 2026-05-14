@@ -1,0 +1,28 @@
+## config.yaml
+training:
+  learning_rate: 0.0001  # MetaMathQA training for Mistral-7B/Gemma-2 9B
+  batch_size: 1  # Mistral-7B/Gemma-2 9B
+  grad_accumulation_steps: 32  # Used to accumulate gradients for larger effective batch sizes
+  epochs: 1  # As specified for Mistral-7B/Gemma-2 9B
+  dropout: 0.0  # Dropped-out layers are disabled during fine-tuning
+  warmup_ratio: 0.02  # Warmup schedule used for the learning rate
+
+evaluation:
+  metrics: ["accuracy"]  # Used for arithmetic tasks like GSM8K and MATH
+
+model:
+  base_name: "mistral-7B"  # Pre-trained model name (can be changed to "gemma-2" or others)
+  rank: [32, 64, 96]  # Multiple ranks for LoRA modules
+  scaling_factor: 1.0  # Scaling factor \( s \) described in the method
+  max_seq_len: 512  # Sequence length used during training/inference
+
+dataset:
+  name: "MetaMathQA"  # Dataset for arithmetic learning
+  fraction_for_init: 0.001  # Fraction used to compute initial SVD-based gradients
+  num_init_samples: 50  # Corresponds to the \( 0.1\% \) heuristic for initialization steps
+  train_path: "/path/to/train.json"  # Example path placeholder, replace with actual path
+  test_path: "/path/to/test.json"  # Example path placeholder, replace with actual path
+
+hardware:
+  use_gpu: true  # Use GPU for training
+  gpu_memory_optimization: true  # Enable hooks for gradient memory management

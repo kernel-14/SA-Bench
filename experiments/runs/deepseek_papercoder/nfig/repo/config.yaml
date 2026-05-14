@@ -1,0 +1,67 @@
+# config.yaml – NFIG reproduction configuration
+# Hyperparameters explicitly stated in the paper are used; 
+# missing tokenizer training details are filled with
+# reasonable defaults based on XQGAN/VQ-GAN practice.
+
+data:
+  dataset: "ILSVRC2012_ImageNet"
+  data_root: "./data/imagenet"   # adjust to your path
+  image_size: 256
+  train_split: "train"
+  val_split: "val"
+  num_classes: 1000
+
+tokenizer:                 # FR-VAE settings
+  # Encoder backbone
+  dino_backbone: "dinov2_vitb14"   # DINOv2-base
+  latent_dim: 256                   # C (not given explicitly; typical value 256)
+  spatial_dim: 16                   # H' = W' = 16 for 256x256 input
+  # Frequency decomposition
+  scale_sizes: [1, 2, 3, 4, 5, 6, 8, 10, 13, 16]   # h_i, w_i for 10 bands
+  # Residual quantizer
+  codebook_size: 4096
+  commitment_cost: 0.25
+  # Not stated in paper, typical XQGAN values:
+  tokenizer_lr: 1.0e-4
+  tokenizer_batch_size: 128
+  tokenizer_epochs: 200
+  # Loss weights (paper: L = ||I - I_hat||^2 + ||f - f_hat||^2 + L_p + 0.5 * L_g)
+  loss_weights:
+    pixel_recon: 1.0
+    freq_recon: 1.0
+    perceptual: 1.0
+    gan: 0.5
+
+discriminator:             # DINO discriminator (following VAR/XQGAN)
+  dino_backbone: "dinov2_vitb14"
+  dino_frozen: true
+
+generator:                 # AR transformer (Next-Frequency Prediction)
+  architecture: "VAR"      # decoder-only transformer with block causal attention
+  depth: 16                # paper states 16 layers
+  dim: 1024                # hidden dimension (not explicitly given; typical for 310M)
+  num_heads: 16
+  mlp_ratio: 4
+  dropout: 0.1
+  vocab_size: 4096          # same as codebook size
+  max_scale: 10             # number of frequency bands
+  # sequence length = 680 (sum of scale_sizes^2)
+
+training_generator:
+  optimizer: "adam"
+  learning_rate: 8.0e-5     # explicitly stated
+  batch_size: 768           # explicitly stated
+  epochs: 350               # explicitly stated
+  warmup_epochs: 10
+  lr_schedule: "cosine"
+  grad_clip: 1.0
+  cfg_drop_prob: 0.1        # probability to drop class label for CFG training
+
+inference:
+  cfg_scale: 4.5            # classifier-free guidance scale
+  top_k: 990                # top-k sampling
+
+logging:
+  checkpoints_dir: "./checkpoints"
+  log_interval: 100
+  eval_interval: 5          # epochs

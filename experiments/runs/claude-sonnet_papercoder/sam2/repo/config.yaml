@@ -1,0 +1,405 @@
+## config.yaml
+## SAM 2: Segment Anything in Images and Videos
+## Configuration file consolidating all hyperparameters from the paper.
+## Only values explicitly stated in the paper are included.
+## Ambiguous or unspecified values are marked with comments.
+
+# ---------------------------------------------------------------------------
+# Model architecture
+# ---------------------------------------------------------------------------
+model:
+  # Default encoder used in main experiments (Hiera-B+)
+  image_encoder_type: "hiera_b_plus"  # Options: hiera_t, hiera_s, hiera_b_plus, hiera_l
+
+  # Hiera encoder sizes — drop path rates per encoder size (Table 12)
+  encoder_drop_path_rates:
+    hiera_t: 0.1
+    hiera_s: 0.1
+    hiera_b_plus: 0.2
+    hiera_l: 0.3
+
+  # Global attention block indices per encoder size (Appendix D.1)
+  global_attn_blocks:
+    hiera_t: [5, 7, 9]
+    hiera_s: [7, 10, 13]
+    hiera_b_plus: [12, 16, 20]
+    hiera_l: [23, 33, 43]
+
+  # FPN: fuses stride-16 (Stage 3) and stride-32 (Stage 4) features
+  fpn_out_channels: 256  # Standard FPN output dim; not explicitly stated, follows SAM convention
+
+  # Memory attention (Appendix D.1, Table 9e — default is (4,4))
+  memory_attention_layers: 4        # L = 4 transformer blocks
+  memory_attention_self_attn: 4     # number of self-attention blocks
+  memory_attention_cross_attn: 4    # number of cross-attention blocks
+
+  # Memory bank (Section 4, Table 9c)
+  num_recent_memories: 6            # N = 6 recent unprompted frames (default from ablation)
+  memory_feature_dim: 64            # projected memory dimension (Table 9d default)
+  object_pointer_dim: 256           # raw object pointer dimension
+  num_object_pointer_tokens: 4      # 256-dim split into 4 x 64-dim tokens (Appendix D.1)
+
+  # Mask decoder
+  num_multimask_outputs: 3          # multiple masks for ambiguous prompts (follows SAM)
+  mask_threshold: 0.0               # sigmoid threshold for binary mask
+
+  # Positional encoding
+  use_rope_2d: true                 # 2D-RoPE in memory attention (Table 10, default)
+  use_rpb: false                    # Remove all RPB from image encoder (Table 10, default)
+  use_flash_attention: true         # Enabled by removing RPB (Appendix D.1)
+
+  # Input resolution
+  input_resolution: 1024            # Final model resolution (Table 9a, Appendix D.2)
+
+# ---------------------------------------------------------------------------
+# Pre-training on SA-1B (Table 12a, Appendix D.2.1)
+# ---------------------------------------------------------------------------
+pretrain:
+  data:
+    dataset: "sa1b"
+    max_masks_per_image: 64         # randomly sampled masks per image (Table 12)
+    mask_area_filter: 0.90          # filter masks covering > 90% of image (Appendix D.2.1)
+
+  steps: 90000                      # ~90k steps (Table 12)
+  resolution: 1024                  # square resize (Table 12)
+  precision: "bfloat16"             # (Table 12)
+
+  optimizer:
+    type: "AdamW"                   # (Table 12)
+    beta1: 0.9                      # (Table 12)
+    beta2: 0.999                    # (Table 12)
+    weight_decay: 0.1               # (Table 12)
+    learning_rate: 4.0e-4           # (Table 12)
+    gradient_clip_type: "l2"        # (Table 12)
+    gradient_clip_max: 0.1          # (Table 12)
+
+  scheduler:
+    type: "reciprocal_sqrt"         # (Table 12)
+    timescale: 1000                 # (Table 12)
+    warmup_type: "linear"
+    warmup_iters: 1000              # (Table 12)
+    cooldown_type: "linear"
+    cooldown_iters: 5000            # (Table 12)
+
+  # Layer-wise learning rate decay per encoder size (Table 12)
+  layer_wise_decay:
+    hiera_t: 0.8
+    hiera_s: 0.8
+    hiera_b_plus: 0.9
+    hiera_l: 0.925
+
+  batch_size: 256                   # (Table 12)
+
+  augmentation:
+    horizontal_flip: true           # (Table 12)
+    resize_to_square: 1024          # (Table 12)
+
+  losses:
+    focal_weight: 20                # (Table 12)
+    dice_weight: 1                  # (Table 12)
+    iou_loss_type: "l1"             # L1/MAE loss for IoU (Appendix D.2.1)
+    iou_weight: 1                   # (Table 12)
+    # Occlusion loss not active during pre-training (image-only stage)
+
+  interactive_clicks:
+    num_correction_clicks: 7        # 7 correction clicks (vs 8 in SAM) (Appendix D.2.1)
+    # No no-prompt iterations (unlike SAM's 2 no-prompt iters) (Appendix D.2.1)
+
+# ---------------------------------------------------------------------------
+# Full training — joint image + video (Appendix D.2.2)
+# ---------------------------------------------------------------------------
+training:
+  # Training schedule
+  num_iterations: 200000            # fixed iterations for ablations; released model uses same
+  precision: "bfloat16"
+
+  # Sequence sampling
+  num_frames: 8                     # 8-frame sequences (Section 4, Table 9b default)
+  max_prompted_frames: 2            # up to 2 prompted frames including first (Section 4)
+  max_masklets_per_sequence: 3      # max 3 randomly chosen masklets per sequence (Appendix D.2.2)
+
+  # Temporal augmentation
+  temporal_reversal_prob: 0.5       # reverse temporal order with 50% probability (Appendix D.2.2)
+
+  # Mosaic transform
+  mosaic_prob: 0.10                 # 10% probability of 2x2 mosaic (Appendix D.2.2)
+
+  # Data mixture — released model (SA-V + Internal + SA-1B) (Appendix D.2.2)
+  data_mixture_released:
+    sa1b_fraction: 0.152            # ~15.2% SA-1B
+    sav_fraction: 0.700             # ~70.0% SA-V
+    internal_fraction: 0.148        # ~14.8% Internal (not publicly available)
+
+  # Data mixture — with open-source VOS datasets (Appendix D.2.2)
+  data_mixture_with_oss:
+    davis_fraction: 0.013           # ~1.3% DAVIS
+    mose_fraction: 0.094            # ~9.4% MOSE
+    youtubevos_fraction: 0.092      # ~9.2% YouTubeVOS
+    sa1b_fraction: 0.155            # ~15.5% SA-1B
+    sav_fraction: 0.495             # ~49.5% SA-V
+    internal_fraction: 0.151        # ~15.1% Internal
+
+  # Only manually annotated masklets used for training (Appendix D.2.2)
+  use_auto_masklets_for_training: false
+
+  # Prompt simulation probabilities (Section 4, Appendix D.2.2)
+  prompt_probabilities:
+    gt_mask: 0.50                   # ground-truth mask as initial prompt
+    positive_click: 0.25            # positive click sampled from GT mask
+    bounding_box: 0.25              # bounding box input
+
+  # Corrective click sampling (Appendix D.2.2)
+  correction_click_random_prob: 0.10  # 10% chance: random click from GT regardless of prediction
+
+  # Data augmentations (Appendix D.2.2)
+  augmentation:
+    horizontal_flip: true
+    random_affine: true
+    color_jitter: true
+    random_grayscale: true
+    mosaic_transform: true          # 2x2 grid of same video, 10% probability
+
+  # Optimizer — same type as pre-training (Appendix D.2.2 references same settings)
+  optimizer:
+    type: "AdamW"
+    beta1: 0.9
+    beta2: 0.999
+    weight_decay: 0.1
+    gradient_clip_type: "l2"
+    gradient_clip_max: 0.1
+    # LR schedule follows same reciprocal sqrt as pre-training (not re-stated, assumed same)
+
+  # Loss weights (Appendix D.2.2) — ratio 20:1:1:1
+  losses:
+    focal_weight: 20
+    dice_weight: 1
+    iou_loss_type: "l1"             # MAE loss for IoU prediction
+    iou_weight: 1
+    occlusion_loss_type: "cross_entropy"
+    occlusion_weight: 1
+
+  # Multi-mask supervision (Appendix D.2.1, D.2.2)
+  multimask_supervision:
+    supervise_all_iou_predictions: true   # supervise IoU of all masks
+    supervise_lowest_loss_mask_only: true # supervise mask logits for lowest-loss mask only
+
+  # Occlusion supervision (Appendix D.2.2)
+  occlusion_supervision:
+    always_supervise_occlusion_head: true
+    skip_mask_supervision_when_occluded: true
+
+# ---------------------------------------------------------------------------
+# Fine-tuning on 16-frame sequences (Appendix D.2.2)
+# ---------------------------------------------------------------------------
+finetuning:
+  num_iterations: 50000             # 1/3 of original 200k schedule (Appendix D.2.2)
+  num_frames: 16                    # 16-frame sequences (Appendix D.2.2)
+  learning_rate_multiplier: 0.5     # half of original learning rate (Appendix D.2.2)
+  freeze_image_encoder: true        # frozen to fit 16-frame in 80GB A100 (Appendix D.2.2)
+
+  # Only top 50% most-edited masklets from SA-V and Internal (Appendix D.2.2)
+  most_edited_fraction: 0.50
+  # OSS datasets (DAVIS, MOSE, YouTubeVOS) kept complete (Appendix D.2.2)
+  keep_oss_complete: true
+
+# ---------------------------------------------------------------------------
+# Data engine phases (Section 5.1, Table 1)
+# ---------------------------------------------------------------------------
+data_engine:
+  phase1:
+    annotation_fps: 6               # annotated at 6 FPS (Section 5.1)
+    avg_time_per_frame_sec: 37.8    # (Table 1)
+    edited_frames_pct: 1.0          # 100% frames edited (Table 1)
+    clicks_per_clicked_frame: 4.80  # (Table 1)
+    num_masklets_collected: 16000   # 16K masklets (Section 5.1)
+    num_videos: 1400                # 1.4K videos (Section 5.1)
+
+  phase2:
+    avg_time_per_frame_sec: 7.4     # (Table 1)
+    edited_frames_pct: 0.2325       # 23.25% (Table 1)
+    clicks_per_clicked_frame: 3.61  # (Table 1)
+    speedup_over_phase1: 5.1        # ~5.1x speedup (Section 5.1)
+    num_masklets_collected: 63500   # 63.5K masklets (Section 5.1)
+
+  phase3:
+    avg_time_per_frame_sec: 4.5     # (Table 1)
+    edited_frames_pct: 0.1904       # 19.04% (Table 1)
+    clicks_per_clicked_frame: 2.68  # (Table 1)
+    speedup_over_phase1: 8.4        # ~8.4x speedup (Section 5.1)
+    num_masklets_collected: 197000  # 197.0K masklets (Section 5.1)
+
+  # Automatic masklet generation (Appendix E.1)
+  auto_masklet:
+    grid_32x32_on_first_frame: true
+    grid_16x16_on_4_zoomed_crops: true   # 2x2 overlapped window
+    grid_4x4_on_16_zoomed_crops: true    # 4x4 overlapped window
+    min_component_area_px: 200           # remove disconnected components < 200px
+    max_hole_area_px: 200                # fill holes < 200px
+
+  # Quality verification thresholds (Section 5.1)
+  quality:
+    iou_threshold_satisfactory: 0.75    # Phase 1 Mask Alignment Score threshold (Table 1)
+
+# ---------------------------------------------------------------------------
+# SA-V dataset statistics (Section 5.2, Table 3)
+# ---------------------------------------------------------------------------
+sav_dataset:
+  num_videos: 50900                 # 50.9K videos
+  num_manual_masklets: 190900       # 190.9K manual masklets
+  num_auto_masklets: 451700         # 451.7K automatic masklets
+  total_masklets: 642600            # 642.6K total
+  total_masks_manual: 10000000      # 10.0M masks (SA-V Manual)
+  total_masks_with_auto: 35500000   # 35.5M masks (SA-V Manual+Auto)
+  annotation_fps: 6                 # annotated at 6 FPS
+  avg_duration_sec: 13.8            # average video duration
+  total_frames: 4200000             # 4.2M frames
+  total_hours: 196.0                # 196 hours
+  indoor_fraction: 0.54             # 54% indoor scenes
+  outdoor_fraction: 0.46            # 46% outdoor scenes
+  disappearance_rate_manual: 0.425  # 42.5% masklets disappear and reappear (Section 5.2)
+  num_countries: 47                 # geographic diversity (Appendix E.1)
+
+  splits:
+    val:
+      num_masklets: 293
+      num_videos: 155
+    test:
+      num_masklets: 278
+      num_videos: 150
+
+  # Video resolution range (Appendix E.1)
+  resolution:
+    min: "240p"
+    max: "4K"
+    avg_width: 1401
+    avg_height: 1037
+
+# ---------------------------------------------------------------------------
+# Evaluation settings (Section 6, Appendix F)
+# ---------------------------------------------------------------------------
+evaluation:
+  # Default model for evaluation (Section 6)
+  default_encoder: "hiera_b_plus"
+  default_resolution: 1024
+
+  # Speed benchmarking hardware (Appendix D.3)
+  benchmarking:
+    gpu: "A100"
+    pytorch_version: "2.3.1"
+    cuda_version: "12.1"
+    precision: "bfloat16"
+    compile_image_encoder: true     # torch.compile for image encoder (Appendix D.3)
+    image_batch_size: 10            # highest FPS for SA task (Appendix D.3)
+    video_batch_size: 1             # standard protocol for video (Appendix D.3)
+
+  # Reported FPS (Table 5, Table 6)
+  fps:
+    hiera_b_plus_video: 43.8        # video task FPS on single A100
+    hiera_l_video: 30.2             # video task FPS on single A100
+    hiera_b_plus_image: 130.1       # image task FPS on single A100
+    sam_vit_h_image: 21.7           # SAM ViT-H baseline FPS
+
+  # Interactive video segmentation (Appendix F.1.2)
+  interactive:
+    num_clicks_per_frame: 3         # N_click = 3 (Appendix F.1.2)
+    max_interacted_frames: 8        # N_frame = 1..8 (Appendix F.1.2)
+    online_iou_threshold: 0.75      # pause propagation when IoU < 0.75 (Appendix F.1.2)
+
+    # Annotation time model constants (Appendix F.1.2)
+    time_locate_sec: 1.0            # T_loc = 1 sec to visually locate object
+    time_click_sec: 1.5             # T_click = 1.5 sec per click
+    time_examine_per_300frames: 30  # T_exam = 30 sec per 300-frame video
+
+    # Evaluated on 9 densely annotated datasets (Appendix F.1.1)
+    dense_datasets:
+      - "EndoVis2018"
+      - "ESD"
+      - "LVOSv2"
+      - "LV-VIS"
+      - "UVO"
+      - "VOST"
+      - "PUMaVOS"
+      - "VirtualKITTI2"
+      - "VIPSeg"
+
+  # Semi-supervised VOS evaluation (Section 6.2, Appendix F.1.3)
+  semi_supervised_vos:
+    prompt_types:
+      - "1_click"
+      - "3_click"
+      - "5_click"
+      - "bounding_box"
+      - "gt_mask"
+    # Evaluated on all 17 zero-shot video datasets (Appendix F.1.3)
+    all_17_datasets:
+      - "EndoVis2018"
+      - "ESD"
+      - "LVOSv2"
+      - "LV-VIS"
+      - "UVO"
+      - "VOST"
+      - "PUMaVOS"
+      - "VirtualKITTI2"
+      - "VIPSeg"
+      - "Wildfires"
+      - "VISOR"
+      - "FBMS"
+      - "EgoExo4D"
+      - "Cityscapes"
+      - "LindenthalCameraTraps"
+      - "HT1080WTCells"
+      - "DrosophilaHeart"
+    # VOST uses I metric only (Appendix F.1.3)
+    vost_metric: "J_only"
+
+  # Image segmentation evaluation (Section 6.3, Appendix F.4)
+  image_segmentation:
+    num_click_settings: [1, 5]      # 1-click and 5-click mIoU (Table 5)
+    num_sa23_datasets: 23           # original SAM evaluation suite
+    num_new_video_datasets: 14      # newly added video datasets evaluated as images
+    total_datasets: 37
+
+  # DAVIS interactive benchmark (Appendix F.2)
+  davis_interactive:
+    input_type: "clicks"            # positive and negative clicks (Appendix F.2)
+    metrics:
+      - "AUC_JF"
+      - "JF_at_60s"
+    # SAM 2 result (Table 14)
+    sam2_auc_jf: 0.86
+    sam2_jf_at_60s: 0.90
+
+  # VIPOSeg benchmark (Appendix F.3)
+  viposeg:
+    zero_shot_G: 78.4               # G metric zero-shot (Table 15)
+    finetuned_G: 79.7               # G metric after fine-tuning on VIPOSeg (Table 15)
+    zero_shot_decay: 0.68           # lambda decay metric (Table 15)
+    finetuned_decay: 0.67           # lambda decay metric (Table 15)
+
+# ---------------------------------------------------------------------------
+# Ablation study defaults (Appendix A)
+# ---------------------------------------------------------------------------
+ablations:
+  # All ablations run at 512^2 resolution unless stated (Appendix A)
+  default_resolution: 512
+  # SA-V manual + 10% SA-1B subset for ablations (Appendix A)
+  ablation_data:
+    sav_manual: true
+    sa1b_fraction: 0.10
+  # Fixed iterations for data ablations (Appendix A.1)
+  data_ablation_iterations: 200000
+  data_ablation_batch_size: 128
+  # Evaluation metric for ablations: J&F with 3-click on first frame (Appendix A)
+  ablation_metric: "JF_3click_first_frame"
+  # Image ablation metric: average 1-click mIoU on SA-23 (Appendix A)
+  ablation_image_metric: "mIoU_1click_SA23"
+
+# ---------------------------------------------------------------------------
+# Compute and training infrastructure (Appendix J.1 Model Card)
+# ---------------------------------------------------------------------------
+compute:
+  num_gpus: 256                     # 256 A100 GPUs (Model Card)
+  training_hours: 108               # 108 hours (Model Card)
+  energy_kwh: 12165.12              # 12,165.12 kWh (Model Card)
+  co2_metric_tons: 3.89             # 3.89 metric tons CO2e (Model Card)
+  gpu_memory_gb: 80                 # 80GB A100 (Appendix D.2.2)

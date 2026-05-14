@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Replicated the core theoretical framework for global convergence of policy gradient in average reward MDPs, including MDP definitions, policy gradient updates, and calculation of smoothness/Lipschitz constants and optimality gap bounds. A simulation script is provided to demonstrate these concepts with a simple MDP.",
+  "steps": 25,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/avg-reward-pg/avg-reward-pg-20260505-131421/workspace/repo"
+}

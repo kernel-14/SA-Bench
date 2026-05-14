@@ -1,0 +1,8 @@
+
+torch
+torchvision
+einops
+accelerate
+tqdm
+transformers
+diffusers

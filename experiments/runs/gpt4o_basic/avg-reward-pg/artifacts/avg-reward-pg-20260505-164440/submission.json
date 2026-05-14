@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Initial implementation for reproducing 'Global Convergence of Policy Gradient in Average Reward MDPs':\n1. Added `AverageRewardMDP` to define the MDP with states, actions, rewards, and transition kernel.\n2. Defined the projection matrix computation.\n3. Initiated `projected_policy_gradient` with gradient update and projection steps.",
+  "steps": 19,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/avg-reward-pg/avg-reward-pg-20260505-164440/workspace/repo"
+}

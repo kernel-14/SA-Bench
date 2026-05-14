@@ -1,0 +1,96 @@
+{
+  "case_id": "score",
+  "run_id": "score-20260505-165831",
+  "model_name": "gpt-4o",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 151305,
+    "total_output_tokens": 4867,
+    "total_tokens": 156172,
+    "estimated_cost_usd": 0.5269,
+    "elapsed_seconds": 116.6,
+    "steps": 13,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 2.1,
+        "input_tokens": 1190,
+        "output_tokens": 29
+      },
+      {
+        "step": 2,
+        "elapsed_s": 2.35,
+        "input_tokens": 1237,
+        "output_tokens": 78
+      },
+      {
+        "step": 3,
+        "elapsed_s": 7.07,
+        "input_tokens": 4666,
+        "output_tokens": 376
+      },
+      {
+        "step": 4,
+        "elapsed_s": 12.3,
+        "input_tokens": 8602,
+        "output_tokens": 465
+      },
+      {
+        "step": 5,
+        "elapsed_s": 11.39,
+        "input_tokens": 11412,
+        "output_tokens": 528
+      },
+      {
+        "step": 6,
+        "elapsed_s": 7.11,
+        "input_tokens": 12102,
+        "output_tokens": 222
+      },
+      {
+        "step": 7,
+        "elapsed_s": 13.51,
+        "input_tokens": 12443,
+        "output_tokens": 498
+      },
+      {
+        "step": 8,
+        "elapsed_s": 11.77,
+        "input_tokens": 13520,
+        "output_tokens": 526
+      },
+      {
+        "step": 9,
+        "elapsed_s": 10.6,
+        "input_tokens": 14805,
+        "output_tokens": 541
+      },
+      {
+        "step": 10,
+        "elapsed_s": 9.37,
+        "input_tokens": 16131,
+        "output_tokens": 519
+      },
+      {
+        "step": 11,
+        "elapsed_s": 9.93,
+        "input_tokens": 17385,
+        "output_tokens": 413
+      },
+      {
+        "step": 12,
+        "elapsed_s": 12.42,
+        "input_tokens": 18249,
+        "output_tokens": 512
+      },
+      {
+        "step": 13,
+        "elapsed_s": 6.56,
+        "input_tokens": 19563,
+        "output_tokens": 160
+      }
+    ]
+  }
+}

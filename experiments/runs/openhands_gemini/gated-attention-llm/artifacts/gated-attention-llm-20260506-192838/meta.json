@@ -1,0 +1,9 @@
+{
+  "paper_id": "gated-attention-llm",
+  "run_id": "gated-attention-llm-20260506-192838",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 681.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 45
+}

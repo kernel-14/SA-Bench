@@ -1,0 +1,64 @@
+## config.yaml
+training:
+  learning_rate: 0.0001
+  batch_size: 256
+  epochs: 1000000  # Specified as environment steps (e.g., 1M for Gym tasks)
+  gamma: 0.99  # Discount factor
+  replay_buffer_size: 1000000
+  target_network_update_frequency: 250  # Periodic synchronization of target networks
+  exploration_noise: 0.22  # Gaussian noise for continuous actions
+  action_repeat: 2  # Applied in DMC environments
+  prioritized_replay_alpha: 0.6  # Determines the prioritization strength for replay sampling
+model:
+  zs_dim: 512  # State encoder embedding dimension
+  zsa_dim: 512  # State-action encoder embedding dimension
+  hidden_dim: 512  # Hidden dimensions for network layers
+  activation_function: "ELU"  # As specified in the paper
+loss_weights:
+  reward_loss_lambda: 0.1
+  dynamics_loss_lambda: 1.0
+  terminal_loss_lambda: 0.1
+  pre_activation_regularization_lambda: 1e-5
+evaluation:
+  num_episodes: 10  # Number of episodes per evaluation checkpoint
+  normalized_metrics: true  # Aggregate learning curves via mean, median, IQM
+logging:
+  log_dir: "./logs"  # Directory to save TensorBoard logs
+  checkpoint_dir: "./checkpoints"  # Save model checkpoints periodically
+environments:
+  gym_tasks:
+    - "Ant-v4"
+    - "HalfCheetah-v4"
+    - "Hopper-v4"
+    - "Humanoid-v4"
+    - "Walker2d-v4"
+  dm_control_proprioceptive_tasks:
+    - "cheetah-run"
+    - "quadruped-run"
+    - "walker-stand"
+    - "hopper-hop"
+    - "pendulum-swingup"
+  dm_control_visual_tasks:
+    - "quadruped-walk"
+    - "fish-swim"
+    - "humanoid-run"
+    - "reacher-easy"
+  atari_tasks:
+    - "Breakout"
+    - "SpaceInvaders"
+    - "Asteroids"
+    - "BeamRider"
+    - "MsPacman"
+preprocessing:
+  image_size: [84, 84]  # Dimensions for image resizing
+  grayscale: true  # Convert images to grayscale
+  frame_stacking:
+    enabled: true
+    num_frames: 4  # For Atari
+reward_binning:
+  bins: 65
+  range: [-10, 10]  # Extended scaling handled internally
+optimizer:
+  type: "AdamW"
+  weight_decay: 0.0001
+  clip_gradient_norm: 20

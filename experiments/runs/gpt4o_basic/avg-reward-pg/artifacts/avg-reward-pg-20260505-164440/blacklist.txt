@@ -1,0 +1,3 @@
+# No public official repository found (ICLR 2025, theoretical paper)
+# Authors: Navdeep Kumar, Yashaswini Murthy, Itai Shufaro, Kfir Y. Levy, R. Srikant, Shie Mannor
+# Related: https://github.com/abhisheknaik96/average-reward-methods

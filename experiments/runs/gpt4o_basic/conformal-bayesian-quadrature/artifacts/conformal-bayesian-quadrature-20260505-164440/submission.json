@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced the core conceptual components of the paper 'Conformal Prediction as Bayesian Quadrature.' Developed initial source files covering Split Conformal Prediction (SCP), with additional files prepared for Conformal Risk Control (CRC) and Bayesian Quadrature.\n\nImplemented SCP's functionality with miscoverage loss and prediction set guarantees. Designed repository structure with clear module separation, dataset organization, and experiment avenues. Documentation is included in a README explaining replication objectives and usage.",
+  "steps": 19,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/conformal-bayesian-quadrature/conformal-bayesian-quadrature-20260505-164440/workspace/repo"
+}

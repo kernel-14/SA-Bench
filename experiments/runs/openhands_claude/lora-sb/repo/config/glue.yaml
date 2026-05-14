@@ -1,0 +1,91 @@
+# Natural Language Understanding: RoBERTa-large on GLUE
+# Paper Table 3
+# LoRA applied only to self-attention layers
+
+model_name: "roberta-large"
+task: "glue"
+
+# GLUE tasks
+glue_tasks:
+  - "cola"
+  - "rte"
+  - "mrpc"
+  - "stsb"
+  - "qnli"
+  - "sst2"
+
+# LoRA configuration
+# Applied only to self-attention layers (query, key, value, dense)
+target_modules:
+  - "query"
+  - "key"
+  - "value"
+  - "dense"
+
+# Rank options from paper: 8, 16, 24
+rank: 24
+alpha: 16  # LoRA-XS uses alpha=16; LoRA-SB uses s=1
+
+# Method: "lora_sb", "lora_xs", "lora", "rslora", "pissa", "dora", "lora_pro"
+method: "lora_sb"
+
+# LoRA-SB initialization
+# 0.1% of each GLUE task's training set
+init_n_samples_ratio: 0.001
+init_batch_size: 1
+
+# Training hyperparameters (Table 9)
+# Per-task settings
+optimizer: "adamw"
+learning_rate: 1.0e-3
+weight_decay: 0.0
+adam_beta1: 0.9
+adam_beta2: 0.999
+adam_epsilon: 1.0e-8
+num_epochs: 30
+dropout: 0.0
+max_grad_norm: 1.0
+lr_scheduler: "linear"
+warmup_ratio: 0.06
+
+# Per-task batch sizes and max seq lengths (Table 9)
+task_configs:
+  cola:
+    batch_size: 30
+    max_seq_len: 128
+    num_labels: 2
+    metric: "matthews_correlation"
+  rte:
+    batch_size: 30
+    max_seq_len: 256
+    num_labels: 2
+    metric: "accuracy"
+  mrpc:
+    batch_size: 30
+    max_seq_len: 128
+    num_labels: 2
+    metric: "accuracy"
+  stsb:
+    batch_size: 30
+    max_seq_len: 128
+    num_labels: 1
+    metric: "pearson_correlation"
+  qnli:
+    batch_size: 15
+    max_seq_len: 256
+    num_labels: 2
+    metric: "accuracy"
+  sst2:
+    batch_size: 15
+    max_seq_len: 128
+    num_labels: 2
+    metric: "accuracy"
+
+# Logging
+logging_steps: 10
+output_dir: "outputs/glue_roberta"
+
+# Misc
+seed: 42
+dtype: "bfloat16"
+device: "cuda"

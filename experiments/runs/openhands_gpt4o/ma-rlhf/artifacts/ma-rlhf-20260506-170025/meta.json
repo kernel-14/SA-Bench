@@ -1,0 +1,9 @@
+{
+  "paper_id": "ma-rlhf",
+  "run_id": "ma-rlhf-20260506-170025",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 249.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 21
+}

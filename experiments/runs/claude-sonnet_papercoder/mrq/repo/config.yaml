@@ -1,0 +1,419 @@
+## config.yaml
+## MR.Q Configuration - All hyperparameters fixed across all benchmarks
+## as specified in Table 3 of the paper (Appendix B.1)
+
+## Encoder network hyperparameters
+encoder:
+  dynamics_loss_weight: 1.0       # lambda_Dynamics (base weight, implied)
+  reward_loss_weight: 0.1         # lambda_Reward
+  terminal_loss_weight: 0.1       # lambda_Terminal (0 until first terminal seen)
+  horizon: 5                      # H_Enc: unroll horizon for encoder loss
+  optimizer: adamw                # AdamW (Loshchilov & Hutter, 2019)
+  learning_rate: 1.0e-4           # 1e-4
+  weight_decay: 1.0e-4            # 1e-4
+  zs_dim: 512                     # state embedding dimension
+  zsa_dim: 512                    # state-action embedding dimension
+  za_dim: 256                     # action embedding dimension (internal only)
+  hidden_dim: 512                 # hidden layer dimension
+  activation: elu                 # ELU (Clevert et al., 2015)
+  weight_init: xavier_uniform     # Xavier uniform (Glorot & Bengio, 2010)
+  bias_init: 0.0                  # all biases initialized to 0
+  reward_bins: 65                 # number of bins for categorical reward
+  reward_range_low: -10.0         # symlog-space lower bound (effective ~-22k)
+  reward_range_high: 10.0         # symlog-space upper bound (effective ~+22k)
+
+## Value network hyperparameters
+value:
+  optimizer: adamw
+  learning_rate: 3.0e-4           # 3e-4
+  hidden_dim: 512
+  activation: elu
+  weight_init: xavier_uniform
+  bias_init: 0.0
+  gradient_clip_norm: 20.0        # gradient clipping norm for value network
+
+## Policy network hyperparameters
+policy:
+  pre_activation_loss_weight: 1.0e-5   # lambda_pre-activ
+  optimizer: adamw
+  learning_rate: 3.0e-4           # 3e-4
+  hidden_dim: 512
+  activation: relu                # ReLU for policy (differs from encoder/value)
+  weight_init: xavier_uniform
+  bias_init: 0.0
+  gumbel_softmax_tau: 10.0        # Gumbel-Softmax temperature for discrete actions
+
+## TD3-style value learning hyperparameters
+td3:
+  multi_step_horizon: 3           # H_Q: multi-step return horizon
+  target_policy_noise_std: 0.2    # sigma for target policy smoothing noise
+  target_policy_noise_clip: 0.3   # c: clipping bound for target policy noise
+
+## LAP (Loss-Adjusted Prioritized) replay hyperparameters
+lap:
+  priority_alpha: 0.4             # probability smoothing alpha
+  min_priority: 1.0               # minimum priority to avoid zero probability
+
+## Exploration hyperparameters
+exploration:
+  initial_random_steps: 10000     # 10k random steps before learning starts
+  noise_std: 0.2                  # Gaussian exploration noise std
+
+## Common / shared hyperparameters
+common:
+  discount: 0.99                  # gamma: discount factor
+  replay_buffer_capacity: 1000000 # 1M transitions
+  batch_size: 256                 # minibatch size
+  target_update_freq: 250         # T_target: steps between target network syncs
+  replay_ratio: 1                 # gradient updates per environment step (assumed)
+
+## Benchmark-specific settings
+## These override common settings per benchmark
+benchmarks:
+  gym:
+    total_steps: 1000000          # 1M time steps
+    eval_freq: 5000               # evaluate every 5k steps
+    eval_episodes: 10
+    action_repeat: 1              # no action repeat
+    frame_stack: 1
+    image_obs: false
+    discrete: false
+    env_version: v4               # use -v4 environments
+    envs:
+      - Ant-v4
+      - HalfCheetah-v4
+      - Hopper-v4
+      - Humanoid-v4
+      - Walker2d-v4
+    ## TD3 normalization reference scores (from TD7, Fujimoto et al. 2024)
+    normalization:
+      random_scores:
+        Ant-v4: -70.288
+        HalfCheetah-v4: -289.415
+        Hopper-v4: 18.791
+        Humanoid-v4: 120.423
+        Walker2d-v4: 2.791
+      td3_scores:
+        Ant-v4: 3942.0
+        HalfCheetah-v4: 10574.0
+        Hopper-v4: 3226.0
+        Humanoid-v4: 5165.0
+        Walker2d-v4: 3946.0
+
+  dmc_proprio:
+    total_steps: 500000           # 500k steps = 1M frames (action_repeat=2)
+    eval_freq: 5000               # evaluate every 5k steps
+    eval_episodes: 10
+    action_repeat: 2              # action repeat of 2 (Hansen et al. 2024)
+    frame_stack: 1
+    image_obs: false
+    discrete: false
+    envs:
+      - acrobot-swingup
+      - ball_in_cup-catch
+      - cartpole-balance
+      - cartpole-balance_sparse
+      - cartpole-swingup
+      - cartpole-swingup_sparse
+      - cheetah-run
+      - dog-run
+      - dog-stand
+      - dog-trot
+      - dog-walk
+      - finger-spin
+      - finger-turn_easy
+      - finger-turn_hard
+      - fish-swim
+      - hopper-hop
+      - hopper-stand
+      - humanoid-run
+      - humanoid-stand
+      - humanoid-walk
+      - pendulum-swingup
+      - quadruped-run
+      - quadruped-walk
+      - reacher-easy
+      - reacher-hard
+      - walker-run
+      - walker-stand
+      - walker-walk
+
+  dmc_visual:
+    total_steps: 500000           # 500k steps = 1M frames (action_repeat=2)
+    eval_freq: 5000               # evaluate every 5k steps
+    eval_episodes: 10
+    action_repeat: 2              # action repeat of 2
+    frame_stack: 3                # stack 3 RGB observations = 9 channels
+    image_obs: true
+    image_size: 84                # resize to 84x84 pixels
+    discrete: false
+    envs:                         # same 28 tasks as dmc_proprio
+      - acrobot-swingup
+      - ball_in_cup-catch
+      - cartpole-balance
+      - cartpole-balance_sparse
+      - cartpole-swingup
+      - cartpole-swingup_sparse
+      - cheetah-run
+      - dog-run
+      - dog-stand
+      - dog-trot
+      - dog-walk
+      - finger-spin
+      - finger-turn_easy
+      - finger-turn_hard
+      - fish-swim
+      - hopper-hop
+      - hopper-stand
+      - humanoid-run
+      - humanoid-stand
+      - humanoid-walk
+      - pendulum-swingup
+      - quadruped-run
+      - quadruped-walk
+      - reacher-easy
+      - reacher-hard
+      - walker-run
+      - walker-stand
+      - walker-walk
+
+  atari:
+    total_steps: 2500000          # 2.5M steps = 10M frames (action_repeat=4)
+    eval_freq: 100000             # evaluate every 100k steps
+    eval_episodes: 10
+    action_repeat: 4              # action repeat of 4
+    frame_stack: 4                # stack 4 max-pooled observations
+    image_obs: true
+    image_size: 84                # resize to 84x84 pixels
+    grayscale: true               # grayscale observations
+    sticky_actions: true          # sticky action probability 0.25 (Machado et al. 2018)
+    sticky_action_prob: 0.25
+    discrete: true
+    env_version: v5               # use ALE -v5 environments
+    ## Human normalization reference scores (Wang et al. 2016)
+    envs:
+      - Alien
+      - Amidar
+      - Assault
+      - Asterix
+      - Asteroids
+      - Atlantis
+      - BankHeist
+      - BattleZone
+      - BeamRider
+      - Berzerk
+      - Bowling
+      - Boxing
+      - Breakout
+      - Centipede
+      - ChopperCommand
+      - CrazyClimber
+      - Defender
+      - DemonAttack
+      - DoubleDunk
+      - Enduro
+      - FishingDerby
+      - Freeway
+      - Frostbite
+      - Gopher
+      - Gravitar
+      - Hero
+      - IceHockey
+      - Jamesbond
+      - Kangaroo
+      - Krull
+      - KungFuMaster
+      - MontezumaRevenge
+      - MsPacman
+      - NameThisGame
+      - Phoenix
+      - Pitfall
+      - Pong
+      - PrivateEye
+      - Qbert
+      - Riverraid
+      - RoadRunner
+      - Robotank
+      - Seaquest
+      - Skiing
+      - Solaris
+      - SpaceInvaders
+      - StarGunner
+      - Surround
+      - Tennis
+      - TimePilot
+      - Tutankham
+      - UpNDown
+      - Venture
+      - VideoPinball
+      - WizardOfWor
+      - YarsRevenge
+      - Zaxxon
+    normalization:
+      random_scores:
+        Alien: 227.8
+        Amidar: 5.8
+        Assault: 222.4
+        Asterix: 210.0
+        Asteroids: 719.1
+        Atlantis: 12850.0
+        BankHeist: 14.2
+        BattleZone: 2360.0
+        BeamRider: 363.9
+        Berzerk: 123.7
+        Bowling: 23.1
+        Boxing: 0.1
+        Breakout: 1.7
+        Centipede: 2090.9
+        ChopperCommand: 811.0
+        CrazyClimber: 10780.5
+        Defender: 2874.5
+        DemonAttack: 152.1
+        DoubleDunk: -18.6
+        Enduro: 0.0
+        FishingDerby: -91.7
+        Freeway: 0.0
+        Frostbite: 65.2
+        Gopher: 257.6
+        Gravitar: 173.0
+        Hero: 1027.0
+        IceHockey: -11.2
+        Jamesbond: 29.0
+        Kangaroo: 52.0
+        Krull: 1598.0
+        KungFuMaster: 258.5
+        MontezumaRevenge: 0.0
+        MsPacman: 307.3
+        NameThisGame: 2292.3
+        Phoenix: 761.4
+        Pitfall: -229.4
+        Pong: -20.7
+        PrivateEye: 24.9
+        Qbert: 163.9
+        Riverraid: 1338.5
+        RoadRunner: 11.5
+        Robotank: 2.2
+        Seaquest: 68.4
+        Skiing: -17098.1
+        Solaris: 1236.3
+        SpaceInvaders: 148.0
+        StarGunner: 664.0
+        Surround: -10.0
+        Tennis: -23.8
+        TimePilot: 3568.0
+        Tutankham: 11.4
+        UpNDown: 533.4
+        Venture: 0.0
+        VideoPinball: 16256.9
+        WizardOfWor: 563.5
+        YarsRevenge: 3092.9
+        Zaxxon: 32.5
+      human_scores:
+        Alien: 7127.7
+        Amidar: 1719.5
+        Assault: 742.0
+        Asterix: 8503.3
+        Asteroids: 47388.7
+        Atlantis: 29028.1
+        BankHeist: 753.1
+        BattleZone: 37187.5
+        BeamRider: 16926.5
+        Berzerk: 2630.4
+        Bowling: 160.7
+        Boxing: 12.1
+        Breakout: 30.5
+        Centipede: 12017.0
+        ChopperCommand: 7387.8
+        CrazyClimber: 35829.4
+        Defender: 18688.9
+        DemonAttack: 1971.0
+        DoubleDunk: -16.4
+        Enduro: 860.5
+        FishingDerby: -38.7
+        Freeway: 29.6
+        Frostbite: 4334.7
+        Gopher: 2412.5
+        Gravitar: 3351.4
+        Hero: 30826.4
+        IceHockey: 0.9
+        Jamesbond: 302.8
+        Kangaroo: 3035.0
+        Krull: 2665.5
+        KungFuMaster: 22736.3
+        MontezumaRevenge: 4753.3
+        MsPacman: 6951.6
+        NameThisGame: 8049.0
+        Phoenix: 7242.6
+        Pitfall: 6463.7
+        Pong: 14.6
+        PrivateEye: 69571.3
+        Qbert: 13455.0
+        Riverraid: 17118.0
+        RoadRunner: 7845.0
+        Robotank: 11.9
+        Seaquest: 42054.7
+        Skiing: -4336.9
+        Solaris: 12326.7
+        SpaceInvaders: 1668.7
+        StarGunner: 10250.0
+        Surround: 6.5
+        Tennis: -8.3
+        TimePilot: 5229.2
+        Tutankham: 167.6
+        UpNDown: 11693.2
+        Venture: 1187.5
+        VideoPinball: 17667.9
+        WizardOfWor: 4756.5
+        YarsRevenge: 54576.9
+        Zaxxon: 9173.3
+
+## Experiment settings
+experiment:
+  seeds: 10                       # 10 seeds for main results
+  ablation_seeds: 5               # 5 seeds for design study
+  save_dir: results
+  log_interval: 1000              # log training metrics every 1k steps
+
+## Ablation study variants (Section 5.2)
+## Each variant name maps to a config override
+ablations:
+  none:
+    description: "Full MR.Q (default)"
+  linear_value:
+    description: "Replace non-linear value function with linear z_sa^T w"
+    value_linear: true
+  dynamics_target:
+    description: "Use state-action embedding z_{s'a'} as dynamics target instead of z_{s'}"
+    use_sa_dynamics_target: true
+  no_target_encoder:
+    description: "Use current encoder for dynamics target, no stop-gradient"
+    use_target_encoder: false
+  revert:
+    description: "All three relaxations simultaneously (linear value + sa dynamics target + no target encoder)"
+    value_linear: true
+    use_sa_dynamics_target: true
+    use_target_encoder: false
+  nonlinear_model:
+    description: "Replace linear MDP predictor with separate non-linear MLPs"
+    nonlinear_model: true
+  mse_reward:
+    description: "Replace categorical cross-entropy reward loss with MSE"
+    use_mse_reward: true
+  no_reward_scaling:
+    description: "Remove reward scaling, set r_bar = r_bar_prime = 1"
+    use_reward_scaling: false
+  no_min:
+    description: "Take mean over target Q-networks instead of minimum"
+    use_min_q: false
+  no_lap:
+    description: "Remove LAP prioritized sampling, use uniform + MSE value loss"
+    use_lap: false
+  no_mr:
+    description: "Remove model-based representation learning, train encoder end-to-end with value"
+    use_encoder_loss: false
+  one_step_return:
+    description: "Remove multi-step returns, use 1-step TD (H_Q=1)"
+    multi_step_horizon: 1
+  no_unroll:
+    description: "Remove dynamics unrolling in encoder loss (H_Enc=1)"
+    enc_horizon: 1

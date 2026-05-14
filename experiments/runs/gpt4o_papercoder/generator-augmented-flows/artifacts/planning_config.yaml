@@ -1,0 +1,42 @@
+## config.yaml
+training:
+  learning_rate: 0.00008  # As specified in the paper
+  batch_size: 512  # CIFAR-10/ImageNet batch size
+  epochs: 150000  # Training steps converted into equivalent epochs
+  optimizer: "lion"
+  noise_schedule:
+    sigma_0: 0.002
+    sigma_t: 80
+    rho: 7
+dataset:
+  name: "CIFAR-10"  # Default dataset, specify others like ImageNet, CelebA, or LSUN as needed
+  resolution: 32
+  preprocessing:
+    resize: true
+    normalize: true
+    scaling: [-1, 1]
+evaluation:
+  metrics:
+    - FID
+    - KID
+    - IS
+  metrics_samples: 50000  # As per standard evaluation practice
+logging:
+  save_checkpoints: true
+  checkpoint_path: "checkpoints/"
+  log_train_loss: true
+  log_frequency_steps: 100
+model:
+  architecture: "NCSN++"
+  channels: 128
+  blocks_per_resolution: 3  # Adjust for dataset-specific resolutions
+  embedding_type: "positional"
+  attention_resolutions: []
+  dropout: 0.0  # Explicitly passing dropout in config
+shared_settings:
+  mu: 0.5  # Joint learning factor from the paper
+  weighting: lambda(sigma): 1 / (sigma_T - sigma_0)
+hardware:
+  use_gpu: true
+  gpu_memory: "40GB"  # As recommended in the paper
+  distributed_training: false

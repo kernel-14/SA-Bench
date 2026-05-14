@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "The reproduction includes implementations of Masked Diffusion Models (MDMs), their forward/reverse processes, and vanilla/adaptive inference. Experiments for Sudoku and Zebra puzzles test adaptive strategies and validate performance improvements. Documentation aligns components with the paper's contributions, ensuring clarity and completeness.",
+  "steps": 16,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gpt4o_basic/masked-diffusion-token-ordering/masked-diffusion-token-ordering-20260505-165031/workspace/repo"
+}

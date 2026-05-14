@@ -1,0 +1,80 @@
+## config.yaml
+training:
+  optimizer: "AdamW"
+  learning_rate: [0.001, 0.01]  # As tuned in the paper
+  weight_decay: [0.0001, 0.001]
+  batch_size: 64
+  epochs: 100  # For low-shot cases
+  low_shot_epochs: 100
+  many_shot_epochs: 40
+  drop_path_rate: 0.1  # Set to non-zero for regularization
+  lr_scheduler: "cosine_decay"
+
+datasets:
+  low_shot:
+    source: "VTAB-1K"
+    train_size_per_class: 1000
+    splits: {
+      "train": "80%",
+      "val": "20%",
+      "test": "official_test"
+    }
+  many_shot:
+    datasets: ["CIFAR-100", "RESISC", "Clevr-Distance"]
+    splits: "90/10"  # Train/val split ratio
+  distribution_shift:
+    target: "ImageNet-1K"
+    shifted_versions: [
+      "ImageNet-V2",
+      "ImageNet-R",
+      "ImageNet-S",
+      "ImageNet-A"
+    ]
+    samples_per_class: 100
+
+backbone:
+  model: "ViT-B/16"
+  pretraining: "ImageNet-21K"
+
+peft_methods:
+  prompt_based:
+    - method: "VPT-Shallow"
+      tunable_params: "<0.153M (#prompts: 5-200)>"
+    - method: "VPT-Deep"
+      tunable_params: "<0.921M (#prompts: 5-200)>"
+  adapter_based:
+    - method: "Houl. Adapter"
+      tunable_params: "<1.198M (bottleneck: 4-32)>"
+    - method: "Pfeif. Adapter"
+      tunable_params: "<0.599M (bottleneck: 4-32)>"
+    - method: "AdaptFormer"
+      tunable_params: "<0.599M (bottleneck: 4-32)>"
+    - method: "ConvPass Adapter"
+      tunable_params: "<0.664M>"
+    - method: "RepAdapter"
+      tunable_params: "<0.903M>"
+  selective_tuning:
+    - method: "BitFit"
+      tunable_params: "0.102M"
+    - method: "LayerNorm"
+      tunable_params: "0.038M"
+    - method: "DiffFit"
+      tunable_params: "0.14M"
+  efficient_tuning:
+    - method: "LoRA"
+      tunable_params: "<1.179M (rank: 1-32)>"
+    - method: "FacT-TT"
+      tunable_params: "<0.196M>"
+    - method: "FacT-TK"
+      tunable_params: "<0.369M>"
+    - method: "SSF"
+      tunable_params: "0.205M"
+
+evaluation:
+  metrics:
+    - "top1_accuracy"
+    - "prediction_similarity"
+    - "ensemble_performance"
+  ensemble_strategy: "majority_voting"
+  high_confidence_overlap: True
+  wrong_predictions_overlap: True

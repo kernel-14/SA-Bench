@@ -1,0 +1,4 @@
+torch==2.4.1
+torchvision==0.15.2
+gymnasium==0.29.1
+numpy==2.1.1

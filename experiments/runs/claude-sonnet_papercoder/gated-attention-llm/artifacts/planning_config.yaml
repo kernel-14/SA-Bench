@@ -1,0 +1,621 @@
+## config.yaml
+## Configuration for reproducing "Gated Attention for Large Language Models"
+## All values sourced directly from the paper. Fields marked [INFERRED] are
+## derived from referenced architectures (Qwen2.5) where the paper does not
+## specify exact values.
+
+## ---------------------------------------------------------------------------
+## Experiment selector
+## ---------------------------------------------------------------------------
+experiment:
+  name: "gated_attention_reproduction"
+  model_type: "moe"          ## "moe" | "dense"
+  gating_variant: "G1_elementwise_sigmoid"  ## see gating section below
+  seed: 42
+  output_dir: "outputs/"
+  log_dir: "logs/"
+  wandb_project: "gated-attention-llm"
+  wandb_enabled: true
+
+## ---------------------------------------------------------------------------
+## Gating configuration
+## Controls which variant from Table 1 / Table 2 is active.
+## ---------------------------------------------------------------------------
+gating:
+  enabled: true
+
+  ## Position: one of G1 | G2 | G3 | G4 | G5
+  ## G1 = after SDPA output (best per paper Sec 3.2.1)
+  ## G2 = after value projection
+  ## G3 = after key projection
+  ## G4 = after query projection
+  ## G5 = after final dense output layer
+  position: "G1"
+
+  ## Granularity: elementwise | headwise
+  ## elementwise: score shape = [n, q, d_k]  (default, best per paper)
+  ## headwise:    score shape = [n, q]
+  granularity: "elementwise"
+
+  ## head_specific: true = each head has its own W_theta (best per paper)
+  ##                false = W_theta shared across heads
+  head_specific: true
+
+  ## gate_type: multiplicative | additive
+  ## Paper Sec 3.2.1 (iv): multiplicative is preferred over additive
+  gate_type: "multiplicative"
+
+  ## activation: sigmoid | silu | identity | ns_sigmoid | rmsnorm | input_independent
+  ## sigmoid is default for multiplicative gating (paper Sec 3.2.1 (iv))
+  ## silu is used for additive gating (unbounded range)
+  ## ns_sigmoid = 0.5 + 0.5*sigmoid(x), constrains scores to [0.5, 1.0] (ablation Sec 4.2)
+  ## rmsnorm = apply RMSNorm per head at G1 instead of learned gate (ablation Sec 4.1)
+  ## input_independent = zero-init learnable param, no X dependency (ablation Sec 4.2)
+  activation: "sigmoid"
+
+  ## Smoothing coefficient for training loss curve logging (Fig 1 right)
+  loss_smoothing_coeff: 0.9
+
+## ---------------------------------------------------------------------------
+## All 15 gating variants from Table 1 (for sweep scripts)
+## ---------------------------------------------------------------------------
+gating_variants:
+  ## Reference baselines
+  baseline:
+    enabled: false
+    position: null
+    granularity: null
+    head_specific: null
+    gate_type: null
+    activation: null
+
+  baseline_kv8:
+    enabled: false
+    position: null
+    granularity: null
+    head_specific: null
+    gate_type: null
+    activation: null
+    override_kv_heads: 8        ## increases k from 4 to 8, adds ~50M params
+
+  baseline_q48:
+    enabled: false
+    position: null
+    granularity: null
+    head_specific: null
+    gate_type: null
+    activation: null
+    override_q_heads: 48        ## increases q from 32 to 48, adds ~201M params
+
+  baseline_add4experts:
+    enabled: false
+    position: null
+    granularity: null
+    head_specific: null
+    gate_type: null
+    activation: null
+    override_add_experts: 4     ## adds 4 more experts, adds ~400M params
+
+  ## Gating position variants (Table 1 rows 5-9)
+  G1_elementwise_sigmoid:       ## Row 5 — best overall
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  G2_elementwise_sigmoid:       ## Row 6 — best PPL after G1
+    enabled: true
+    position: "G2"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  G3_elementwise_sigmoid:       ## Row 7
+    enabled: true
+    position: "G3"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  G4_elementwise_sigmoid:       ## Row 8
+    enabled: true
+    position: "G4"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  G5_elementwise_sigmoid:       ## Row 9
+    enabled: true
+    position: "G5"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  ## Granularity variants (Table 1 rows 10-11)
+  G1_headwise_sigmoid:          ## Row 10 — very few params (~1.6M), still strong
+    enabled: true
+    position: "G1"
+    granularity: "headwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  G2_headwise_sigmoid:          ## Row 11
+    enabled: true
+    position: "G2"
+    granularity: "headwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  ## Head-shared variants (Table 1 rows 12-13)
+  G1_headshared_sigmoid:        ## Row 12 — worse than head-specific
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: false
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  G2_headshared_sigmoid:        ## Row 13
+    enabled: true
+    position: "G2"
+    granularity: "elementwise"
+    head_specific: false
+    gate_type: "multiplicative"
+    activation: "sigmoid"
+
+  ## Additive gating (Table 1 row 14)
+  G1_additive_silu:             ## Row 14 — additive uses SiLU
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "additive"
+    activation: "silu"
+
+  ## Activation function variant (Table 1 row 15)
+  G1_elementwise_silu:          ## Row 15 — sigmoid is better than silu
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "silu"
+
+## ---------------------------------------------------------------------------
+## Non-linearity ablation variants (Table 3)
+## ---------------------------------------------------------------------------
+nonlinearity_ablations:
+  G1_rmsnorm:                   ## Row 5 — RMSNorm per head, no learned gate
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "rmsnorm"
+
+  G1_silu_only:                 ## Row 6 — SiLU directly on SDPA output, no extra params
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "silu_no_proj"  ## special: no W_theta, apply SiLU directly
+
+  G1_additive_identity:         ## Row 7 — additive without activation
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "additive"
+    activation: "identity"
+
+## ---------------------------------------------------------------------------
+## Sparsity ablation variants (Table 4 / Sec 4.2)
+## ---------------------------------------------------------------------------
+sparsity_ablations:
+  G1_input_independent:         ## input-independent gate (zero-init W_theta)
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "input_independent"
+
+  G1_ns_sigmoid:                ## NS-sigmoid: 0.5 + 0.5*sigmoid(x), scores in [0.5, 1.0]
+    enabled: true
+    position: "G1"
+    granularity: "elementwise"
+    head_specific: true
+    gate_type: "multiplicative"
+    activation: "ns_sigmoid"
+
+## ---------------------------------------------------------------------------
+## MoE model architecture: 15A2B (primary ablation model, Table 1)
+## Paper Sec 3.1: 15B total, 2.54B activated, 128 experts, top-8 softmax
+## ---------------------------------------------------------------------------
+moe_model:
+  total_params: "15B"
+  activated_params: "2.54B"
+  model_label: "15A2B"
+
+  ## Attention (GQA, paper Sec 3.1)
+  ## q=32, k=4 for baseline; d_k=128 stated explicitly in Table 1
+  q_heads: 32
+  kv_heads: 4
+  d_k: 128
+  d_model: 4096             ## [INFERRED] from q_heads * d_k = 32 * 128
+
+  ## Depth [INFERRED] from parameter count and d_model
+  num_layers: 32
+
+  ## MoE routing (paper Sec 3.1)
+  num_experts: 128
+  top_k: 8                  ## top-8 softmax gating
+  routing_type: "softmax"   ## softmax gating (not sigmoid)
+  fine_grained_experts: true ## DeepSeekMoE style (Dai et al. 2024)
+
+  ## MoE losses (paper Sec 3.1)
+  ## Z-loss: Zoph et al. 2022; LBL: Qiu et al. 2025
+  ## Exact coefficients not stated — using DeepSeekMoE defaults
+  z_loss_coeff: 1.0e-3      ## [INFERRED from Zoph et al. 2022]
+  lbl_loss_coeff: 1.0e-2    ## [INFERRED from Qiu et al. 2025]
+
+  ## Vocabulary
+  vocab_size: 151936         ## [INFERRED] Qwen2.5 tokenizer
+
+  ## Context
+  max_seq_len: 4096          ## paper Sec 3.1: "context sequence length is set to 4096"
+
+  ## Normalization
+  norm_type: "rmsnorm"
+  pre_norm: true
+  sandwich_norm: false       ## only used in dense model stability ablations
+
+  ## Position encoding
+  rope_base: 10000.0         ## standard RoPE base; extended to 1M in Sec 4.4
+  rope_dim: 128              ## equals d_k
+
+## ---------------------------------------------------------------------------
+## Dense model architecture: 1.7B (Table 2)
+## Paper Sec 3.2.2: follows Yang et al. 2024a (Qwen2.5)
+## ---------------------------------------------------------------------------
+dense_model:
+  total_params: "1.7B"
+
+  ## Two depth configurations used in Table 2
+  ## Config A: 28 layers (rows 1-4 in Table 2)
+  ## Config B: 48 layers (rows 5-14 in Table 2)
+  num_layers: 28             ## default; override to 48 for deeper config
+
+  ## [INFERRED from Qwen2.5-1.5B architecture]
+  d_model: 2048
+  q_heads: 16
+  kv_heads: 8
+  d_k: 128
+  ffn_dim: 11008             ## [INFERRED] SwiGLU base dim; reduced when gating enabled
+
+  vocab_size: 151936         ## [INFERRED] Qwen2.5 tokenizer
+  max_seq_len: 4096          ## paper Sec 3.1
+
+  norm_type: "rmsnorm"
+  pre_norm: true
+  sandwich_norm: false       ## set true for Table 2 row 7 ablation
+
+  rope_base: 10000.0
+  rope_dim: 128
+
+  ## FFN width reduction when gating is enabled
+  ## Paper Sec 3.2.2: "we reduce the width of FFN to maintain the parameter size"
+  reduce_ffn_for_gate_parity: true
+  ffn_reduction_multiple: 64  ## round reduced ffn_dim to nearest multiple of 64
+
+## ---------------------------------------------------------------------------
+## Training: MoE 15A2B on 400B tokens (Table 1 ablations)
+## Paper Sec 3.2.1: all values stated explicitly
+## ---------------------------------------------------------------------------
+training_moe_400b:
+  total_tokens: 400_000_000_000   ## 400B tokens
+  global_batch_size: 1024         ## "global bsz of 1024"
+  seq_len: 4096
+  total_steps: 100_000            ## "comprising 100k optimization steps"
+
+  ## Learning rate schedule (paper Sec 3.2.1)
+  max_lr: 2.0e-3                  ## "warms up to a maximum LR of 2e-3"
+  min_lr: 3.0e-5                  ## "decays using cosine to 3e-5"
+  warmup_steps: 1000              ## "warms up ... in 1k steps"
+  lr_schedule: "cosine_with_warmup"
+
+  ## Optimizer: AdamW (paper Sec 3.1: "default values of the AdamW optimizer")
+  optimizer: "adamw"
+  beta1: 0.9                      ## AdamW default
+  beta2: 0.999                    ## AdamW default
+  epsilon: 1.0e-8                 ## AdamW default
+  weight_decay: 0.1               ## [INFERRED] standard for LLM training
+
+  ## Gradient clipping [INFERRED] — standard practice, not stated in paper
+  grad_clip: 1.0
+
+  ## Precision
+  bf16: true                      ## implied by paper's mention of BF16 training (Sec 4.3)
+
+  ## Latency overhead from gating
+  ## Paper Sec 3.1: "wall-time latency introduced by gating is less than 2%"
+  expected_gating_overhead_pct: 2.0
+
+## ---------------------------------------------------------------------------
+## Training: Dense 1.7B, 28 layers, 400B tokens (Table 2 rows 1-2)
+## Paper Sec 3.2.2: values stated explicitly
+## ---------------------------------------------------------------------------
+training_dense_28l_400b:
+  total_tokens: 400_000_000_000
+  global_batch_size: 1024         ## "bsz of 1024"
+  seq_len: 4096
+  max_lr: 4.0e-3                  ## "maximum LR of 4e-3"
+  min_lr: 4.0e-4                  ## [INFERRED] 10% of max_lr
+  warmup_steps: 1000              ## [INFERRED] consistent with MoE setting
+  lr_schedule: "cosine_with_warmup"
+  optimizer: "adamw"
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+  weight_decay: 0.1
+  grad_clip: 1.0
+  bf16: true
+
+## ---------------------------------------------------------------------------
+## Training: Dense 1.7B, 28 layers, 3.5T tokens (Table 2 rows 3-4)
+## Paper Sec 3.2.2: values stated explicitly
+## ---------------------------------------------------------------------------
+training_dense_28l_35t:
+  total_tokens: 3_500_000_000_000  ## 3.5T tokens
+  global_batch_size: 2048          ## "increase the maximum LR to 4.5e-3 and the bsz to 2048"
+  seq_len: 4096
+  max_lr: 4.5e-3                   ## "maximum LR to 4.5e-3"
+  min_lr: 4.5e-4                   ## [INFERRED] 10% of max_lr
+  warmup_steps: 1000
+  lr_schedule: "cosine_with_warmup"
+  optimizer: "adamw"
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+  weight_decay: 0.1
+  grad_clip: 1.0
+  bf16: true
+
+## ---------------------------------------------------------------------------
+## Training: Dense 1.7B, 48 layers, 400B tokens (Table 2 rows 5-10)
+## Paper Sec 3.2.2: standard LR = 4e-3, high LR ablation = 8e-3
+## ---------------------------------------------------------------------------
+training_dense_48l_400b:
+  total_tokens: 400_000_000_000
+  global_batch_size: 1024
+  seq_len: 4096
+  max_lr: 4.0e-3                  ## baseline standard LR (rows 5, 8, 9)
+  max_lr_high: 8.0e-3             ## high LR ablation (rows 6, 7, 10)
+  min_lr: 4.0e-4
+  warmup_steps: 1000
+  lr_schedule: "cosine_with_warmup"
+  optimizer: "adamw"
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+  weight_decay: 0.1
+  grad_clip: 1.0
+  bf16: true
+
+## ---------------------------------------------------------------------------
+## Training: Dense 1.7B, 48 layers, 1T tokens (Table 2 rows 11-14)
+## Paper Sec 3.2.2: values stated explicitly
+## ---------------------------------------------------------------------------
+training_dense_48l_1t:
+  total_tokens: 1_000_000_000_000  ## 1T tokens
+  global_batch_size: 4096          ## "larger batch size" setting
+  seq_len: 4096
+  max_lr: 5.3e-3                   ## standard LR (rows 11, 13)
+  max_lr_high: 8.0e-3              ## high LR (rows 12, 14); row 12 diverges
+  min_lr: 5.3e-4
+  warmup_steps: 1000
+  lr_schedule: "cosine_with_warmup"
+  optimizer: "adamw"
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+  weight_decay: 0.1
+  grad_clip: 1.0
+  bf16: true
+
+## ---------------------------------------------------------------------------
+## Data configuration
+## Paper Sec 3.1: "3.5T high-quality tokens, encompassing multilingual,
+## math, and general knowledge content"
+## Exact dataset is proprietary; public substitutes listed below.
+## ---------------------------------------------------------------------------
+data:
+  seq_len: 4096
+  tokenizer_name: "Qwen/Qwen2.5-1.5B"  ## [INFERRED] matches architecture reference
+
+  ## Domain mix for pre-training (weights are approximate, paper does not specify)
+  ## Using publicly available substitutes
+  train_domains:
+    english:
+      path: "allenai/c4"
+      weight: 0.45              ## [INFERRED] dominant language
+    chinese:
+      path: "uonlp/CulturaX"
+      subset: "zh"
+      weight: 0.20              ## [INFERRED] multilingual component
+    code:
+      path: "bigcode/the-stack-dedup"
+      weight: 0.15              ## [INFERRED]
+    math:
+      path: "EleutherAI/proof-pile-2"
+      weight: 0.10              ## [INFERRED]
+    general:
+      path: "cerebras/SlimPajama-627B"
+      weight: 0.10              ## [INFERRED]
+
+  ## Held-out test sets for PPL evaluation
+  ## Paper Sec 3.1: "diverse held-out test sets, including domains like
+  ## English, Chinese, Code, Math, Law, and Literature"
+  test_domains:
+    - "english"
+    - "chinese"
+    - "code"
+    - "math"
+    - "law"
+    - "literature"
+
+  num_workers: 4
+  prefetch_factor: 2
+
+## ---------------------------------------------------------------------------
+## Evaluation configuration
+## Paper Sec 3.1: few-shot benchmarks and PPL
+## ---------------------------------------------------------------------------
+evaluation:
+  eval_steps: 5000              ## evaluate every N training steps
+
+  ## Perplexity
+  ppl:
+    enabled: true
+    domains: ["english", "chinese", "code", "math", "law", "literature"]
+    report_avg: true            ## paper reports "Avg PPL" across all domains
+
+  ## Few-shot benchmarks (paper Sec 3.1)
+  benchmarks:
+    enabled: true
+    tasks:
+      hellaswag:
+        num_shots: 10           ## standard for Hellaswag
+        metric: "acc_norm"
+      mmlu:
+        num_shots: 5            ## standard for MMLU
+        metric: "acc"
+      gsm8k:
+        num_shots: 8            ## standard 8-shot CoT
+        metric: "exact_match"
+        chain_of_thought: true
+      humaneval:
+        num_shots: 0            ## standard for HumanEval
+        metric: "pass@1"
+        temperature: 0.2        ## [INFERRED] standard for pass@1
+        num_samples: 1
+      ceval:
+        num_shots: 5
+        metric: "acc"
+        subset: "ceval-valid"
+      cmmlu:
+        num_shots: 5
+        metric: "acc"
+
+  ## Attention sink analysis (Sec 4.3, Fig 2)
+  attention_sink:
+    enabled: true
+    num_samples: 100
+    ## Paper Fig 2: baseline has 46.7% avg first-token attention
+    ## Gated model reduces to 4.8%
+    first_token_attn_threshold: 0.10   ## flag layers above this fraction
+    massive_activation_threshold: 100.0  ## [INFERRED] flag activations above this
+
+  ## Gating score sparsity analysis (Sec 4.2, Fig 3, 4, 5)
+  sparsity:
+    enabled: true
+    num_samples: 200
+    sparsity_thresholds: [1.0e-2, 1.0e-3]  ## thresholds from Fig 5
+    plot_distributions: true
+    plot_mean_activations: true
+
+  ## RULER long-context evaluation (Sec 4.4, Table 5)
+  ruler:
+    enabled: false              ## only for models trained with context extension
+    context_lengths: [4096, 8192, 16384, 32768, 65536, 131072]
+
+## ---------------------------------------------------------------------------
+## Context length extension (Sec 4.4, Table 5)
+## Paper: extend RoPE base 10k -> 1M, continue train on 32k data for 80B tokens
+## ---------------------------------------------------------------------------
+context_extension:
+  enabled: false
+  ## Step 1: RoPE base modification
+  extended_rope_base: 1_000_000   ## "increase the RoPE base from 10k to 1M"
+  ## Step 2: continued training
+  extended_seq_len: 32768         ## "continue training on data with sequence length of 32k"
+  continued_training_tokens: 80_000_000_000  ## "additional 80B tokens"
+  ## Step 3: YaRN extrapolation to 128k
+  yarn_enabled: true
+  yarn_target_length: 131072      ## 128k
+  yarn_scale_factor: 32           ## [INFERRED] 128k / 4k = 32x
+
+## ---------------------------------------------------------------------------
+## Switch Head baselines (Appendix A.1, Table 6)
+## ---------------------------------------------------------------------------
+switch_head_ablations:
+  switch_kv_8top8:
+    type: "switch_kv"
+    num_experts: 8
+    top_k: 8
+    added_params_m: 38
+
+  switch_kv_4top4:
+    type: "switch_kv"
+    num_experts: 4
+    top_k: 4
+    added_params_m: 13
+
+  switch_v_4top4:
+    type: "switch_v"
+    num_experts: 4
+    top_k: 4
+    added_params_m: 13
+
+  switch_v_8top2:
+    type: "switch_v"
+    num_experts: 8
+    top_k: 2
+    added_params_m: 25
+
+  switch_v_1top1:
+    type: "switch_v"
+    num_experts: 1
+    top_k: 1
+    added_params_m: 3
+    ## Note: switch_v_1top1 is equivalent to v Headwise Gate (Table 1 row 11)
+
+## ---------------------------------------------------------------------------
+## Distributed training
+## ---------------------------------------------------------------------------
+distributed:
+  backend: "nccl"
+  deepspeed_enabled: true
+  deepspeed_stage: 2            ## ZeRO stage 2 for 1.7B; stage 3 for 15B MoE
+  gradient_checkpointing: false ## trade compute for memory if needed
+  tensor_parallel_size: 1       ## [INFERRED]
+  pipeline_parallel_size: 1     ## [INFERRED]
+
+## ---------------------------------------------------------------------------
+## Logging and checkpointing
+## ---------------------------------------------------------------------------
+logging:
+  log_every_n_steps: 10
+  save_every_n_steps: 5000
+  keep_last_n_checkpoints: 3
+  checkpoint_dir: "checkpoints/"
+  ## Training loss smoothing for spike visualization (Fig 1 right)
+  ## Paper: "smoothed, 0.9 coeff."
+  loss_smoothing_coeff: 0.9
+
+## ---------------------------------------------------------------------------
+## Hardware notes (not from paper, for reference)
+## ---------------------------------------------------------------------------
+## The paper trains on up to 3.5T tokens with 15B MoE models.
+## Recommended: 64-512 A100/H100 80GB GPUs for full reproduction.
+## Small-scale validation (proxy model ~125M, subset of data) is feasible
+## on 8 GPUs and is recommended before full-scale runs.

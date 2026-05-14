@@ -1,0 +1,97 @@
+## config.yaml
+training:
+  learning_rate: 0.001  # From the paper details in hyperparameter table
+  batch_size: 
+    ode: 16  # Batch size for ordinary differential equations
+    pde_small: 4  # Batch size for small PDEs
+    pde_zoned: 1  # Batch size for high-dimensional zoned PDEs
+  epochs: 500  # As mentioned across experiments for most ODE/PDE cases
+
+model:
+  fourier_modes: 
+    ode: 8  # Number of Fourier modes for ODE
+    pde: 8  # Number of Fourier modes for PDE spatial domains
+  width: 20  # Model width as per hyperparameters
+  layers: 4  # Number of Fourier layers
+  activation: ReLU  # Typical choice for neural operators
+
+loss_weights:
+  primary_loss: 1.0  # Weight for `L_u`
+  sensitivity_loss: 1.0  # Weight for `L_s`
+  equation_loss: 0.0  # Optional, set to 0 (not used unless SC-FNO-PINN)
+
+data:
+  train_val_test_split: [0.7, 0.15, 0.15]  # Split percentages for dataset
+  gradient_method: "AD"  # Options are "AD" (auto-diff) or "FD" (finite difference)
+
+experiment:
+  equations:
+    ode1: 
+      name: composite_harmonic_oscillator
+      parameters: 
+        alpha: [1.0, 3.0]
+        beta: [1.0, 3.0]
+        gamma: [0.0, 1.0]
+      time_domain: [0, 1]
+      time_steps: 100  # Total time discretization  
+    ode2: 
+      name: duffing_oscillator
+      parameters:
+        delta: [0.02, 0.06]
+        alpha: [0.01, 0.03]
+        beta: [20.0, 60.0]
+        gamma: [0.5, 1.5]
+        omega: [0.2, 0.6]
+        epsilon: [0.0, 0.2]
+        zeta: [0.0, 0.2]
+      time_domain: [0, 1]
+      time_steps: 100
+    pde1:
+      name: generalized_nonlinear_damped_wave
+      parameters:
+        c: [0.0, 0.25]
+        alpha: [0.0, 0.1]
+        beta: [0.0, 0.25]
+        gamma: [0.0, 0.25]
+        omega: [0.0, 0.25]
+      spatial_domain: [0, 1]
+      temporal_domain: [0, 1]
+      time_steps: 30
+      space_steps: 20
+    pde2:
+      name: forced_burgers_equation
+      parameters:
+        alpha: [0.1, 1.0]
+        gamma: [0.025, 0.25]
+        delta: [0.1, 0.5]
+        omega: [0.01, 0.1]
+      spatial_domain: [0, 1]
+      temporal_domain: [0, 3.14]
+      time_steps: 30
+      space_steps: 40
+    pde3:
+      name: navier_stokes_vorticity_stream
+      parameters:
+        alpha: [π, 5π]
+        beta: [π, 5π]
+      spatial_domain: [0, 1]
+      temporal_domain: [0, 3]
+      time_steps: 75
+      space_steps_x: 64
+      space_steps_y: 64
+    pde4: 
+      name: allen_cahn_equation
+      parameters:
+        c: [0.1, 0.9]
+        alpha: [0.01, 1.0]
+        beta: [0.01, 1.0]
+        omega: [5.0, 10.0]
+        epsilon: [0.01, 1.0]
+      spatial_domain: [0, 1]
+      temporal_domain: [0, 1]
+      time_steps: 30
+      space_steps: 40
+  high_dimensional_case: 
+    name: zoned_burgers
+    total_parameters: 82  # High dimensional parameter space
+    split_zones: 40  # Split parameters into zones

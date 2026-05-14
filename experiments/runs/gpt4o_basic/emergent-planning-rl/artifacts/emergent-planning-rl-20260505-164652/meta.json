@@ -1,0 +1,114 @@
+{
+  "case_id": "emergent-planning-rl",
+  "run_id": "emergent-planning-rl-20260505-164652",
+  "model_name": "gpt-4o",
+  "api_base_url": "http://123.129.219.111:3000/v1",
+  "mode": "static-dev",
+  "dry_run": false,
+  "usage": {
+    "total_input_tokens": 183979,
+    "total_output_tokens": 2579,
+    "total_tokens": 186558,
+    "estimated_cost_usd": 0.5906,
+    "elapsed_seconds": 99.7,
+    "steps": 16,
+    "step_timings": [
+      {
+        "step": 1,
+        "elapsed_s": 2.08,
+        "input_tokens": 1203,
+        "output_tokens": 29
+      },
+      {
+        "step": 2,
+        "elapsed_s": 2.16,
+        "input_tokens": 1250,
+        "output_tokens": 32
+      },
+      {
+        "step": 3,
+        "elapsed_s": 2.7,
+        "input_tokens": 4059,
+        "output_tokens": 32
+      },
+      {
+        "step": 4,
+        "elapsed_s": 3.06,
+        "input_tokens": 6259,
+        "output_tokens": 32
+      },
+      {
+        "step": 5,
+        "elapsed_s": 3.42,
+        "input_tokens": 9671,
+        "output_tokens": 32
+      },
+      {
+        "step": 6,
+        "elapsed_s": 10.03,
+        "input_tokens": 12198,
+        "output_tokens": 309
+      },
+      {
+        "step": 7,
+        "elapsed_s": 7.35,
+        "input_tokens": 12624,
+        "output_tokens": 316
+      },
+      {
+        "step": 8,
+        "elapsed_s": 6.24,
+        "input_tokens": 13439,
+        "output_tokens": 140
+      },
+      {
+        "step": 9,
+        "elapsed_s": 6.42,
+        "input_tokens": 13760,
+        "output_tokens": 34
+      },
+      {
+        "step": 10,
+        "elapsed_s": 5.32,
+        "input_tokens": 13970,
+        "output_tokens": 96
+      },
+      {
+        "step": 11,
+        "elapsed_s": 8.98,
+        "input_tokens": 14175,
+        "output_tokens": 384
+      },
+      {
+        "step": 12,
+        "elapsed_s": 6.69,
+        "input_tokens": 15202,
+        "output_tokens": 120
+      },
+      {
+        "step": 13,
+        "elapsed_s": 9.33,
+        "input_tokens": 15429,
+        "output_tokens": 421
+      },
+      {
+        "step": 14,
+        "elapsed_s": 5.93,
+        "input_tokens": 16545,
+        "output_tokens": 102
+      },
+      {
+        "step": 15,
+        "elapsed_s": 8.99,
+        "input_tokens": 16752,
+        "output_tokens": 262
+      },
+      {
+        "step": 16,
+        "elapsed_s": 10.75,
+        "input_tokens": 17443,
+        "output_tokens": 238
+      }
+    ]
+  }
+}

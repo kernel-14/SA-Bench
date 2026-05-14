@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "Reproduced ViT backbone, 5 core PEFT methods (LoRA, Adapter, VPT-Deep, BitFit, LayerNorm), and simulated data loaders for low-shot VTAB-1K, many-shot, and robustness scenarios. Implemented training/evaluation pipelines and experiment configuration. Acknowledged use of FakeData and proxy models in README.",
+  "steps": 36,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/petl-visual-recognition/petl-visual-recognition-20260505-143221/workspace/repo"
+}

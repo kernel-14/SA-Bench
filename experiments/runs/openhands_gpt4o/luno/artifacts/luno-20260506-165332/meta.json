@@ -1,0 +1,9 @@
+{
+  "paper_id": "luno",
+  "run_id": "luno-20260506-165332",
+  "model": "gpt-4o",
+  "max_iterations": 100,
+  "elapsed_s": 413.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 29
+}

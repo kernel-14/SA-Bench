@@ -1,0 +1,9 @@
+{
+  "paper_id": "neural-operator-flow-matching-pde",
+  "run_id": "neural-operator-flow-matching-pde-20260506-221126",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1932.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 47
+}

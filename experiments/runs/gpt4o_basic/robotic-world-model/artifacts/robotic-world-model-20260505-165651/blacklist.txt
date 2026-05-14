@@ -1,0 +1,2 @@
+# Official repository (ETH Zurich, Apache 2.0)
+https://github.com/leggedrobotics/robotic_world_model

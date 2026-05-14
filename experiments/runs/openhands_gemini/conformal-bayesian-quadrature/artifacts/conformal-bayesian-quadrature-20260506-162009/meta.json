@@ -1,0 +1,9 @@
+{
+  "paper_id": "conformal-bayesian-quadrature",
+  "run_id": "conformal-bayesian-quadrature-20260506-162009",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 437.1,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 23
+}

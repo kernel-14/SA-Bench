@@ -1,0 +1,548 @@
+## config.yaml
+## OLMoE-1B-7B Configuration
+## Based on: "OLMoE: Open Mixture-of-Experts Language Models"
+## All values sourced directly from the paper (Appendix B, Table 10, Section 2, 4).
+
+model:
+  ## Architecture (Table 10, Section 2)
+  hidden_dim: 2048
+  num_layers: 16
+  num_heads: 16
+  ffn_dim: 1024          ## Per-expert FFN dimension (64 experts × 1024 = fine-grained)
+  num_experts: 64        ## Total experts per layer (Section 4.1.2)
+  top_k: 8              ## Activated experts per token (Section 2)
+  vocab_size: 50304      ## GPT-NeoX tokenizer vocabulary size (Table 10)
+  max_seq_len: 4096      ## Sequence length (Table 10)
+
+  ## Positional Embedding (Table 10)
+  rope_theta: 10000.0
+
+  ## Normalization (Section 4.2.3, Table 10)
+  layer_norm_type: "rmsnorm"       ## RMSNorm, not non-parametric LayerNorm
+  rms_norm_eps: 1.0e-05            ## Table 10
+  use_qk_norm: true                ## QK-Norm on Q and K projections (Section 4.2.5)
+
+  ## Activation (Table 10)
+  activation: "swiglu"
+
+  ## Attention (Table 10)
+  attention_variant: "full"        ## Full attention, no GQA/MQA
+  use_bias: false                  ## No biases in Linear layers
+
+  ## Weight tying (Table 10)
+  tie_word_embeddings: false
+
+  ## MoE routing (Section 2, Section 4.1.4)
+  routing_type: "token_choice"     ## Dropless token-choice routing (not expert-choice)
+  use_megablocks: true             ## Use MegaBlocks dMoE for dropless sparse ops
+
+  ## Auxiliary losses (Section 4.1.6, Section 4.1.7, Table 1)
+  lb_loss_weight: 0.01             ## Load balancing loss weight alpha
+  router_z_loss_weight: 0.001      ## Router z-loss weight beta
+
+  ## Initialization (Section 4.2.2, Appendix B)
+  init_distribution: "truncated_normal"
+  init_std: 0.02
+  init_trunc_factor: 3.0           ## Clip at ±3*std = ±0.06
+
+
+pretraining:
+  ## Token budget (Section 2, Appendix B)
+  total_tokens: 5_133_000_000_000  ## 5.133T tokens (1.3 epochs of OLMoE-Mix)
+  annealing_tokens: 100_000_000_000  ## Final 100B tokens for annealing phase
+
+  ## Batch configuration (Table 10)
+  seq_len: 4096
+  batch_size_samples: 1024         ## Samples per batch
+  batch_size_tokens: 4_194_304     ## ~4M tokens per step (1024 * 4096)
+
+  ## Optimizer: AdamW (Appendix B, Table 10)
+  optimizer: "adamw"
+  learning_rate: 4.0e-04           ## Peak LR (Table 10; note: paper corrected from 5e-4 to 4e-4 in v2)
+  min_lr: 4.0e-05                  ## Minimum LR before annealing (Table 10)
+  annealing_min_lr: 0.0            ## LR decays to 0 at end of annealing (Table 10)
+  adam_beta1: 0.9                  ## Table 10
+  adam_beta2: 0.95                 ## Table 10
+  adam_eps: 1.0e-08                ## Section 4.2.6 (changed from OLMo's 1e-5 to 1e-8)
+  weight_decay: 0.1                ## Table 10; applied to ALL params including embeddings and RMSNorm
+
+  ## LR schedule (Table 10, Appendix B)
+  lr_schedule: "cosine"            ## Cosine decay for main phase
+  warmup_steps: 2500               ## Table 10
+  annealing_schedule: "linear"     ## Linear decay to 0 during annealing (Table 10)
+
+  ## Gradient (Table 10)
+  grad_clip: 1.0                   ## Global gradient norm clipping
+  gradient_reduce_dtype: "fp32"    ## Table 10
+  optimizer_state_dtype: "fp32"    ## Table 10
+
+  ## Mixed precision (Appendix B)
+  bf16: true
+  fp32_reduce: true                ## Gradient reduction in FP32
+
+  ## Distributed training (Appendix B)
+  fsdp: true                       ## PyTorch FSDP with ZeRO
+  zero_stage: 3                    ## ZeRO-3 via FSDP
+
+  ## Hardware (Appendix B)
+  num_gpus: 256                    ## H100 GPUs
+  gpu_type: "H100"
+  interconnect_intra: "NVLink"
+  interconnect_inter: "InfiniBand"
+  training_days: 10                ## Approximately 10 days
+
+  ## Checkpointing and logging
+  save_every_steps: 5000           ## Save intermediate checkpoints every 5000 steps
+  eval_every_steps: 1000           ## In-loop evaluation frequency
+  log_every_steps: 1               ## Log metrics every step
+
+  ## Data (Section 2, Table 2)
+  data_mix:
+    dclm_baseline:
+      path: "allenai/OLMoE-mix-0924"
+      subset: "dclm"
+      tokens_billions: 3860
+      doc_type: "web_pages"
+    starcoder:
+      path: "allenai/OLMoE-mix-0924"
+      subset: "starcoder"
+      tokens_billions: 101
+      doc_type: "code"
+      ## StarCoder-specific filters (Section 2)
+      min_github_stars: 2
+      max_top1_word_fraction: 0.30
+      max_top2_word_fraction: 0.50
+    pes2o:
+      path: "allenai/OLMoE-mix-0924"
+      subset: "pes2o"
+      tokens_billions: 57.2
+      doc_type: "stem_papers"
+    arxiv:
+      path: "allenai/OLMoE-mix-0924"
+      subset: "arxiv"
+      tokens_billions: 21.1
+      doc_type: "stem_papers"
+    openwebmath:
+      path: "allenai/OLMoE-mix-0924"
+      subset: "openwebmath"
+      tokens_billions: 12.7
+      doc_type: "math_web_pages"
+    algebraic_stack:
+      path: "allenai/OLMoE-mix-0924"
+      subset: "algebraic_stack"
+      tokens_billions: 12.6
+      doc_type: "math_proofs_code"
+    wikipedia:
+      path: "allenai/OLMoE-mix-0924"
+      subset: "wikipedia"
+      tokens_billions: 3.69
+      doc_type: "encyclopedic"
+
+  ## Data filtering (Section 2)
+  ngram_repeat_filter:
+    enabled: true
+    min_ngram_size: 1
+    max_ngram_size: 13
+    min_repeat_count: 32           ## Remove docs with 32+ repeated n-grams
+
+  ## Epoch and shuffling (Section 2, Appendix B)
+  num_epochs: 1.3                  ## Train for 1.3 epochs (Muennighoff et al. 2023)
+  shuffle_at_epoch_start: true
+  reshuffle_before_annealing: true ## Reshuffle entire dataset before annealing phase
+
+  ## Tokenizer
+  tokenizer_name: "EleutherAI/gpt-neox-20b"  ## GPT-NeoX tokenizer, vocab=50304
+
+
+sft:
+  ## Instruction Tuning (Appendix B, Section 2, Table 3)
+  optimizer: "adamw"
+  learning_rate: 2.0e-05           ## Constant LR (Appendix B)
+  lr_schedule: "constant"
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_eps: 1.0e-08
+  weight_decay: 0.1
+  num_epochs: 2                    ## Appendix B
+  global_batch_size: 128           ## Appendix B (4 nodes × 8 GPUs × per_device=2 × grad_accum=2)
+  per_device_batch_size: 2
+  gradient_accumulation_steps: 2
+  max_seq_len: 4096                ## Filter samples to < 4096 tokens (Appendix B)
+  bf16: true
+  num_gpus: 32                     ## 4 H100 nodes × 8 GPUs (Appendix B)
+  training_hours: 33               ## Approximately 33 hours (Appendix B)
+  use_lb_loss: false               ## Do NOT use load balancing loss during SFT (Section 4.3)
+  use_router_z_loss: false         ## Do NOT use router z-loss during SFT
+  loss_aggregation: "token_level"  ## Token-level loss aggregation (Appendix B)
+  use_post_annealing_checkpoint: true  ## Use post-annealing checkpoint (Section 4.3)
+
+  ## SFT data (Table 3)
+  data:
+    tulu2_sft_mix:
+      path: "allenai/tulu-v3.1-mix-preview-4096-OLMoE"
+      samples: 326154
+      domain: "various"
+    no_robots:
+      path: "HuggingFaceH4/no_robots"
+      samples: 9500
+      domain: "various"
+    codefeedback:
+      path: "m-a-p/CodeFeedback-Filtered-Instruction"
+      samples: 156526
+      domain: "coding"
+    metamathqa:
+      path: "meta-math/MetaMathQA"
+      samples: 98750
+      domain: "math"
+    daring_anteater:
+      path: "nvidia/HelpSteer2"
+      subset: "advanced_non_chat"
+      samples: 17082
+      domain: "various"
+
+
+dpo:
+  ## Direct Preference Optimization (Appendix B, Section 4.3)
+  optimizer: "adamw"
+  learning_rate: 5.0e-07           ## Appendix B
+  lr_schedule: "constant"
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_eps: 1.0e-08
+  weight_decay: 0.1
+  num_epochs: 3                    ## Appendix B
+  global_batch_size: 32            ## Appendix B (4 nodes × 8 GPUs × per_device=1)
+  per_device_batch_size: 1
+  gradient_accumulation_steps: 1
+  bf16: true
+  num_gpus: 32                     ## 4 H100 nodes × 8 GPUs (Appendix B)
+  training_hours: 14               ## Approximately 14 hours (Appendix B)
+  dpo_beta: 0.1                    ## DPO beta hyperparameter (Appendix B)
+  use_lb_loss: false               ## Do NOT use load balancing loss during DPO (Section 4.3)
+  use_router_z_loss: false
+  base_model: "sft_checkpoint"     ## Start from SFT checkpoint (Section 4.3)
+
+  ## DPO data (Table 3)
+  data:
+    ultrafeedback:
+      path: "allenai/ultrafeedback_binarized_cleaned"
+      samples: 60800
+      domain: "various"
+      note: "Binarized and filtered for TruthfulQA contamination"
+
+
+kto:
+  ## KTO alternative to DPO (Section 4.3, Appendix F, Table 14)
+  optimizer: "rmsprop"             ## RMSProp instead of Adam (Appendix F)
+  learning_rate: 5.0e-07           ## Same as DPO (Appendix B)
+  lr_schedule: "constant"
+  num_steps: 5000                  ## 1.3 epochs (Appendix F, Table 14)
+  global_batch_size: 32
+  per_device_batch_size: 1
+  bf16: true
+  num_gpus: 8                      ## 8 H100 GPUs (Appendix B)
+  training_hours: 30               ## Approximately 30 hours (Appendix B)
+  use_lb_loss: false
+  base_model: "sft_checkpoint"
+
+
+evaluation:
+  ## During pretraining (Appendix C, Table 11)
+  pretraining_tasks:
+    arc_challenge:
+      format: "CF"
+      num_shots: 0
+      normalization: "char"
+      split: "validation"
+    arc_easy:
+      format: "CF"
+      num_shots: 0
+      normalization: "none"
+      split: "validation"
+    boolq:
+      format: "CF"
+      num_shots: 0
+      normalization: "none"
+      split: "validation"
+    copa:
+      format: "CF"
+      num_shots: 0
+      normalization: "none"
+      split: "validation"
+    commonsenseqa:
+      format: "CF"
+      num_shots: 0
+      normalization: "char"
+      split: "validation"
+    hellaswag:
+      format: "CF"
+      num_shots: 0
+      normalization: "char"
+      split: "validation"
+    mmlu:
+      format: "MCF"
+      num_shots: 5
+      normalization: "none"
+      split: "validation"
+    mmlu_var:
+      format: "CF"
+      num_shots: "0-5"             ## Varying few-shots for smoother signal
+      normalization: "char"
+      split: "validation"
+    openbookqa:
+      format: "CF"
+      num_shots: 0
+      normalization: "char"
+      split: "validation"
+    piqa:
+      format: "CF"
+      num_shots: 0
+      normalization: "char"
+      split: "validation"
+    sciq:
+      format: "CF"
+      num_shots: 0
+      normalization: "none"
+      split: "validation"
+    socialiqa:
+      format: "CF"
+      num_shots: 0
+      normalization: "char"
+      split: "validation"
+    winogrande:
+      format: "CF"
+      num_shots: 0
+      normalization: "none"
+      split: "validation"
+
+  ## After pretraining: OLMES standard (Appendix C, Table 11)
+  olmes_tasks:
+    arc_challenge:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "pmi"
+      split: "test"
+    arc_easy:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "char"
+      split: "test"
+    boolq:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "none"
+      split: "validation"
+    commonsenseqa:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "pmi"
+      split: "validation"
+    hellaswag:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "char"
+      split: "validation"
+    mmlu:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "char"
+      split: "test"
+    openbookqa:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "pmi"
+      split: "test"
+    piqa:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "char"
+      split: "validation"
+    socialiqa:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "char"
+      split: "validation"
+    winogrande:
+      format: "max(MCF,CF)"
+      num_shots: 5
+      normalization: "none"
+      split: "validation"
+
+  ## After adaptation (Appendix C)
+  adaptation_tasks:
+    mmlu:
+      num_shots: 0
+      metric: "exact_match"
+    gsm8k:
+      num_shots: 8
+      chain_of_thought: true
+      metric: "exact_match"
+    bbh:
+      num_shots: 3
+      metric: "exact_match"
+    humaneval:
+      num_shots: 0
+      metric: "pass@10"
+    alpacaeval:
+      version: "1.0"               ## AlpacaEval 1.0, NOT length-controlled (Appendix C)
+      num_shots: 0
+      metric: "win_rate"
+      reference_model: "text-davinci-003"
+    xstest:
+      num_shots: 0
+      metric: "f1"
+    ifeval:
+      num_shots: 0
+      metric: "loose_accuracy"
+
+
+analysis:
+  ## MoE analysis settings (Section 5)
+  eval_data_fraction: 0.005        ## Random 0.5% of C4 validation data (Section 5.1, 5.2)
+  eval_dataset: "c4"
+  eval_split: "validation"
+
+  ## Router saturation (Section 5.1)
+  router_saturation:
+    top_k_values: [1, 8]           ## Analyze both k=1 and k=8 (Section 5.1)
+    ## Checkpoints at 1%, 10%, 20%, 40% of pretraining
+    checkpoint_fractions: [0.01, 0.10, 0.20, 0.40, 1.0]
+    random_baseline_k1: 0.015625   ## 1/64 = 1.5625% for k=1
+    random_baseline_k8: 0.125      ## 8/64 = 12.5% for k=8
+
+  ## Expert co-activation (Section 5.2)
+  expert_coactivation:
+    top_k: 8
+    display_top_n_experts: 32      ## Display 32 experts with highest max co-activation
+
+  ## Domain specialization (Section 5.3)
+  domain_specialization:
+    top_k_values: [1, 8]
+    domains:
+      - "c4"          ## Generic web (uniform baseline)
+      - "github"      ## Code
+      - "arxiv"       ## STEM papers
+      - "wikipedia"   ## Encyclopedic
+      - "books"       ## Books
+    uniform_baseline_k8: 0.125     ## 8/64 for OLMoE
+    uniform_baseline_k1: 0.015625  ## 1/64 for OLMoE
+    comparison_model: "mistralai/Mixtral-8x7B-v0.1"  ## Compare with Mixtral
+
+  ## Vocabulary specialization (Section 5.4)
+  vocab_specialization:
+    top_k_values: [1, 8]
+    modes: ["input", "output"]     ## Input token ID vs predicted output token ID
+    min_token_occurrences: 8       ## Only include token IDs appearing >= 8 times
+    top_n_tokens_per_expert: 10    ## Display top-10 tokens per expert
+
+
+ablations:
+  ## All ablation experiments use ~130B tokens unless noted (Section 4)
+  default_ablation_tokens: 130_000_000_000
+  default_ablation_gpus: 128
+
+  ## MoE vs Dense (Section 4.1.1)
+  moe_vs_dense:
+    dense:
+      hidden_dim: 2048
+      ffn_dim: 8192
+      num_params: 1_300_000_000
+    moe:
+      hidden_dim: 2048
+      ffn_dim: 1024
+      num_experts: 64
+      top_k: 8
+      active_params: 1_300_000_000
+      total_params: 6_900_000_000
+
+  ## Expert granularity (Section 4.1.2)
+  granularity_configs:
+    coarse:
+      num_experts: 8
+      top_k: 1
+      ffn_dim: 8192
+    medium:
+      num_experts: 32
+      top_k: 4
+      ffn_dim: 2048
+    fine:
+      num_experts: 64
+      top_k: 8
+      ffn_dim: 1024
+
+  ## Shared experts (Section 4.1.3)
+  shared_experts:
+    with_shared:
+      num_shared: 1
+      num_routed: 31
+      top_k_routed: 3
+    without_shared:
+      num_shared: 0
+      num_routed: 32
+      top_k_routed: 4
+
+  ## Expert choice vs token choice (Section 4.1.4)
+  routing_comparison:
+    token_choice:
+      type: "token_choice"
+      top_k: 2
+      use_lb_loss: true
+      moe_every_nth_layer: 2       ## MoE in every 2nd layer for this experiment
+    expert_choice:
+      type: "expert_choice"
+      capacity_factor: 2.0
+      moe_every_nth_layer: 2
+
+  ## Sparse upcycling (Section 4.1.5)
+  sparse_upcycling:
+    base_model: "allenai/OLMo-1B-0724-hf"
+    upcycle_at_tokens: 2_000_000_000_000  ## Upcycle OLMo-1B at 2T tokens
+    additional_tokens: 610_000_000_000    ## Train for additional 610B tokens
+    num_experts: 8
+    top_k: 2
+    note: "No QK-Norm and no truncated normal init to match OLMo-1B settings"
+
+  ## Load balancing loss (Section 4.1.6)
+  load_balancing:
+    with_lbl:
+      lb_loss_weight: 0.01
+    without_lbl:
+      lb_loss_weight: 0.0
+
+  ## Router z-loss (Section 4.1.7)
+  router_zloss:
+    with_zloss:
+      router_z_loss_weight: 0.001
+    without_zloss:
+      router_z_loss_weight: 0.0
+
+  ## Initialization (Section 4.2.2)
+  initialization:
+    truncated_normal:
+      distribution: "truncated_normal"
+      std: 0.02
+      clip: 0.06
+    normal:
+      distribution: "normal"
+      std: 0.02
+
+  ## AdamW epsilon (Section 4.2.6)
+  adamw_epsilon:
+    default_olmo: 1.0e-05
+    paper_choice: 1.0e-08
+
+
+artifacts:
+  ## Released model artifacts (Appendix A, Table 9)
+  olmoe_pretrained: "allenai/OLMoE-1B-7B-0924"
+  olmoe_instruct: "allenai/OLMoE-1B-7B-0924-Instruct"
+  olmoe_sft: "allenai/OLMoE-1B-7B-0924-SFT"
+  olmoe_mix_dataset: "allenai/OLMoE-mix-0924"
+  sft_dataset: "allenai/tulu-v3.1-mix-preview-4096-OLMoE"
+  dpo_dataset: "allenai/ultrafeedback_binarized_cleaned"
+  code_repo: "https://github.com/allenai/OLMoE"
+  wandb_logs: "https://wandb.ai/ai2-llm/olmoe"
+
+  ## January 2025 updated model (Appendix I)
+  olmoe_0125_pretrained: "allenai/OLMoE-1B-7B-0125"
+  olmoe_0125_annealing_dataset: "dolmino"  ## DOLMINO high-quality mix, 100B tokens

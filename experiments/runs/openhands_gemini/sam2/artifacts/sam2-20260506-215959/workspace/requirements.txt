@@ -1,0 +1,12 @@
+
+torch==2.3.0
+torchvision==0.18.0
+torchaudio==2.3.0
+numpy==1.26.4
+Pillow==10.3.0
+scikit-image==0.23.0
+opencv-python==4.9.0.80
+transformers==4.39.3
+einops==0.8.0
+timm==0.9.16
+segment-anything==1.0

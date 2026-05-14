@@ -1,0 +1,149 @@
+## config.yaml
+global:
+  seed: 42
+  device: "cuda" # or "cpu"
+  save_path: "./checkpoints"
+  log_interval_steps: 1000
+  eval_interval_steps: 10000
+
+# Default UNet architecture parameters (primarily based on 1D Burgers' Table 18)
+default_unet_architecture:
+  initial_dimension: 128
+  num_down_up_layers: 4
+  convolution_kernel_size: 3 # For 2D UNet
+  dimension_multipliers: [1, 2, 4, 8]
+  resnet_block_groups: 8
+  attention_hidden_dimension: 32
+  attention_heads: 4
+  time_embedding_dimension: 256 # Common for diffusion models
+
+# Default training parameters (primarily based on 1D Burgers' Table 18)
+default_training:
+  batch_size: 16
+  optimizer: "Adam"
+  learning_rate: 0.0001
+  training_steps: 190000
+  learning_rate_scheduler: "cosine_annealing" # Implied by "cosine annealing"
+
+# Default diffusion/DDIM parameters
+default_diffusion:
+  ddpm_timesteps: 1000 # Standard for DDPM, not explicitly stated
+  ddim_sampling_iterations: 50 # Default for 1D Burgers'
+  ddim_eta: 1.0 # Default for 1D Burgers'
+  guidance_scheduler: "cosine" # For control task guidance
+
+# Problem-specific configurations
+problems:
+  # -------------------------------------------------------------------------
+  # 1D Burgers' Equation
+  # -------------------------------------------------------------------------
+  1d_burgers:
+    problem_type: "1d_burgers"
+    wavelet_data_dim: 2 # Data is time x space, so 2D wavelet transform
+    wavelet_type: "bior2.4"
+    wavelet_mode: "periodization"
+    data_generation:
+      num_train_samples: 40000
+      num_test_samples: 50 # For control
+      num_sr_0x_test_samples: 2000 # For SR at original res
+      num_sr_test_samples_per_level: 100 # For 1x, 2x, 3x SR
+    simulation_task:
+      enabled: true
+    control_task:
+      enabled: true
+      objective_alpha: 1.0 # Default for 1D Burgers' Eq. 2, not explicitly given
+      guidance_lambda: 120000 # Table 18
+    super_resolution_task:
+      enabled: true
+      train_resolution: [80, 120] # Time x Space
+      sr_target_resolutions: [[160, 240], [320, 480], [640, 960]] # 1x, 2x, 3x
+      evaluation_interpolation_method: "linear" # FNO/WNO baselines interpolated as linear or nearest
+
+  # -------------------------------------------------------------------------
+  # 1D Advection Equation
+  # -------------------------------------------------------------------------
+  1d_advection:
+    problem_type: "1d_advection"
+    wavelet_data_dim: 2
+    wavelet_type: "bior2.4" # Assumed similar to 1D Burgers'
+    wavelet_mode: "periodization" # Assumed similar to 1D Burgers'
+    data_generation:
+      # Source from PDEBench, no explicit data gen params in paper
+      # Placeholder for specific dataset path or generation script
+      dataset_name: "pdebench_advection"
+    simulation_task:
+      enabled: true
+    control_task:
+      enabled: false # Not mentioned for control
+    super_resolution_task:
+      enabled: false # Not mentioned for SR
+
+  # -------------------------------------------------------------------------
+  # 1D Compressible Navier-Stokes Equation
+  # -------------------------------------------------------------------------
+  1d_navier_stokes:
+    problem_type: "1d_navier_stokes"
+    wavelet_data_dim: 2
+    wavelet_type: "bior2.4"
+    wavelet_mode: "periodization"
+    data_generation:
+      dataset_name: "pdebench_1d_cfd_shock"
+      initial_conditions_type: "shock-tube"
+      viscosity_eta: 1.0e-8
+      viscosity_zeta: 1.0e-8
+    simulation_task:
+      enabled: true
+    control_task:
+      enabled: false
+    super_resolution_task:
+      enabled: false
+    inference:
+      ddim_sampling_iterations: 850 # Table 19 (Different from 1D Burgers')
+
+  # -------------------------------------------------------------------------
+  # 2D Incompressible Fluid
+  # -------------------------------------------------------------------------
+  2d_fluid:
+    problem_type: "2d_fluid"
+    wavelet_data_dim: 3 # Data is time x space x space, so 3D wavelet transform
+    wavelet_type: "bior1.3"
+    wavelet_mode: "zero"
+    unet_architecture: # Based on default UNet parameters, with 3D specific convs from Table 20
+      convolution_kernel_size: [1, 4, 4] # Downsampling/Upsampling kernel. Conv3d kernel (3,3,3)
+      convolution_padding: [1, 2, 2] # Downsampling/Upsampling padding. Conv3d padding (1,1,1)
+      convolution_stride: [0, 1, 1] # Downsampling/Upsampling stride. Conv3d stride (1,1,1)
+      # Assuming initial_dimension, num_down_up_layers, dimension_multipliers, resnet_block_groups, attention_hidden_dimension, attention_heads are same as default
+    data_generation:
+      # Placeholder for specific dataset path or generation script (Wei et al., 2024)
+      dataset_name: "complex_2d_fluid_control"
+      # Control parameters: 3584 variables over 32 steps
+    simulation_task:
+      enabled: true
+    control_task:
+      enabled: true
+      objective_description: "percentage of smoke not passing through target bucket"
+      guidance_lambda: 10000 # Table 20
+    super_resolution_task:
+      enabled: true
+      train_resolution: [32, 64, 64] # Time x Space x Space
+      sr_target_resolutions: [[32, 128, 128]] # 1x SR
+      evaluation_interpolation_method: "linear"
+
+  # -------------------------------------------------------------------------
+  # ERA5
+  # -------------------------------------------------------------------------
+  era5:
+    problem_type: "era5"
+    wavelet_data_dim: 3 # Assumed similar to 2D Fluid
+    wavelet_type: "bior1.3" # Assumed similar to 2D Fluid
+    wavelet_mode: "zero" # Assumed similar to 2D Fluid
+    data_generation:
+      dataset_name: "era5_temperature"
+      input_history_hours: 12
+      prediction_future_hours: 20
+    simulation_task:
+      enabled: true
+    control_task:
+      enabled: false
+    super_resolution_task:
+      enabled: false

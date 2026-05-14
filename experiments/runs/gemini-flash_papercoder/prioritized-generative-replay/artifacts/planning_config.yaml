@@ -1,0 +1,110 @@
+## config.yaml
+# General experiment settings
+experiment:
+  name: "PGR_Reproduction"
+  seed: 0 # Default seed, will be iterated for multiple runs
+  device: "cuda" # or "cpu"
+
+# Environment configuration
+environment:
+  name: "cheetah-run" # Example: "quadruped-walk", "halfcheetah-v2", "dm_lab_sparse"
+  suite: "DMC" # "DMC", "OpenAI_Gym", "DMLab"
+  total_env_steps: 100000 # 100K for most, 300K for Finger-Turn-Hard, 10M for DMLab
+  action_repeat: 1 # Default, DMLab uses 4
+  pixel_based: False # True for pixel-based tasks
+  pixel_stack_frames: 3 # Common for pixel-based RL
+  pixel_img_size: [84, 84] # For DMLab, CTS preprocessing (42x42) is specific to that F
+  visual_encoder_output_dim: 512 # For pixel-based tasks using latent features
+
+# Replay Buffer settings
+replay_buffers:
+  d_real_capacity: 1000000 # 1M transitions
+  d_syn_capacity: 1000000 # 1M transitions, 2M for UTD=40 scaling experiment
+  per_alpha: NOT_SPECIFIED # For PER baselines, if used. Common value 0.6
+  per_beta_start: NOT_SPECIFIED # For PER baselines. Common value 0.4
+  per_beta_frames: NOT_SPECIFIED # For PER baselines. Common value 100000
+
+# Reinforcement Learning Agent configuration
+rl_agent:
+  algorithm: "REDQ" # "SAC", "REDQ", "DRQV2", "PPO"
+  policy_hidden_layers: 2 # 2 (standard), 3 (scaling)
+  policy_hidden_units: 256 # 256 (standard), 512 (scaling)
+  q_hidden_layers: 2 # Assuming same as policy for Q-networks
+  q_hidden_units: 256 # Assuming same as policy for Q-networks
+  discount: 0.99 # Common default, not specified in paper
+  learning_rate:
+    actor: NOT_SPECIFIED # Common value e.g. 3e-4
+    critic: NOT_SPECIFIED # Common value e.g. 3e-4
+    alpha: NOT_SPECIFIED # Common value e.g. 3e-4 for SAC/REDQ temperature
+  target_update_tau: 0.005 # Common default, not specified in paper
+  target_update_freq: 1 # Common default, not specified in paper (for soft updates)
+  encoder_update_tau: 0.005 # For DRQ-V2 visual encoder updates
+  reward_scale: 1.0 # Default, not specified
+  utd_ratio: 20 # Update-to-Data ratio: 20 (standard), 40 (scaling)
+  batch_size: 256 # RL training batch size: 256 (standard), 512, 1024 (scaling)
+  exploration_bonus_intrinsic_reward_weight: 0.1 # For explicit exploration bonus (REDQ + CURIOSITY, SYNTHER + CURIOSITY)
+  noisy_networks: # For implicit exploration, e.g. REDQ + NOISYNETS
+    enabled: False
+    std_init: NOT_SPECIFIED # Follow Fortunato et al. (2018) recommendations
+  bootstrapped_q: # For implicit exploration, e.g. REDQ + BOOT-DQN
+    enabled: False
+    num_heads: 10 # K=10 assumed
+    mask_distribution: "Bernoulli(1)" # All-one mask
+
+# Generative Model (Diffusion) configuration
+generative_model:
+  type: "diffusion"
+  architecture_type: "mlp" # or "cnn_latent" for pixel-based on latent features
+  unconditional_drop_prob: 0.25 # p_uncond for Classifier-Free Guidance (CFG)
+  guidance_scale: NOT_SPECIFIED # ω for CFG, common values 2.0-7.5. Needs tuning.
+  diffusion_steps: 1000 # N, assumed 1000 steps for DDPM
+  learning_rate: NOT_SPECIFIED # Common value e.g. 1e-4
+  optimizer: "Adam" # Common default
+  train_steps_per_inner_loop: NOT_SPECIFIED # How many gradient steps to train G in each inner loop.
+  generation_samples_per_inner_loop: 1000000 # To fill D_syn of 1M transitions
+
+# Relevance Function configuration (F)
+relevance_function:
+  type: "Curiosity" # "Return", "TD_Error", "Curiosity", "RND", "CTS", "EPIC"
+  update_freq_policy_steps_ratio: 0.05 # For trainable F: 5% of policy gradient steps
+  icm_net: # Intrinsic Curiosity Module
+    feature_encoder_hidden_layers: 2 # Assuming small MLPs for state-based
+    feature_encoder_hidden_units: 256
+    forward_model_hidden_layers: 2
+    forward_model_hidden_units: 256
+  rnd_net: # Random Network Distillation
+    feature_bottleneck_dim: 64 # For pixel-based CNN
+    feature_output_dim: 512 # For pixel-based CNN
+  cts_net: # Context-Tree Switching
+    observation_resize_dim: [42, 42] # For pixel-based input (42x42)
+    context_bins: 8
+  epic_net: # Episodic Curiosity
+    alpha: 0.03
+    beta: 0.5
+    memory_size: 200 # |M|
+    percentile_threshold: 90 # F = percentile-90
+    embedder_output_dim: 512 # ResNet-18 output dim
+
+# PGR Framework Loop settings
+pgr_loop:
+  inner_loop_freq_env_steps: 10000 # Regenerate D_syn every 10K env steps
+  synthetic_data_ratio: 0.5 # r: 0.5 (standard), 0.75, 0.875 (scaling)
+
+# Evaluation settings
+evaluation:
+  policy_eval_episodes: 10 # Number of episodes to run for policy evaluation
+  policy_eval_freq_env_steps: 10000 # How often to evaluate policy (e.g. every 10K env steps)
+  generation_fidelity:
+    enabled: True
+    eval_epoch: 50 # Fidelity evaluation at epoch 50 (of agent training)
+    num_generated_transitions: 10000
+  dormant_ratio:
+    enabled: True
+    threshold: 0.001 # Threshold for inactive neurons (e.g., abs(activation) < 0.001)
+
+# Logging settings
+logging:
+  use_wandb: True
+  project_name: "PrioritizedGenerativeReplay"
+  log_dir: "./logs"
+  save_model_freq_env_steps: 100000 # Save model checkpoints every 100K env steps

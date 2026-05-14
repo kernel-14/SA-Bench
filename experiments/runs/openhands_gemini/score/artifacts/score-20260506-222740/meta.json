@@ -1,0 +1,9 @@
+{
+  "paper_id": "score",
+  "run_id": "score-20260506-222740",
+  "model": "gemini-2.5-flash",
+  "max_iterations": 100,
+  "elapsed_s": 604.2,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 11
+}

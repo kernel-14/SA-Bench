@@ -1,0 +1,15 @@
+# Core dependencies
+torch>=2.0
+numpy
+pyyaml
+matplotlib
+
+# Optional: for evaluation metrics
+# open-clip-torch  # ClipScore
+# transformers     # PickScore
+# hpsv2            # Human Preference Score v2
+# dreamsim         # DreamSim diversity
+
+# Optional: for image generation experiments
+# Pillow
+# torchvision

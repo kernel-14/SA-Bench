@@ -1,0 +1,9 @@
+{
+  "paper_id": "sam2",
+  "run_id": "sam2-20260507-011857",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 1584.9,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 58
+}

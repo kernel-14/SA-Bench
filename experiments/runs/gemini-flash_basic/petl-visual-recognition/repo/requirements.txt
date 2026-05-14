@@ -1,0 +1,6 @@
+-e torch
+torchvision
+transformers
+pyyaml
+tqdm
+scikit-learn

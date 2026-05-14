@@ -1,0 +1,588 @@
+```python
+## model/ca2_vdm.py
+"""Top-level Ca2-VDM model assembling all components.
+
+This module implements Ca2VDM, the complete video diffusion transformer that
+wires together patch embedding, positional embeddings, timestep embeddings,
+DiTBlock layers, and the final projection head. It supports four operational
+modes: training, inference denoising, cache writing, and weight loading from
+Open-Sora v1.0.
+
+The critical design invariant enabling cache sharing:
+    Clean prefix frames always receive tEmb(0) via t_vec[i,j]=0.
+    This makes their KV features independent of the denoising timestep t,
+    allowing the same KV-cache to be reused across all 100 denoising steps.
+
+Paper: Ca2-VDM: Efficient Autoregressive Video Diffusion Model with Causal
+Generation and Cache Sharing (Sec. 3.2, 3.3).
+
+Configuration references (config.yaml):
+    model.model_dim:                    1152
+    model.num_heads:                    16
+    model.num_layers:                   28
+    model.mlp_ratio:                    4.0
+    model.vae_channels:                 4
+    model.vae_downsample:               8
+    model.context_dim:                  1024
+    model.dropout:                      0.0
+    model.use_cross_attn:               true/false
+    ca2vdm.prefix_spatial_len:          3
+    diffusion.learn_sigma:              true
+    autoregressive.clean_prefix_timestep: 0
+    video_prediction.ca2vdm_and_os_ext.l_train: 33
+    t2v.l_train_max:                    65
+"""
+
+import logging
+import os
+from typing import List, Optional, Tuple
+
+import torch
+import torch.nn as nn
+
+from config import Config
+from model.embeddings import CyclicTPE, SpatialPositionalEmbedding, TimestepEmbedding
+from model.transformer import DiTBlock
+
+logger = logging.getLogger(__name__)
+
+
+class Ca2VDM(nn.Module):
+    """Efficient autoregressive video diffusion model with causal generation and cache sharing.
+
+    Assembles the full Ca2-VDM architecture:
+        1. Patch embedding: VAE latent channels → model_dim
+        2. Spatial positional embedding (SPE): sinusoidal 2D grid embeddings
+        3. Cyclic temporal positional embedding (CyclicTPE): cyclic-shift TPEs
+        4. Per-frame timestep embedding: tEmb(0) for prefix, tEmb(t) for target
+        5. 28 DiTBlock layers: causal temporal + prefix spatial + optional cross attn
+        6. Final projection: model_dim → 2 * vae_channels (noise + variance)
+
+    Supports four operational modes:
+        - Training: full sequence [clean_prefix | noisy_target], no KV-cache
+        - Inference denoising: l-frame noisy chunk, reads from KV-cache
+        - Inference cache writing: denoised chunk with tEmb(0), writes KV entries
+        - Weight loading: adapts Open-Sora v1.0 bidirectional weights to causal
+
+    Attributes:
+        config: Resolved Ca2-VDM configuration.
+        model_dim: Hidden dimension of the Transformer (1152).
+        num_layers: Number of DiTBlock layers (28).
+        vae_channels: VAE latent channels (4).
+        h: Latent grid height (resolution / vae_downsample = 32).
+        w: Latent grid width (resolution / vae_downsample = 32).
+        hw: Total spatial tokens (h * w = 1024).
+        use_cross_attn: Whether cross attention is active (T2V only).
+        patch_embed: Linear projection from vae_channels to model_dim.
+        spe: Sinusoidal 2D spatial positional embedding.
+        cyclic_tpe: Cyclic temporal positional embedding module.
+        t_embedder: Per-frame timestep embedding MLP.
+        blocks: ModuleList of 28 DiTBlock instances.
+        final_norm: LayerNorm before final projection.
+        final_proj: Linear projection to 2 * vae_channels output channels.
+
+    Example (training, video prediction)::
+
+        config = Config.from_config("config.yaml", task="video_prediction")
+        model = Ca2VDM(config)
+        z = torch.randn(2, 33, 32, 32, 4)       # (B, L, H, W, C)
+        t_vec = torch.zeros(2, 33, dtype=torch.long)
+        t_vec[:, 25:] = 500                      # prefix=0, target=500
+        noise_pred, var_pred, temp_kvs, spat_kvs = model(
+            z, t_vec, None, None, None, None, tpe=None
+        )
+        # noise_pred: (2, 33, 32, 32, 4)
+        # var_pred:   (2, 33, 32, 32, 4)
+
+    Example (inference cache writing)::
+
+        z_clean = torch.randn(1, 8, 32, 32, 4)  # denoised chunk
+        tpe = model.cyclic_tpe.get_inference_tpe(ar_step=0, l=8, p_k=0, p_max=25)
+        temp_kvs, spat_kvs = model.compute_clean_kv(z_clean, tpe)
+        # temp_kvs: List[Tuple(K, V)] of length 28, each K/V: (1024, 8, 1152)
+        # spat_kvs: List[Tensor] of length 28, each: (3, 1024, 1152)
+    """
+
+    def __init__(self, config: Config) -> None:
+        """Initialise Ca2VDM from a resolved configuration.
+
+        Args:
+            config: Fully resolved Ca2-VDM configuration instance from
+                    ``Config.from_config()``. All hyperparameters are read
+                    from this object; no defaults are assumed beyond what
+                    the Config dataclass provides.
+
+        Raises:
+            ValueError: If ``config.model_dim % config.num_heads != 0``.
+            ValueError: If ``config.resolution % config.vae_downsample != 0``.
+        """
+        super().__init__()
+
+        # Validate key invariants.
+        if config.model_dim % config.num_heads != 0:
+            raise ValueError(
+                f"model_dim ({config.model_dim}) must be divisible by "
+                f"num_heads ({config.num_heads})."
+            )
+        if config.resolution % config.vae_downsample != 0:
+            raise ValueError(
+                f"resolution ({config.resolution}) must be divisible by "
+                f"vae_downsample ({config.vae_downsample})."
+            )
+
+        self.config: Config = config
+        self.model_dim: int = config.model_dim
+        self.num_layers: int = config.num_layers
+        self.vae_channels: int = config.vae_channels
+        self.use_cross_attn: bool = config.use_cross_attn
+
+        # Derived spatial dimensions.
+        self.h: int = config.resolution // config.vae_downsample  # 256 // 8 = 32
+        self.w: int = config.resolution // config.vae_downsample  # 256 // 8 = 32
+        self.hw: int = self.h * self.w  # 1024
+
+        # ── 1. Patch embedding ────────────────────────────────────────────────
+        # Projects VAE latent channels (C=4) to model_dim (1152).
+        # Applied per spatial token: (B, L, H*W, C) → (B, L, H*W, model_dim).
+        self.patch_embed: nn.Linear = nn.Linear(
+            config.vae_channels, config.model_dim, bias=True
+        )
+
+        # ── 2. Spatial positional embedding ───────────────────────────────────
+        # Sinusoidal 2D SPE for the H×W latent grid.
+        # Shape: (H*W, model_dim) = (1024, 1152).
+        # Registered as a buffer inside SpatialPositionalEmbedding.
+        self.spe: SpatialPositionalEmbedding = SpatialPositionalEmbedding(
+            dim=config.model_dim,
+            h=self.h,
+            w=self.w,
+        )
+
+        # ── 3. Cyclic temporal positional embedding ───────────────────────────
+        # CyclicTPE with l_train from config (task-specific).
+        # config.l_train is resolved by Config.from_config() to the correct
+        # value: 33 for video_prediction, 65 for t2v stage 2.
+        self.cyclic_tpe: CyclicTPE = CyclicTPE(
+            dim=config.model_dim,
+            l_train=config.l_train,
+        )
+
+        # ── 4. Per-frame timestep embedding ───────────────────────────────────
+        # Maps scalar t → (model_dim,) vector.
+        # Clean prefix frames: t=0 → tEmb(0) constant → cache sharing.
+        # Denoising target frames: t=current_step → tEmb(t).
+        self.t_embedder: TimestepEmbedding = TimestepEmbedding(
+            dim=config.model_dim,
+        )
+
+        # ── 5. DiTBlock layers ────────────────────────────────────────────────
+        # 28 blocks, each with causal temporal + prefix spatial + optional cross attn.
+        self.blocks: nn.ModuleList = nn.ModuleList([
+            DiTBlock(
+                dim=config.model_dim,
+                num_heads=config.num_heads,
+                prefix_len=config.prefix_spatial_len,
+                use_cross_attn=config.use_cross_attn,
+                context_dim=config.context_dim,
+                mlp_ratio=config.mlp_ratio,
+                dropout=config.dropout,
+            )
+            for _ in range(config.num_layers)
+        ])
+
+        # ── 6. Final projection ───────────────────────────────────────────────
+        # Following improved DDPM with learnable variance (config.diffusion.learn_sigma=True):
+        # Output = 2 * vae_channels = 8 channels.
+        # First 4: noise prediction ε_θ.
+        # Last 4: variance logits v_θ (interpolation coefficients in log space).
+        self.final_norm: nn.LayerNorm = nn.LayerNorm(
+            config.model_dim, eps=1e-6
+        )
+        self.final_proj: nn.Linear = nn.Linear(
+            config.model_dim,
+            2 * config.vae_channels,  # 8 channels: 4 noise + 4 variance
+            bias=True,
+        )
+
+        # ── 7. Weight initialisation ──────────────────────────────────────────
+        self._init_weights()
+
+        logger.info(
+            "Ca2VDM initialised: task=%s, model_dim=%d, num_layers=%d, "
+            "num_heads=%d, l_train=%d, use_cross_attn=%s, "
+            "h=%d, w=%d, hw=%d.",
+            config.task,
+            config.model_dim,
+            config.num_layers,
+            config.num_heads,
+            config.l_train,
+            config.use_cross_attn,
+            self.h,
+            self.w,
+            self.hw,
+        )
+
+    # -----------------------------------------------------------------------
+    # Weight initialisation
+    # -----------------------------------------------------------------------
+
+    def _init_weights(self) -> None:
+        """Initialise weights for new layers not covered by Open-Sora checkpoint.
+
+        Follows standard practices for diffusion transformers:
+        - patch_embed: Xavier uniform (standard for linear projections).
+        - final_proj: Zero initialisation (output starts at zero → stable training).
+        - final_norm: Standard LayerNorm init (weight=1, bias=0).
+        - t_embedder MLP: Xavier uniform for weight, zeros for bias.
+
+        DiTBlock weights are initialised within their respective constructors.
+        CyclicTPE and SpatialPositionalEmbedding use fixed sinusoidal buffers.
+        """
+        # Patch embedding: Xavier uniform.
+        nn.init.xavier_uniform_(self.patch_embed.weight)
+        if self.patch_embed.bias is not None:
+            nn.init.zeros_(self.patch_embed.bias)
+
+        # Final projection: zero init for stable training start.
+        # This ensures the model initially predicts zero noise/variance,
+        # which is a reasonable starting point for fine-tuning from Open-Sora.
+        nn.init.zeros_(self.final_proj.weight)
+        if self.final_proj.bias is not None:
+            nn.init.zeros_(self.final_proj.bias)
+
+        # Timestep embedding MLP: Xavier uniform for weights, zeros for biases.
+        for module in self.t_embedder.mlp.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+
+    # -----------------------------------------------------------------------
+    # Forward pass
+    # -----------------------------------------------------------------------
+
+    def forward(
+        self,
+        z: torch.Tensor,
+        t_vec: torch.Tensor,
+        text_emb: Optional[torch.Tensor] = None,
+        text_mask: Optional[torch.Tensor] = None,
+        temporal_kv_cache_list: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None,
+        spatial_kv_cache_list: Optional[List[torch.Tensor]] = None,
+        tpe: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, List[Tuple[torch.Tensor, torch.Tensor]], List[torch.Tensor]]:
+        """Forward pass through the full Ca2-VDM model.
+
+        Handles all three operational modes transparently based on the
+        presence/absence of KV-cache arguments:
+
+        **Training** (``temporal_kv_cache_list=None``, ``spatial_kv_cache_list=None``):
+            Full sequence ``[clean_prefix | noisy_target]`` processed together.
+            ``tpe=None`` triggers random cyclic offset sampling via CyclicTPE.
+            ``t_vec`` has 0 for prefix frames and current timestep for target frames.
+
+        **Inference denoising stage** (caches provided):
+            Only the current ``l``-frame noisy chunk is passed as ``z``.
+            ``temporal_kv_cache_list[i]`` contains ``(K_0^{0:P_k}, V_0^{0:P_k})``
+            for layer ``i``. ``spatial_kv_cache_list[i]`` contains the last
+            ``P'`` frames' spatial features for layer ``i``.
+
+        **Inference cache writing stage** (``temporal_kv_cache_list=None``):
+            The denoised ``l``-frame chunk is passed with ``t_vec`` all zeros.
+            Returns clean KVs for storage in the KV-cache queue.
+
+        Args:
+            z: VAE latent tensor. Shape ``(B, L, H, W, C)`` where:
+               - ``B`` = batch size.
+               - ``L`` = number of frames (full clip during training, chunk
+                 length ``l`` during inference).
+               - ``H = W = resolution / vae_downsample = 32``.
+               - ``C = vae_channels = 4``.
+            t_vec: Per-frame diffusion timestep indices. Shape ``(B, L)``
+               with integer values in ``[0, T]`` where ``T=1000``.
+               - ``t_vec[i, j] = 0`` for clean prefix frames (tEmb(0)).
+               - ``t_vec[i, j] = t`` for denoising target frames.
+               This per-frame timestep is the key mechanism enabling cache sharing.
+            text_emb: T5 text encoder output. Shape ``(B, S, context_dim)``
+               where ``S`` is the text sequence length and
+               ``context_dim = 1024`` (T5-Large). Pass ``None`` for video
+               prediction or unconditional generation.
+            text_mask: T5 attention mask. Shape ``(B, S)``.
+               Values: ``1 = valid token``, ``0 = padding``.
+               Pass ``None`` when ``text_emb`` is ``None``.
+            temporal_kv_cache_list: Per-layer temporal KV-cache. List of
+               length ``num_layers=28``, where each element is a tuple
+               ``(K_cache, V_cache)`` with shape ``(B*HW, P_k, model_dim)``.
+               ``P_k`` is the total number of cached frames from previous AR
+               steps. Pass ``None`` during training and cache writing.
+            spatial_kv_cache_list: Per-layer spatial KV-cache. List of
+               length ``num_layers=28``, where each element is a tensor of
+               shape ``(P', HW, model_dim)`` containing the last ``P'=3``
+               frames' hidden features from the most recent generated chunk.
+               Pass ``None`` during training.
+            tpe: Pre-computed temporal positional embeddings of shape
+               ``(L, model_dim)``. If ``None``, a random cyclic offset is
+               sampled via ``CyclicTPE.get_train_tpe(L)`` (training mode).
+               During inference, the caller provides pre-computed TPEs via
+               ``CyclicTPE.get_inference_tpe()``.
+
+        Returns:
+            A tuple ``(noise_pred, var_pred, new_temporal_kv_list, new_spatial_kv_list)``
+            where:
+            - ``noise_pred``: Predicted noise tensor of shape
+              ``(B, L, H, W, vae_channels)`` = ``(B, L, 32, 32, 4)``.
+            - ``var_pred``: Predicted variance logits of shape
+              ``(B, L, H, W, vae_channels)`` = ``(B, L, 32, 32, 4)``.
+              Used by the improved DDPM sampler for learnable variance.
+            - ``new_temporal_kv_list``: List of length ``num_layers``, each
+              element is a tuple ``(K, V)`` of the current input's temporal
+              keys and values (before cache concatenation). Shape per element:
+              ``(B*HW, L, model_dim)``. Caller stores these in KVCacheQueue
+              during cache writing; discards during denoising.
+            - ``new_spatial_kv_list``: List of length ``num_layers``, each
+              element is a tensor of shape ``(P', HW, model_dim)`` for the
+              spatial KV cache. Updated during cache writing; unchanged during
+              denoising.
+
+        Raises:
+            ValueError: If ``z`` does not have exactly 5 dimensions.
+            ValueError: If ``t_vec`` shape does not match ``(B, L)``.
+            ValueError: If ``temporal_kv_cache_list`` length does not match
+                        ``num_layers`` when provided.
+            ValueError: If ``spatial_kv_cache_list`` length does not match
+                        ``num_layers`` when provided.
+        """
+        # ── Input validation ─────────────────────────────────────────────────
+        if z.ndim != 5:
+            raise ValueError(
+                f"z must be a 5-D tensor (B, L, H, W, C), "
+                f"got shape {tuple(z.shape)}."
+            )
+
+        B: int
+        L: int
+        H: int
+        W: int
+        C: int
+        B, L, H, W, C = z.shape
+
+        if t_vec.shape != (B, L):
+            raise ValueError(
+                f"t_vec shape must be ({B}, {L}), "
+                f"got {tuple(t_vec.shape)}."
+            )
+
+        if temporal_kv_cache_list is not None:
+            if len(temporal_kv_cache_list) != self.num_layers:
+                raise ValueError(
+                    f"temporal_kv_cache_list must have length num_layers="
+                    f"{self.num_layers}, got {len(temporal_kv_cache_list)}."
+                )
+
+        if spatial_kv_cache_list is not None:
+            if len(spatial_kv_cache_list) != self.num_layers:
+                raise ValueError(
+                    f"spatial_kv_cache_list must have length num_layers="
+                    f"{self.num_layers}, got {len(spatial_kv_cache_list)}."
+                )
+
+        device: torch.device = z.device
+
+        # ── Step 1: Patchify ─────────────────────────────────────────────────
+        # (B, L, H, W, C) → (B, L, H*W, C) → patch_embed → (B, L, H*W, model_dim)
+        x: torch.Tensor = z.reshape(B, L, H * W, C)
+        x = self.patch_embed(x)
+        # x: (B, L, H*W, model_dim) = (B, L, 1024, 1152)
+
+        # ── Step 2: Add spatial positional embeddings ─────────────────────────
+        # spe.embedding_table: (H*W, model_dim) = (1024, 1152)
+        # Broadcast over B and L dimensions.
+        spe_emb: torch.Tensor = self.spe.embedding_table  # (1024, 1152)
+        # Reshape for broadcasting: (1, 1, 1024, 1152)
+        x = x + spe_emb.unsqueeze(0).unsqueeze(0)
+        # x: (B, L, 1024, 1152)
+
+        # ── Step 3: Compute per-frame timestep embeddings ─────────────────────
+        # t_vec: (B, L) — different timestep per frame.
+        # Flatten to (B*L,), embed, reshape to (B, L, model_dim).
+        t_flat: torch.Tensor = t_vec.reshape(B * L)
+        # t_flat: (B*L,)
+        t_emb_flat: torch.Tensor = self.t_embedder(t_flat)
+        # t_emb_flat: (B*L, model_dim)
+        t_emb: torch.Tensor = t_emb_flat.reshape(B, L, self.model_dim)
+        # t_emb: (B, L, model_dim) — per-frame timestep embeddings.
+        # Frames with t_vec[i,j]=0 get tEmb(0) → constant → cache sharing.
+
+        # ── Step 4: Get temporal positional embeddings ────────────────────────
+        # Training: sample random cyclic offset via CyclicTPE.
+        # Inference: use pre-computed TPEs provided by the caller.
+        if tpe is None:
+            # Training mode: random cyclic shift.
+            tpe = self.cyclic_tpe.get_train_tpe(L=L, device=device)
+        # tpe: (L, model_dim)
+
+        # ── Step 5: Thread through DiTBlock layers ────────────────────────────
+        new_temporal_kv_list: List[Tuple[torch.Tensor, torch.Tensor]] = []
+        new_spatial_kv_list: List[torch.Tensor] = []
+
+        for i, block in enumerate(self.blocks):
+            # Extract per-layer caches (None if not provided).
+            layer_temporal_cache: Optional[Tuple[torch.Tensor, torch.Tensor]] = (
+                temporal_kv_cache_list[i] if temporal_kv_cache_list is not None else None
+            )
+            layer_spatial_cache: Optional[torch.Tensor] = (
+                spatial_kv_cache_list[i] if spatial_kv_cache_list is not None else None
+            )
+
+            # Forward through DiTBlock.
+            # x: (B, L, HW, model_dim) → (B, L, HW, model_dim)
+            # new_t_kv: Tuple(K, V) each (B*HW, L, model_dim)
+            # new_s_kv: (P', HW, model_dim)
+            x, new_t_kv, new_s_kv = block(
+                x=x,
+                t_emb=t_emb,
+                tpe=tpe,
+                text_context=text_emb,
+                text_mask=text_mask,
+                temporal_kv_cache=layer_temporal_cache,
+                spatial_kv_cache=layer_spatial_cache,
+            )
+
+            new_temporal_kv_list.append(new_t_kv)
+            new_spatial_kv_list.append(new_s_kv)
+
+        # x: (B, L, HW, model_dim) after all 28 blocks.
+
+        # ── Step 6: Final projection ──────────────────────────────────────────
+        # Apply final LayerNorm.
+        x = self.final_norm(x)
+        # x: (B, L, HW, model_dim)
+
+        # Project to 2 * vae_channels = 8 output channels.
+        x = self.final_proj(x)
+        # x: (B, L, HW, 8)
+
+        # Reshape back to spatial grid: (B, L, HW, 8) → (B, L, H, W, 8)
+        x = x.reshape(B, L, H, W, 2 * self.vae_channels)
+        # x: (B, L, H, W, 8)
+
+        # Split into noise prediction and variance logits.
+        # Following improved DDPM (Nichol & Dhariwal, 2021):
+        # First vae_channels channels: noise prediction ε_θ.
+        # Last vae_channels channels: variance logits v_θ.
+        noise_pred: torch.Tensor = x[..., : self.vae_channels]
+        var_pred: torch.Tensor = x[..., self.vae_channels :]
+        # noise_pred: (B, L, H, W, 4)
+        # var_pred:   (B, L, H, W, 4)
+
+        return noise_pred, var_pred, new_temporal_kv_list, new_spatial_kv_list
+
+    # -----------------------------------------------------------------------
+    # Cache writing stage
+    # -----------------------------------------------------------------------
+
+    def compute_clean_kv(
+        self,
+        z_clean: torch.Tensor,
+        tpe: torch.Tensor,
+    ) -> Tuple[List[Tuple[torch.Tensor, torch.Tensor]], List[torch.Tensor]]:
+        """Compute clean KV features for the cache writing stage.
+
+        Called after each autoregressive denoising stage to compute the
+        temporal and spatial KV features of the freshly denoised chunk.
+        These features are stored in the KV-cache queue for use in subsequent
+        AR steps.
+
+        The critical invariant: ``t_vec`` is all zeros, so every frame
+        receives ``tEmb(0)``. This makes the computed KV features independent
+        of any denoising timestep ``t``, enabling cache sharing across all
+        100 denoising steps of the next AR step.
+
+        Paper (Sec. 3.3): "In the cache writing stage, the denoised
+        z_0^{P_k:P_k+l} is input to the model again to compute its clean
+        spatial and temporal KV-caches."
+
+        Args:
+            z_clean: Denoised latent chunk of shape ``(B, l, H, W, C)``
+               where:
+               - ``B`` = batch size (typically 1 during inference).
+               - ``l`` = chunk length (8 for video prediction, 16 for T2V).
+               - ``H = W = 32`` (32×32 latent grid).
+               - ``C = 4`` (SD VAE channels).
+               This is the output of the denoising stage (z_0 estimate).
+            tpe: Temporal positional embeddings for this chunk.
+               Shape ``(l, model_dim)``. Must be the same TPEs that were
+               used during the denoising stage for this chunk, so that the
+               cached KV features have consistent positional encoding.
+               Obtained via ``CyclicTPE.get_inference_tpe()``.
+
+        Returns:
+            A tuple ``(temporal_kv_list, spatial_kv_list)`` where:
+            - ``temporal_kv_list``: List of length ``num_layers=28``, each
+              element is a tuple ``(K, V)`` of clean temporal keys and values.
+              Shape per element: ``(B*HW, l, model_dim)`` where
+              ``HW = 1024``. These are enqueued into ``KVCacheQueue``.
+            - ``spatial_kv_list``: List of length ``num_layers=28``, each
+              element is a tensor of shape ``(P', HW, model_dim)`` where
+              ``P' = prefix_spatial_len = 3``. These replace the current
+              ``SpatialKVCache`` for the next AR step.
+
+        Raises:
+            ValueError: If ``z_clean`` does not have exactly 5 dimensions.
+            ValueError: If ``tpe`` shape does not match ``(l, model_dim)``.
+        """
+        if z_clean.ndim != 5:
+            raise ValueError(
+                f"z_clean must be a 5-D tensor (B, l, H, W, C), "
+                f"got shape {tuple(z_clean.shape)}."
+            )
+
+        B: int = z_clean.shape[0]
+        l: int = z_clean.shape[1]
+
+        if tpe.shape != (l, self.model_dim):
+            raise ValueError(
+                f"tpe shape must be ({l}, {self.model_dim}), "
+                f"got {tuple(tpe.shape)}."
+            )
+
+        # Construct t_vec of all zeros: every frame gets tEmb(0).
+        # This is the key invariant for cache sharing:
+        # tEmb(0) is constant → KV features are timestep-independent.
+        # config.autoregressive.clean_prefix_timestep = 0
+        t_vec_zeros: torch.Tensor = torch.zeros(
+            B, l, dtype=torch.long, device=z_clean.device
+        )
+        # t_vec_zeros: (B, l) — all zeros
+
+        # Run forward pass with no KV-cache (cache writing stage).
+        # No text conditioning (cache writing is always unconditional).
+        # tpe is provided explicitly (same as used during denoising).
+        with torch.no_grad():
+            _, _, temporal_kv_list, spatial_kv_list = self.forward(
+                z=z_clean,
+                t_vec=t_vec_zeros,
+                text_emb=None,
+                text_mask=None,
+                temporal_kv_cache_list=None,
+                spatial_kv_cache_list=None,
+                tpe=tpe,
+            )
+
+        # temporal_kv_list: List[Tuple(K, V)] of length num_layers
+        # spatial_kv_list:  List[Tensor] of length num_layers
+        return temporal_kv_list, spatial_kv_list
+
+    # -----------------------------------------------------------------------
+    # Weight loading from Open-Sora v1.0
+    # -----------------------------------------------------------------------
+
+    def load_opensora_weights(self, ckpt_path: str) -> None:
+        """Load and adapt Open-Sora v1.0 pretrained weights.
+
+        Open-Sora v1.0 uses bidirectional temporal attention. The weight
+        tensors (W_Q, W_K, W_V, W_O) for temporal attention are directly
+        reusable — the causal masking is applied dynamically at runtime via
+        ``_build_causal_mask``, not baked into the weights.
+
+        New layers introduced by Ca

@@ -1,0 +1,6 @@
+{
+  "submitted": true,
+  "summary": "The repository contains the core OLMoE model architecture (Router, Expert, MoE, OlmoeBlock, OlmoeModel), custom loss functions (Load Balancing Loss, Router Z-loss, and combined OLMoE loss), and a configuration file with parameters inferred from the paper. A conceptual training script demonstrates how these components would be integrated. The `README.md` provides detailed explanations, remaining tasks, and assumptions.",
+  "steps": 22,
+  "repo_dir": "/mnt/paper2any/pzw/proj/paperagent/hx/Research_space/SemanticAlign-Bench/experiments/runs/gemini-flash_basic/olmoe/olmoe-20260505-142534/workspace/repo"
+}

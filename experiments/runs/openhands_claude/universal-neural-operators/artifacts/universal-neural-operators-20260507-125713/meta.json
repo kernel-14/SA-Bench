@@ -1,0 +1,9 @@
+{
+  "paper_id": "universal-neural-operators",
+  "run_id": "universal-neural-operators-20260507-125713",
+  "model": "claude-sonnet-4-6",
+  "max_iterations": 100,
+  "elapsed_s": 882.3,
+  "agent_state": "AgentState.FINISHED",
+  "iterations": 32
+}

@@ -1,0 +1,140 @@
+## config.yaml
+# Master configuration for LUNO reproduction experiments.
+# All paths are relative to the project root.
+
+# ---------------------------------------------------------------------------
+# Experiment selection
+# ---------------------------------------------------------------------------
+experiment:
+  name: "luno_reproduction"          # identifier for logging and checkpoints
+  seed: 42                           # global random seed
+  pde: "burgers"                     # one of: burgers, hyper_diffusion, ks_conservative, advection_2d
+  data_regime: "low_data"            # "low_data" (25 trajectories) or "ood" (1000 trajectories)
+  out_of_distribution: null          # null for base evaluation; "flip", "pos", "pos_neg", "pos_neg_flip" for OOD eval
+  methods:                           # UQ methods to run (comment out to skip)
+    - "input_perturbation"
+    - "ensemble"
+    - "sample_iso"
+    - "luno_iso"
+    - "sample_la"
+    - "luno_la"
+  rollout_eval: false                # whether to perform autoregressive rollout evaluation
+  rollout_steps: 50                  # number of time steps for rollout
+  rollout_trajectories: 50           # number of trajectories for rollout averaging
+
+# ---------------------------------------------------------------------------
+# Data generation / loading
+# ---------------------------------------------------------------------------
+data:
+  # --- 1D PDEs (Burgers, Hyper-Diffusion, KS conservative) ---
+  burgers:
+    spatial_res: 256
+    time_steps: 59
+    domain_size: 6.283185307          # 2*pi
+    input_time_window: 10
+    train_traj: 25
+    val_traj: 250
+    test_traj: 250
+    dt: null                          # auto-determined by APEBench
+    viscosity: 0.01
+  hyper_diffusion:
+    spatial_res: 256
+    time_steps: 59
+    domain_size: 6.283185307
+    input_time_window: 10
+    train_traj: 25
+    val_traj: 250
+    test_traj: 250
+  ks_conservative:
+    spatial_res: 256
+    time_steps: 59
+    domain_size: 6.283185307
+    input_time_window: 10
+    train_traj: 25
+    val_traj: 250
+    test_traj: 250
+  # --- 2D Advection-Diffusion (OOD) ---
+  advection_2d:
+    spatial_res: [100, 100]
+    time_steps: 59
+    domain_size: [1.0, 1.0]
+    input_time_window: 10
+    train_traj: 1000
+    val_traj: 250
+    test_traj: 250
+    diffusion_coef: 0.026
+    dt: 5e-10                         # fine simulation dt, subsampled later
+    solver: "rk4_9point"
+
+  # Common
+  batch_size: 8                       # training mini-batch size
+  num_workers: 0                      # data loading in main process (JAX handles parallelism)
+  data_dir: "./data"                  # directory to store generated datasets
+  use_apebench: true                  # if true, delegates 1D generation to APEBench
+
+# ---------------------------------------------------------------------------
+# FNO Model architecture
+# ---------------------------------------------------------------------------
+model:
+  modes: 12                           # number of Fourier modes per spatial dimension
+  hidden_dim: 18                      # lifted dimension d_v'
+  num_blocks: 4                       # number of Fourier layers L
+  activation: "gelu"                  # activation inside Fourier blocks
+  norms: null                         # optional layer norm (paper does not mention)
+  use_bias: true
+
+# ---------------------------------------------------------------------------
+# Training
+# ---------------------------------------------------------------------------
+training:
+  # Epochs: one epoch = one pass over all (trajectory, timestep) pairs.
+  # Low data regime: 100 epochs. OOD regime: 1000 epochs.
+  epochs:
+    low_data: 100
+    ood: 1000
+  optimizer: "adamw"
+  learning_rate: 1.0e-3               # initial learning rate (NOT explicitly stated; typical)
+  weight_decay: 1.0e-4                # weight decay for AdamW (NOT explicitly stated)
+  lr_schedule: "cosine_decay"         # cosine decay with warmup
+  warmup_epochs: 5                    # number of warmup epochs (NOT explicitly stated)
+  loss: "mse"
+  clip_grad_norm: null                # gradient clipping (not mentioned)
+  checkpoint_dir: "./checkpoints"
+  log_interval: 10                    # epochs between logging
+
+# ---------------------------------------------------------------------------
+# Uncertainty quantification
+# ---------------------------------------------------------------------------
+uq:
+  # Laplace approximation
+  laplace:
+    rank: 500                         # number of top GGN eigenvectors
+    ggn_batch_size: 1000              # minibatch size for GGN computation (1000 for OOD, all for low_data)
+    use_all_data_for_ggn: true        # if true, uses all training pairs when regime=low_data
+  # Sampling methods
+  num_samples: 200                     # number of weight samples for sample-based UQ
+  # Input perturbation
+  input_perturb:
+    num_samples: 200
+  # Ensemble
+  ensemble:
+    num_models: 10
+  # Calibration grid search
+  calibration:
+    grid_size: 500                    # number of log-spaced grid points
+    # parameter ranges in log10 space: [min_log10, max_log10]
+    sigma_range: [-5.0, 2.0]          # range for sigma^2 in Iso and prior variance in LA
+    input_perturb_sigma_range: [-4.0, -1.0]
+  # Push-forward
+  push_forward:
+    compute_jacobian_batch_size: 1    # batch size for Jacobian computation (memory trade-off)
+    variance_diagonal_only: true      # compute only marginal variances
+
+# ---------------------------------------------------------------------------
+# Evaluation
+# ---------------------------------------------------------------------------
+evaluation:
+  metrics: ["rmse", "chi2", "nll"]    # metrics to compute
+  test_pairs: 250                     # number of input-output pairs for test evaluation
+  save_predictions: false
+  results_dir: "./results"

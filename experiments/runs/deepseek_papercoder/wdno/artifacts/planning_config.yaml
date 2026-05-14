@@ -1,0 +1,136 @@
+## config.yaml
+# Global experiment identifier
+experiment: "burgers_1d_sim"   # options: burgers_1d_sim, burgers_1d_ctrl, advection_1d, cfd_1d, fluid_2d_sim, fluid_2d_ctrl, era5
+
+# Random seed for reproducibility
+seed: 42
+
+# Data configuration
+data:
+  # 1D Burgers and Advection
+  burgers_root: "data/burgers/"
+  advection_root: "data/advection/"
+  # 1D Compressible NS (PDEBench)
+  cfd_root: "data/cfd_1d/"
+  # 2D incompressible fluid
+  fluid_root: "data/fluid_2d/"
+  # ERA5
+  era5_root: "data/era5/"
+
+  # Training and validation splits
+  num_train: 40000
+  num_val: 2000
+  num_test: 50
+
+  # Multi-resolution scales (list of spatial resolutions as fraction of original)
+  # Original resolution = 1
+  # For 1D: [1, 0.5, 0.25, 0.125] (spatial scaling)
+  # For 2D: [1, 0.5] (spatial only)
+  super_res_scales: [1, 0.5, 0.25, 0.125]   # used only for 1D; for 2D, override per experiment
+  # Temporal scaling is coupled to spatial scaling (same factor) for SRM.
+  # Downsampling method: "average" or "interpolation"
+  downsampling: "average"
+
+# Wavelet transform settings
+wavelet:
+  # 1D experiments (2D transform: time x space)
+  wname_1d: "bior2.4"
+  mode_1d: "periodization"
+  # 2D/3D experiments (3D transform: time x y)
+  wname_2d: "bior1.3"
+  mode_2d: "zero"
+  # Always use one level of decomposition (L = L0)
+  level: 1
+  # Reconstruction tolerance
+  rec_tol: 1.0e-6
+
+# Base-Resolution Model (BRM) architecture (2D U-Net)
+model_base:
+  # Input channels: noisy wavelet coefficients (4 subbands) + condition channels
+  # Condition channels vary per task; will be computed dynamically.
+  out_channels: 4        # wavelet subbands
+  initial_dim: 128
+  dim_mults: [1, 2, 4, 8]
+  down_up_blocks: 4
+  kernel_size: 3
+  resnet_groups: 8
+  attention_dim: 32
+  attention_heads: 4
+
+# Super-Resolution Model (SRM) architecture (same as BRM but extra input channels)
+model_super:
+  # inherits same structure, but additional input channels for low-res wavelet + high-res condition
+  extra_channels_low: 4   # duplicated low-res wavelet
+  # All other parameters same as model_base
+
+# For 2D experiments, 3D U-Net architecture
+model_3d:
+  in_channels: 8         # noisy wavelet (8 subbands) plus condition
+  out_channels: 8
+  dim: 64                # base channels (equivalent to initial_dim for 3D)
+  dim_mults: [1, 2, 4]
+  kernel_size: [3, 3, 3]
+  padding: [1, 1, 1]
+  stride: [1, 1, 1]
+  # Downsampling: preserve time, halve spatial
+  downsample_kernel: [1, 4, 4]
+  downsample_padding: [0, 1, 1]
+  downsample_stride: [1, 2, 2]
+  # Upsampling: preserve time, double spatial
+  upsample_kernel: [1, 4, 4]
+  upsample_padding: [0, 1, 1]
+  upsample_stride: [1, 2, 2]
+  resnet_groups: 8
+  attention_heads: 4
+  attention_dim: 32
+
+# Diffusion process
+diffusion:
+  num_timesteps: 1000
+  schedule: "cosine"          # noise schedule
+  # DDIM sampling parameters (override per experiment)
+  ddim_steps_1d: 50
+  ddim_steps_2d: 100
+  ddim_eta: 0.0               # deterministic for simulation; can be 1.0 for stochastic
+  # Classifier-free guidance
+  drop_cond_prob: 0.1
+  guidance_weight: 0.0        # default 0 for simulation, will be set per task
+
+# Training
+training:
+  optimizer: "Adam"
+  learning_rate: 1.0e-4
+  lr_scheduler: "cosine"      # cosine annealing to 0
+  grad_clip: 1.0              # gradient clipping (if any)
+  # Batch sizes
+  batch_size_1d: 16
+  batch_size_2d: 8            # estimate; paper not explicit for 2D WDNO
+  # Training steps
+  steps_brm: 190000
+  steps_srm: 190000           # same as BRM
+  steps_ctrl_surrogate: 50000
+
+# Control-specific
+control:
+  # Guidance weight lambda (coefficient for grad I)
+  # For 1D Burgers': 120000
+  lambda_1d: 120000
+  # For 2D fluid: 10 (the paper tests around 9-13, best 11.5; we set 11.5)
+  lambda_2d: 11.5
+  # Surrogate model for objective gradient
+  surrogate:
+    type: "unet_2d"          # for 1D: U-Net; for 2D: maybe 3D U-Net
+    # Training hyperparams
+    lr: 1.0e-4
+    epochs: 500
+    batch_size: 16
+
+# Evaluation
+eval:
+  # Compute metrics on test set
+  num_samples: 50
+  # In control, ground-truth solver is used to evaluate J
+  # Provide path to solver or external program? (We'll assume the dataset contains needed ground truth)
+
+# Hardware
+device: "cuda"

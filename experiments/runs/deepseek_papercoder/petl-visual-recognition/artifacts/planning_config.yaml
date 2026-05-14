@@ -1,0 +1,101 @@
+## config.yaml
+
+# Central configuration for reproducing the PEFT study.
+# Paths and absolute values should be adjusted for your environment.
+
+backbone:
+  # For VTAB and many-shot experiments, use ViT-B/16 pretrained on ImageNet-21K.
+  # For robustness, use CLIP ViT-B/16 (loaded from open_clip).
+  name: "vit_base_patch16_224_in21k"
+  drop_path_rate: 0.1                  # stochastic depth rate; 0.1 is on, 0.0 is off
+  param_total: 86_000_000              # approximate number of parameters for param cap
+
+training:
+  vtab:
+    optimizer: "AdamW"
+    learning_rate: [1e-3, 1e-2]       # search range, log scale
+    weight_decay: [1e-4, 1e-3]         # search range
+    batch_size: 64
+    epochs: 100
+    scheduler: "cosine_decay"
+    drop_path_tuning: [0.0, 0.1]       # whether to tune drop path (0 = off, 0.1 = on)
+    param_cap_percent: 0.015          # 1.5% of total backbone parameters
+    val_split_ratio: 0.2              # 800/200 split for hyperparameter tuning
+
+  many_shot:
+    optimizer: "AdamW"
+    learning_rate: [5e-4, 1e-3]       # grid search range
+    weight_decay: [1e-4, 1e-3]
+    batch_size: 64
+    epochs: 40
+    scheduler: "cosine_decay"
+    # Data augmentations are dataset-specific:
+    # CIFAR-100: horizontal flip
+    # RESISC45: horizontal + vertical flips
+    # Clevr-Distance: no augmentation
+
+  robustness:
+    optimizer: "AdamW"
+    learning_rate: 3.0e-5
+    weight_decay: 5.0e-3
+    batch_size: 64                    # WiSE-FT typically uses 512, but 64 is safe for memory
+    epochs: 10
+    scheduler: "cosine_decay"
+    strong_augmentation: true         # RandAugment(2,9) + RandomResizedCrop + HorizontalFlip
+    wise_alphas: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+peft_methods:
+  # Hyperparameter search grids for each method (as in Table 3).
+  # An empty dict means no method-specific hyperparameters (e.g., BitFit, DiffFit).
+  vpt_shallow:
+    prompt_numbers: [5, 10, 50, 100, 200]
+  vpt_deep:
+    prompt_numbers: [5, 10, 50, 100]
+  bitfit: {}
+  difffit: {}
+  layernorm: {}
+  ssf: {}
+  pfeif_adapter:
+    scale_factors: [0.01, 0.1, 1.0, 10.0]
+    bottlenecks: [4, 8, 16, 32]
+  houl_adapter:
+    scale_factors: [0.01, 0.1, 1.0, 10.0]
+    bottlenecks: [4, 8, 16, 32]
+  adaptformer:
+    scale_factors: [0.05, 0.1, 0.2]
+    bottlenecks: [4, 16, 32]
+  repadapter:
+    scale_factors: [0.1, 0.5, 1.0, 5.0, 10.0]
+    bottlenecks: [8, 16, 32]
+  convpass:
+    scale_factors: [0.01, 0.1, 1.0, 10.0, 100.0]
+    bottlenecks: [8, 16]
+    xavier_init: [true, false]
+  lora:
+    bottlenecks: [1, 8, 16, 32]       # rank r for LoRA
+  fact_tt:
+    scale_factors: [0.01, 0.1, 1.0, 10.0, 100.0]
+    bottlenecks: [8, 16, 32]
+  fact_tk:
+    scale_factors: [0.01, 0.1, 1.0, 10.0, 100.0]
+    bottlenecks: [16, 32, 64]
+
+datasets:
+  # Root directories for the datasets.
+  vtab_root: "/datasets/vtab-1k"
+  many_shot:
+    cifar100: "/datasets/cifar100"
+    resisc45: "/datasets/resisc45"
+    clevr_distance: "/datasets/clevr_distance"
+  robustness:
+    imagenet_train: "/datasets/imagenet/train"          # 100-shot subset
+    imagenet_val: "/datasets/imagenet/val"
+    imagenet_v2: "/datasets/imagenetv2"
+    imagenet_r: "/datasets/imagenet-r"
+    imagenet_sketch: "/datasets/imagenet-sketch"
+    imagenet_a: "/datasets/imagenet-a"
+
+misc:
+  seed: 42
+  num_workers: 4
+  device: "cuda"
