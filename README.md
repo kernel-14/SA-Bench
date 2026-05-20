@@ -13,7 +13,7 @@ Benchmark for evaluating semantic alignment in LLM-based paper reproduction. Mea
 ### 1. Download the Dataset
 
 ```bash
-huggingface-cli download kernel14/SemanticAlign-Bench --local-dir ./data
+huggingface-cli download [anonymous]/SemanticAlign-Bench --local-dir ./data
 ```
 
 The dataset contains 30 papers with SAU (Semantic Alignment Unit) claims in four diagnostic dimensions:
@@ -93,27 +93,80 @@ Setup instructions for PaperCoder and OpenHands in `baselines/README.md`.
 | OpenHands | 0.277 | 0.282 | 0.243 | 0.082 |
 
 **Key findings**:
-- Overall SAU score mean: 0.221, median: 0.200. 82.4% of claims score ≤0.25.
+- Overall SAU score mean: 0.221, median: 0.237. 82.4% of claims score ≤0.25.
 - Model effect (2.35× range) dominates scaffold effect (1.15× range)
 - D1 > D2 > D4 > D3 hierarchy invariant across all 12 configs
 - D3 (experimental protocol) is the bottleneck: 0.7% perfect-score rate, 14× lower than D1
-- 81% of zero-scored claims contain partial but incorrect code; only 5.7% are completely absent
+- Zero-scored claims (7,034 total): 40.8% implementation mismatch, 16.2% stubs/placeholders, 8.0% external knowledge gaps
+
+### Dimension Statistics
+
+| Statistic | D1 | D2 | D3 | D4 |
+|-----------|----|----|----|-----|
+| Mean | 0.290 | 0.244 | 0.160 | 0.190 |
+| Median | 0.304 | 0.235 | 0.167 | 0.188 |
+| % ≥0.5 | 28.7% | 18.2% | 3.7% | 5.9% |
+| Full-mark rate (1.0) | 9.7% | 5.4% | 0.7% | 0.9% |
+| Zero rate | 39.6% | 35.8% | 44.8% | 33.7% |
+
+### Marginal Means by Model and Scaffold
+
+| Factor | Overall | D1 | D2 | D3 | D4 |
+|--------|---------|----|----|----|-----|
+| **By Model** | | | | | |
+| Claude-Sonnet-4.6 | 0.283 | 0.413 | 0.293 | 0.201 | 0.225 |
+| DeepSeek-V4-Pro | 0.263 | 0.358 | 0.294 | 0.186 | 0.216 |
+| Gemini-2.5-Flash | 0.217 | 0.268 | 0.248 | 0.161 | 0.189 |
+| GPT-4o | 0.120 | 0.120 | 0.140 | 0.092 | 0.130 |
+| **By Scaffold** | | | | | |
+| PaperCoder | 0.249 | 0.344 | 0.262 | 0.179 | 0.211 |
+| OpenHands | 0.221 | 0.288 | 0.233 | 0.174 | 0.188 |
+| BasicAgent | 0.193 | 0.238 | 0.237 | 0.127 | 0.170 |
+
+### Full Generator × Scaffold Scores
+
+| Scaffold | Model | Overall | D1 | D2 | D3 | D4 |
+|----------|-------|---------|----|----|----|-----|
+| BasicAgent | Claude-Sonnet-4.6 | 0.272 | 0.391 | 0.307 | 0.169 | 0.219 |
+| BasicAgent | DeepSeek-V4-Pro | 0.268 | 0.379 | 0.308 | 0.180 | 0.204 |
+| BasicAgent | Gemini-2.5-Flash | 0.150 | 0.134 | 0.210 | 0.099 | 0.158 |
+| BasicAgent | GPT-4o | 0.081 | 0.047 | 0.121 | 0.058 | 0.100 |
+| PaperCoder | Claude-Sonnet-4.6 | 0.301 | 0.470 | 0.299 | 0.209 | 0.226 |
+| PaperCoder | DeepSeek-V4-Pro | 0.241 | 0.339 | 0.278 | 0.148 | 0.200 |
+| PaperCoder | Gemini-2.5-Flash | 0.256 | 0.335 | 0.270 | 0.198 | 0.222 |
+| PaperCoder | GPT-4o | 0.198 | 0.231 | 0.200 | 0.163 | 0.197 |
+| OpenHands | Claude-Sonnet-4.6 | 0.276 | 0.379 | 0.272 | 0.224 | 0.229 |
+| OpenHands | DeepSeek-V4-Pro | 0.282 | 0.357 | 0.297 | 0.229 | 0.244 |
+| OpenHands | Gemini-2.5-Flash | 0.243 | 0.335 | 0.264 | 0.187 | 0.187 |
+| OpenHands | GPT-4o | 0.082 | 0.082 | 0.098 | 0.056 | 0.093 |
+| **Mean** | | **0.221** | **0.290** | **0.244** | **0.160** | **0.190** |
+
+### Per-Paradigm Scores
+
+| Paradigm | Papers | Overall | D1 | D2 | D3 | D4 |
+|----------|--------|---------|----|----|----|-----|
+| New Algorithm / Architecture | 13 | 0.232 | 0.307 | 0.269 | 0.164 | 0.188 |
+| Theoretical Analysis | 5 | 0.225 | 0.276 | 0.222 | 0.192 | 0.211 |
+| System / Pipeline | 3 | 0.217 | 0.269 | 0.231 | 0.163 | 0.203 |
+| Empirical Comparison | 2 | 0.212 | 0.239 | 0.290 | 0.145 | 0.173 |
+| Generative Models | 2 | 0.210 | 0.351 | 0.190 | 0.125 | 0.172 |
+| Incremental Improvement | 5 | 0.198 | 0.268 | 0.210 | 0.135 | 0.179 |
 
 ---
 
-## PaperBench Case Study
+## PaperBench Pilot Study
 
-`paperbench_case_study/` contains results from a pilot study using Claude Sonnet 4.6 + BasicAgent on five ICML 2024 papers evaluated with PaperBench-dev.
+Claude Sonnet 4.6 + BasicAgent (ReAct, max\_steps=80, time\_limit=900s) on five ICML 2024 papers from PaperBench-dev, evaluated by the official GPT-4o judge pipeline (`code_only=True`). Raw resource usage harvested from each run's `meta.json` and `grade.json`.
 
-| Paper | Score | Key Drift |
-|-------|-------|-----------|
-| mechanistic-understanding | 0.839 | Light D1 (eval metrics) |
-| sample-specific-masks | 0.810 | Light D1+D2 (baseline gaps) |
-| pinn | 0.806 | Light D3 (experiment configs) |
-| fre | 0.331 | Heavy D2 (experiments missing, time-truncated) |
-| all-in-one | 0.117 | Severe D1+D2+D3 (core architecture missing) |
+| Paper | Score | Pass | Total | Steps | Time (s) | Cost | Termination |
+|-------|-------|------|-------|-------|----------|------|-------------|
+| mechanistic-understanding | 0.839 | 29 | 36 | 37 | 1252.5 | $5.81 | Time limit |
+| sample-specific-masks | 0.810 | 66 | 87 | 81 | 652.4 | $6.10 | Step limit |
+| pinn | 0.806 | 112 | 126 | 35 | 909.4 | $4.10 | Time limit |
+| fre | 0.331 | 113 | 306 | 24 | 909.1 | $2.11 | Time limit |
+| all-in-one | 0.117 | 15 | 92 | 81 | 478.1 | $3.41 | Step limit |
 
-Full analysis: `paperbench_case_study/sonnet46-basicagent/case_study.md`
+The D1--D4 drift taxonomy was derived inductively from 312 score-0 leaf nodes across these five runs (see paper Appendix for judge reasoning excerpts and failure analysis).
 
 ---
 
