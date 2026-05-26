@@ -156,17 +156,17 @@ Setup instructions for PaperCoder and OpenHands in `baselines/README.md`.
 
 ## PaperBench Pilot Study
 
-Claude Sonnet 4.6 + BasicAgent (ReAct, max\_steps=80, time\_limit=900s) on five ICML 2024 papers from PaperBench-dev, evaluated by the official GPT-4o judge pipeline (`code_only=True`). Raw resource usage harvested from each run's `meta.json` and `grade.json`.
+Claude Sonnet 4.6 + BasicAgent (ReAct, max\_steps=80, time\_limit=900s) on five ICML 2024 papers from PaperBench-dev. The two lower-scoring runs keep the existing GPT-4o grades, while the three initially high-scoring runs are re-scored with the same code-only BasicAgent judge using o3-mini. Raw resource usage is harvested from each run's `meta.json`, and scores from `grade.json`.
 
 | Paper | Score | Pass | Total | Steps | Time (s) | Cost | Termination |
 |-------|-------|------|-------|-------|----------|------|-------------|
-| mechanistic-understanding | 0.839 | 29 | 36 | 37 | 1252.5 | $5.81 | Time limit |
-| sample-specific-masks | 0.810 | 66 | 87 | 81 | 652.4 | $6.10 | Step limit |
-| pinn | 0.806 | 112 | 126 | 35 | 909.4 | $4.10 | Time limit |
+| sample-specific-masks | 0.603 | 44 | 87 | 81 | 652.4 | $6.10 | Step limit |
+| pinn | 0.482 | 66 | 126 | 35 | 909.4 | $4.10 | Time limit |
 | fre | 0.331 | 113 | 306 | 24 | 909.1 | $2.11 | Time limit |
+| mechanistic-understanding | 0.238 | 10 | 36 | 37 | 1252.5 | $5.81 | Time limit |
 | all-in-one | 0.117 | 15 | 92 | 81 | 478.1 | $3.41 | Step limit |
 
-The D1--D4 drift taxonomy was derived inductively from 312 score-0 leaf nodes across these five runs (see paper Appendix for judge reasoning excerpts and failure analysis).
+The D1--D4 drift taxonomy was derived inductively from 399 score-0 leaf nodes across these five runs (see paper Appendix for judge reasoning excerpts and failure analysis).
 
 ---
 
