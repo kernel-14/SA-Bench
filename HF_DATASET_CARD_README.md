@@ -3,6 +3,8 @@ language:
 - en
 license: cc-by-4.0
 pretty_name: SemanticAlign-Bench
+homepage: https://github.com/kernel-14/SemanticAlign-Bench
+repository: https://github.com/kernel-14/SemanticAlign-Bench
 tags:
 - research-papers
 - machine-learning
@@ -170,17 +172,6 @@ This is a **static benchmark**: claims test specification fidelity (did the agen
 ### License
 
 SAU annotations are licensed under **CC-BY-4.0**. Underlying papers are subject to their original copyright terms as posted on arXiv and respective conference proceedings.
-
-### Citation
-
-```bibtex
-@inproceedings{semanticalign_bench,
-  title     = {SemanticAlign-Bench: Evaluating Semantic Alignment in LLM-Based Paper Reproduction},
-  author    = {Anonymous Author(s)},
-  year      = {2025},
-  note      = {Benchmark dataset at \url{https://anonymous-hf.up.railway.app/a/rrgn430zpfui/}}
-}
-```
 
 ### Papers List
 

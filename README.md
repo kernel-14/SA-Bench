@@ -1,19 +1,33 @@
-# SemanticAlign-Bench
+# SA-Bench: Evaluating Semantic Alignment in LLM-Based Paper Reproduction
 
 Benchmark for evaluating semantic alignment in LLM-based paper reproduction. Measures whether AI agents faithfully reproduce ML papers — not just whether the code runs, but whether it encodes the right parameters, formulas, experimental protocols, and procedural steps.
 
-**Paper**: [Anonymous submission]  
-**Dataset**: [HuggingFace](https://anonymous-hf.up.railway.app/a/rrgn430zpfui/)  
+
+**Dataset**: [Hugging Face](https://huggingface.co/datasets/kernel-14/SemanticAlign-Bench)
+
+**Code**: [GitHub](https://github.com/kernel-14/SemanticAlign-Bench)
 **Benchmark**: 30 papers × 1,491 SAU claims across ICLR/ICML/NeurIPS 2025
+
+![SemanticAlign-Bench overview](figure/overview.png)
 
 ---
 
 ## Quick Start
 
-### 1. Download the Dataset
+### 1. Install the Scorer
 
 ```bash
-huggingface-cli download [anonymous]/SemanticAlign-Bench --local-dir ./data
+pip install -e .
+```
+
+Requires Python 3.10 or later.
+
+### 2. Download the Dataset
+
+```bash
+hf download kernel-14/SemanticAlign-Bench \
+  --repo-type dataset \
+  --local-dir ./data
 ```
 
 The dataset contains 30 papers with SAU (Semantic Alignment Unit) claims in four diagnostic dimensions:
@@ -25,7 +39,7 @@ The dataset contains 30 papers with SAU (Semantic Alignment Unit) claims in four
 | D3 | Experiment Protocols | 300 | Datasets, baselines, metrics |
 | D4 | Pipelines / Procedures | 165 | Training phase ordering, algorithm steps |
 
-### 2. Run Scoring
+### 3. Run Scoring
 
 ```bash
 # Score one paper
@@ -64,7 +78,7 @@ python -m sa_bench \
 | `--llm-search` | Use LLM ReAct search (default: deterministic grep-based) |
 | `--no-llm-judge` | Heuristic scoring fallback instead of LLM judge |
 
-### 3. Run Baselines
+### 4. Run Baselines
 
 Three scaffold systems in `baselines/`:
 
@@ -191,17 +205,6 @@ SemanticAlign-Bench/
 ├── paperbench_case_study/     # Pilot study: Sonnet 4.6 on 5 ICML 2024 papers
 │   ├── papers/                #   Source PDFs
 │   └── sonnet46-basicagent/   #   Generated repos + analysis
-```
-
-## Citation
-
-```bibtex
-@inproceedings{semanticalign_bench,
-  title     = {SemanticAlign-Bench: Evaluating Semantic Alignment in LLM-Based Paper Reproduction},
-  author    = {Anonymous Author(s)},
-  year      = {2025},
-  note      = {Dataset at \url{https://anonymous-hf.up.railway.app/a/rrgn430zpfui/}}
-}
 ```
 
 ## License

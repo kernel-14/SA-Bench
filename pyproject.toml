@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semantic-align-bench"
+version = "0.1.0"
+description = "Semantic alignment evaluation for LLM-based paper reproduction."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "openai>=1.0",
+  "pydantic>=2.0",
+]
+
+[project.scripts]
+sau-score = "sa_bench.cli:main"
+
+[tool.setuptools]
+packages = ["sa_bench", "sa_bench.tools"]
