@@ -3,8 +3,8 @@ language:
 - en
 license: cc-by-4.0
 pretty_name: SemanticAlign-Bench
-homepage: https://github.com/kernel-14/SemanticAlign-Bench
-repository: https://github.com/kernel-14/SemanticAlign-Bench
+homepage: https://github.com/kernel-14/SA-Bench
+repository: https://github.com/kernel-14/SA-Bench
 tags:
 - research-papers
 - machine-learning

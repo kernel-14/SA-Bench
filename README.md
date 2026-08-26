@@ -1,28 +1,36 @@
 # SA-Bench: Evaluating Semantic Alignment in LLM-Based Paper Reproduction
 
-Benchmark for evaluating semantic alignment in LLM-based paper reproduction. Measures whether AI agents faithfully reproduce ML papers — not just whether the code runs, but whether it encodes the right parameters, formulas, experimental protocols, and procedural steps.
+<p align="center">
+  <a href="https://arxiv.org/abs/2608.24252"><img src="https://img.shields.io/badge/arXiv-2608.24252-b31b1b.svg?logo=arxiv&logoColor=white" alt="arXiv"></a>&nbsp;&nbsp;&nbsp;
+  <a href="https://huggingface.co/datasets/kernel-14/SemanticAlign-Bench"><img src="https://img.shields.io/badge/Hugging%20Face-Datasets-FFD21E?logo=huggingface&logoColor=000" alt="Hugging Face"></a>&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/kernel-14/SA-Bench"><img src="https://img.shields.io/badge/GitHub-Code-181717?logo=github&logoColor=white" alt="GitHub"></a>
+</p>
 
+## Overview
 
-**Dataset**: [Hugging Face](https://huggingface.co/datasets/kernel-14/SemanticAlign-Bench)
+LLM agents can generate paper-reproduction code that runs while silently departing from the paper's scientific specification. SA-Bench measures this **semantic drift**: the gap between the methods, numerical settings, experimental protocols, and procedures described in a paper and those implemented in an agent-generated repository.
 
-**Code**: [GitHub](https://github.com/kernel-14/SemanticAlign-Bench)
-**Benchmark**: 30 papers × 1,491 SAU claims across ICLR/ICML/NeurIPS 2025
+SA-Bench provides 1,491 atomic, verifiable **Semantic Alignment Units (SAUs)** from 30 ICLR, ICML, and NeurIPS 2025 papers across five ML domains. The benchmark scores generated repositories along four dimensions: numerical precision (D1), methods and algorithms (D2), experimental protocols (D3), and procedure ordering (D4). It includes the annotations, an evaluation pipeline, and reference runs for 12 generator configurations.
 
 ![SemanticAlign-Bench overview](figure/overview.png)
 
----
+## Benchmark Construction
+
+Each source paper first passes through a code-first filter that retains implementable content and discards theoretical discussion, derivations, and prior-work material. Three specialist agents then extract D1 numerical settings, D2 methods, and D3 experimental protocols in parallel at the section level. The merge stage derives D4 ordering constraints from the D2/D3 annotations, and human review verifies every claim before its inclusion in the benchmark.
+
+![SA-Bench construction pipeline](figure/image.png)
 
 ## Quick Start
 
-### 1. Install the Scorer
+### 1. Install the scorer
 
 ```bash
 pip install -e .
 ```
 
-Requires Python 3.10 or later.
+SA-Bench requires Python 3.10 or later.
 
-### 2. Download the Dataset
+### 2. Download the dataset
 
 ```bash
 hf download kernel-14/SemanticAlign-Bench \
@@ -30,183 +38,78 @@ hf download kernel-14/SemanticAlign-Bench \
   --local-dir ./data
 ```
 
-The dataset contains 30 papers with SAU (Semantic Alignment Unit) claims in four diagnostic dimensions:
-
-| Dimension | Type | Count | Example |
-|-----------|------|-------|---------|
-| D1 | Numerical Precision | 523 | Learning rate, batch size, thresholds |
-| D2 | Formulas / Algorithms | 503 | Loss functions, attention mechanisms |
-| D3 | Experiment Protocols | 300 | Datasets, baselines, metrics |
-| D4 | Pipelines / Procedures | 165 | Training phase ordering, algorithm steps |
-
-### 3. Run Scoring
+### 3. Score a generated repository
 
 ```bash
-# Score one paper
-python -m sa_bench \
+sau-score \
   --paper adjoint-matching \
   --repo /path/to/generated/repo \
-  --dim D1 \
+  --data-dir data/papers \
   --model deepseek-v4-pro \
   --api-key $OPENAI_API_KEY \
   --base-url $OPENAI_BASE_URL
+```
 
-# Score all papers (batch)
-python -m sa_bench \
+To score all papers, provide a directory containing one generated repository per paper:
+
+```bash
+sau-score \
   --paper all \
-  --repo-root /path/to/generated_repos/ \
+  --repo-root /path/to/generated_repos \
   --data-dir data/papers \
   --model deepseek-v4-pro \
   --output results.json \
   --workers 4
 ```
 
-**CLI Arguments**:
+Use `--dim D1`, `--dim D2`, `--dim D3`, or `--dim D4` to score one diagnostic dimension. Use `--no-llm-judge` for deterministic evidence-based scoring without an LLM judge.
 
-| Flag | Description |
-|------|-------------|
-| `--paper` | Paper ID or `all` |
-| `--dim` | Dimension: `D1`/`D2`/`D3`/`D4` or `all` (default) |
-| `--repo` | Path to single generated repository |
-| `--repo-root` | Root dir containing one repo per paper (for `--paper all`) |
-| `--data-dir` | Directory with `{paper_id}/sau.json` files (default: `data/papers`) |
-| `--model` | Judge model name (default: `deepseek-v4-pro`) |
-| `--api-key` | OpenAI-compatible API key (or set `OPENAI_API_KEY`) |
-| `--base-url` | OpenAI-compatible base URL (or set `OPENAI_BASE_URL`) |
-| `--output` | Write JSON result to file |
-| `--workers` | Parallel workers for batch scoring |
-| `--llm-search` | Use LLM ReAct search (default: deterministic grep-based) |
-| `--no-llm-judge` | Heuristic scoring fallback instead of LLM judge |
+## Results
 
-### 4. Run Baselines
-
-Three scaffold systems in `baselines/`:
-
-**BasicAgent** — our ReAct baseline
-```bash
-cd baselines/BasicAgent
-python run.py --paper data/papers/adjoint-matching/paper.md --output ./output/
-```
-
-**PaperCoder** — specialized paper-to-code agent ([source](https://github.com/HimJoe/paper2code))
-
-**OpenHands** — general coding scaffold ([source](https://github.com/All-Hands-AI/OpenHands))
-
-Setup instructions for PaperCoder and OpenHands in `baselines/README.md`.
-
----
-
-## Evaluation Results
-
-360 evaluations across 12 generator configurations (4 models × 3 scaffolds × 30 papers). Results in `experiments/runs/`.
+We evaluate 12 generator configurations: four models paired with BasicAgent, PaperCoder, and OpenHands across all 30 papers, for 360 paper-level evaluations.
 
 | Scaffold | Claude Sonnet | DeepSeek | Gemini Flash | GPT-4o |
-|----------|--------------|----------|-------------|--------|
+| --- | ---: | ---: | ---: | ---: |
 | BasicAgent | 0.272 | 0.268 | 0.150 | 0.081 |
-| PaperCoder | 0.301 | 0.241 | 0.256 | 0.198 |
+| PaperCoder | **0.301** | 0.241 | 0.256 | 0.198 |
 | OpenHands | 0.277 | 0.282 | 0.243 | 0.082 |
 
-**Key findings**:
-- Overall SAU score mean: 0.221, median: 0.237. 82.4% of claims score ≤0.25.
-- Model effect (2.35× range) dominates scaffold effect (1.15× range)
-- D1 > D2 > D4 > D3 hierarchy invariant across all 12 configs
-- D3 (experimental protocol) is the bottleneck: 0.7% perfect-score rate, 14× lower than D1
-- Zero-scored claims (7,034 total): 40.8% implementation mismatch, 16.2% stubs/placeholders, 8.0% external knowledge gaps
+The strongest configuration, Claude Sonnet with PaperCoder, reaches 0.301 mean SAU score; the overall mean is 0.221. Model choice produces a 2.35x range in performance, compared with a 1.15x range across scaffolds. D3 experimental protocols remain the central bottleneck, with a 0.7% full-mark rate. Among 7,034 zero-scored claims, implementation mismatch accounts for 40.8% and stubs or placeholders account for 16.2%, showing that scientific reproduction requires explicit verification of paper specifications throughout generation.
 
-### Dimension Statistics
-
-| Statistic | D1 | D2 | D3 | D4 |
-|-----------|----|----|----|-----|
-| Mean | 0.290 | 0.244 | 0.160 | 0.190 |
-| Median | 0.304 | 0.235 | 0.167 | 0.188 |
-| % ≥0.5 | 28.7% | 18.2% | 3.7% | 5.9% |
-| Full-mark rate (1.0) | 9.7% | 5.4% | 0.7% | 0.9% |
-| Zero rate | 39.6% | 35.8% | 44.8% | 33.7% |
-
-### Marginal Means by Model and Scaffold
-
-| Factor | Overall | D1 | D2 | D3 | D4 |
-|--------|---------|----|----|----|-----|
-| **By Model** | | | | | |
-| Claude-Sonnet-4.6 | 0.283 | 0.413 | 0.293 | 0.201 | 0.225 |
-| DeepSeek-V4-Pro | 0.263 | 0.358 | 0.294 | 0.186 | 0.216 |
-| Gemini-2.5-Flash | 0.217 | 0.268 | 0.248 | 0.161 | 0.189 |
-| GPT-4o | 0.120 | 0.120 | 0.140 | 0.092 | 0.130 |
-| **By Scaffold** | | | | | |
-| PaperCoder | 0.249 | 0.344 | 0.262 | 0.179 | 0.211 |
-| OpenHands | 0.221 | 0.288 | 0.233 | 0.174 | 0.188 |
-| BasicAgent | 0.193 | 0.238 | 0.237 | 0.127 | 0.170 |
-
-### Full Generator × Scaffold Scores
-
-| Scaffold | Model | Overall | D1 | D2 | D3 | D4 |
-|----------|-------|---------|----|----|----|-----|
-| BasicAgent | Claude-Sonnet-4.6 | 0.272 | 0.391 | 0.307 | 0.169 | 0.219 |
-| BasicAgent | DeepSeek-V4-Pro | 0.268 | 0.379 | 0.308 | 0.180 | 0.204 |
-| BasicAgent | Gemini-2.5-Flash | 0.150 | 0.134 | 0.210 | 0.099 | 0.158 |
-| BasicAgent | GPT-4o | 0.081 | 0.047 | 0.121 | 0.058 | 0.100 |
-| PaperCoder | Claude-Sonnet-4.6 | 0.301 | 0.470 | 0.299 | 0.209 | 0.226 |
-| PaperCoder | DeepSeek-V4-Pro | 0.241 | 0.339 | 0.278 | 0.148 | 0.200 |
-| PaperCoder | Gemini-2.5-Flash | 0.256 | 0.335 | 0.270 | 0.198 | 0.222 |
-| PaperCoder | GPT-4o | 0.198 | 0.231 | 0.200 | 0.163 | 0.197 |
-| OpenHands | Claude-Sonnet-4.6 | 0.276 | 0.379 | 0.272 | 0.224 | 0.229 |
-| OpenHands | DeepSeek-V4-Pro | 0.282 | 0.357 | 0.297 | 0.229 | 0.244 |
-| OpenHands | Gemini-2.5-Flash | 0.243 | 0.335 | 0.264 | 0.187 | 0.187 |
-| OpenHands | GPT-4o | 0.082 | 0.082 | 0.098 | 0.056 | 0.093 |
-| **Mean** | | **0.221** | **0.290** | **0.244** | **0.160** | **0.190** |
-
-### Per-Paradigm Scores
-
-| Paradigm | Papers | Overall | D1 | D2 | D3 | D4 |
-|----------|--------|---------|----|----|----|-----|
-| New Algorithm / Architecture | 13 | 0.232 | 0.307 | 0.269 | 0.164 | 0.188 |
-| Theoretical Analysis | 5 | 0.225 | 0.276 | 0.222 | 0.192 | 0.211 |
-| System / Pipeline | 3 | 0.217 | 0.269 | 0.231 | 0.163 | 0.203 |
-| Empirical Comparison | 2 | 0.212 | 0.239 | 0.290 | 0.145 | 0.173 |
-| Generative Models | 2 | 0.210 | 0.351 | 0.190 | 0.125 | 0.172 |
-| Incremental Improvement | 5 | 0.198 | 0.268 | 0.210 | 0.135 | 0.179 |
-
----
-
-## PaperBench Pilot Study
-
-Claude Sonnet 4.6 + BasicAgent (ReAct, max\_steps=80, time\_limit=900s) on five ICML 2024 papers from PaperBench-dev. The two lower-scoring runs keep the existing GPT-4o grades, while the three initially high-scoring runs are re-scored with the same code-only BasicAgent judge using o3-mini. Raw resource usage is harvested from each run's `meta.json`, and scores from `grade.json`.
-
-| Paper | Score | Pass | Total | Steps | Time (s) | Cost | Termination |
-|-------|-------|------|-------|-------|----------|------|-------------|
-| sample-specific-masks | 0.603 | 44 | 87 | 81 | 652.4 | $6.10 | Step limit |
-| pinn | 0.482 | 66 | 126 | 35 | 909.4 | $4.10 | Time limit |
-| fre | 0.331 | 113 | 306 | 24 | 909.1 | $2.11 | Time limit |
-| mechanistic-understanding | 0.238 | 10 | 36 | 37 | 1252.5 | $5.81 | Time limit |
-| all-in-one | 0.117 | 15 | 92 | 81 | 478.1 | $3.41 | Step limit |
-
-The D1--D4 drift taxonomy was derived inductively from 399 score-0 leaf nodes across these five runs (see paper Appendix for judge reasoning excerpts and failure analysis).
-
----
+| Dimension | SAUs | Mean score | Full-mark rate | Zero rate |
+| --- | ---: | ---: | ---: | ---: |
+| D1: Numerical Precision | 523 | 0.290 | 9.7% | 39.6% |
+| D2: Formulas / Algorithms | 503 | 0.244 | 5.4% | 35.8% |
+| D3: Experiment Protocols | 300 | 0.160 | 0.7% | 44.8% |
+| D4: Pipelines / Procedures | 165 | 0.190 | 0.9% | 33.7% |
 
 ## Repository Structure
 
-```
+```text
 SemanticAlign-Bench/
-├── sa_bench/                  # SAU scoring pipeline (Python SDK + CLI)
-│   ├── cli.py                 #   CLI entry point
-│   ├── scorer.py              #   SAUScorer public API
-│   ├── pipeline.py            #   Scoring orchestration
-│   ├── judge.py               #   Dimension-specific LLM judge
-│   ├── index.py               #   RepoIndex for code search
-│   └── prompts/               #   D1-D4 judge system prompts
-├── baselines/                 # Agent scaffolds
-│   ├── BasicAgent/            #   Our ReAct baseline
-│   ├── PaperCoder/            #   Specialized paper-to-code
-│   └── OpenHands/             #   General coding scaffold
-├── experiments/
-│   ├── runs/                  #   Per-config results (30 papers × 12 configs)
-│   └── specs/                 #   Experiment configuration files
-├── paperbench_case_study/     # Pilot study: Sonnet 4.6 on 5 ICML 2024 papers
-│   ├── papers/                #   Source PDFs
-│   └── sonnet46-basicagent/   #   Generated repos + analysis
+├── sa_bench/                  # Python SDK and SAU scoring CLI
+│   ├── scorer.py              # Public SAUScorer API
+│   ├── pipeline.py            # Scoring orchestration
+│   ├── judge.py               # Dimension-specific LLM judge
+│   ├── index.py               # Repository indexing and code search
+│   └── prompts/               # D1-D4 judge prompts
+├── baselines/                 # BasicAgent, PaperCoder, and OpenHands scaffolds
+├── experiments/               # Reference generation runs and result artifacts
+├── figure/                    # README and paper figures
+├── HF_DATASET_CARD_README.md  # Hugging Face dataset card
+└── pyproject.toml             # Package metadata and CLI entry point
 ```
 
-## License
+## Citation
 
-Code: MIT. Dataset annotations: CC-BY-4.0.
+```bibtex
+@article{hu2026sabench,
+  title         = {SA-Bench: Evaluating Semantic Alignment in LLM-Based Paper Reproduction},
+  author        = {Hu, Xue and Pan, Zewei and Su, Zeli and Liu, Zhou and Zhang, Wentao},
+  journal       = {arXiv preprint arXiv:2608.24252},
+  year          = {2026},
+  url           = {https://arxiv.org/abs/2608.24252}
+}
+```
+
+Code is released under the MIT License. Dataset annotations are released under CC-BY-4.0; source papers retain their original licenses.
