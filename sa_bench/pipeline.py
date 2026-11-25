@@ -6,7 +6,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 from .aggregator import aggregate_result
-from .cache import ScoreCache
+from .cache import ScoreCache, repo_fingerprint
 from .cc_agent import ClaudeCodeAgent
 from .claims import filter_claims, load_claims, sau_path_for_paper
 from .judge import judge_claim_batch
@@ -37,10 +37,11 @@ class SAUScoringPipeline:
             raise ValueError(f"No claims found for dimensions {[dim.value for dim in dims]} in {sau_path}")
 
         scored_by_dim: dict[Dimension, list[ScoredClaim]] = {dim: [] for dim in dims}
+        repo_key = repo_fingerprint(repo) if self.cache.cache_dir is not None else ""
         agent = ClaudeCodeAgent(repo, self.config)
         pending: list[tuple[SAUClaim, EvidenceReport]] = []
         for claim in claims:
-            cached = self.cache.get(actual_paper_id, claim.id)
+            cached = self.cache.get(actual_paper_id, claim.id, repo_key)
             if cached is not None:
                 scored_by_dim[claim.dimension].append(cached)
                 continue
@@ -61,7 +62,7 @@ class SAUScoringPipeline:
                 search_trace=report.search_trace,
                 judge_reasoning=judge.reasoning,
             )
-            self.cache.set(actual_paper_id, scored)
+            self.cache.set(actual_paper_id, scored, repo_key)
             scored_by_dim[claim.dimension].append(scored)
         return aggregate_result(
             paper_id=actual_paper_id,
