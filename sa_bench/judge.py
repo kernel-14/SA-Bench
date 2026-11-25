@@ -116,10 +116,10 @@ def judge_claim_batch(
     batches = _chunked(pending, max(1, config.judge_batch_size))
     if len(batches) == 1 or config.judge_workers <= 1:
         for batch in batches:
-            judged.extend(_judge_batch_with_llm(batch, config=config, client=client))
+            judged.extend(_judge_batch_with_fallback(batch, config=config, client=client))
     else:
         with ThreadPoolExecutor(max_workers=min(config.judge_workers, len(batches))) as pool:
-            futures = {pool.submit(_judge_batch_with_llm, batch, config=config, client=client): idx for idx, batch in enumerate(batches)}
+            futures = {pool.submit(_judge_batch_with_fallback, batch, config=config, client=client): idx for idx, batch in enumerate(batches)}
             ordered_batches: list[list[JudgeResult] | None] = [None] * len(batches)
             for future in as_completed(futures):
                 idx = futures[future]
@@ -136,6 +136,26 @@ def judge_claim_batch(
         results.append(result)
 
     return _ordered_results(items, results)
+
+
+def _judge_batch_with_fallback(
+    items: list[tuple[SAUClaim, EvidenceReport]],
+    *,
+    config: PipelineConfig,
+    client: Any | None,
+) -> list[JudgeResult]:
+    """Judge a batch; if the batch call keeps failing, judge its claims one at a time.
+
+    A batch fails as a unit (empty or malformed response, wrong result count), which would
+    otherwise drop every claim in it. Single-claim prompts are shorter and usually succeed.
+    The rubric, prompt and evidence are unchanged; only the grouping differs.
+    """
+    try:
+        return _judge_batch_with_llm(items, config=config, client=client)
+    except ValueError:
+        if len(items) == 1:
+            raise
+    return [_judge_with_llm(claim, report, config=config, client=client) for claim, report in items]
 
 
 def _judge_with_llm(
